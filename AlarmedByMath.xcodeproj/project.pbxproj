@@ -1,0 +1,503 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BB000000000000000000003B /* AlarmedByMathApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003A /* AlarmedByMathApp.swift */; };
+		BB000000000000000000004B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000004A /* ContentView.swift */; };
+		BB000000000000000000005B /* Alarm.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000005A /* Alarm.swift */; };
+		BB000000000000000000006B /* MathProblem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000006A /* MathProblem.swift */; };
+		BB000000000000000000007B /* AlarmStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000007A /* AlarmStore.swift */; };
+		BB000000000000000000008B /* AlarmScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000008A /* AlarmScheduler.swift */; };
+		BB000000000000000000009B /* AddAlarmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000009A /* AddAlarmView.swift */; };
+		BB00000000000000000000AB /* AlarmRingingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000AA /* AlarmRingingView.swift */; };
+		BB00000000000000000000BB /* MathChallengeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000BA /* MathChallengeView.swift */; };
+		BB00000000000000000000DB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000DA /* Assets.xcassets */; };
+		BB00000000000000000000EB /* MathProblemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000EA /* MathProblemTests.swift */; };
+		BB00000000000000000000FB /* AlarmTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000FA /* AlarmTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BEEF00000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 00000000000000000000000F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EE000000000000000000001E;
+			remoteInfo = AlarmedByMath;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		AA000000000000000000001A /* AlarmedByMath.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlarmedByMath.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000000000000000000002A /* AlarmedByMathTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlarmedByMathTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000000000000000000003A /* AlarmedByMathApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmedByMathApp.swift; sourceTree = "<group>"; };
+		AA000000000000000000004A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AA000000000000000000005A /* Alarm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Alarm.swift; sourceTree = "<group>"; };
+		AA000000000000000000006A /* MathProblem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathProblem.swift; sourceTree = "<group>"; };
+		AA000000000000000000007A /* AlarmStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmStore.swift; sourceTree = "<group>"; };
+		AA000000000000000000008A /* AlarmScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmScheduler.swift; sourceTree = "<group>"; };
+		AA000000000000000000009A /* AddAlarmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAlarmView.swift; sourceTree = "<group>"; };
+		AA00000000000000000000AA /* AlarmRingingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmRingingView.swift; sourceTree = "<group>"; };
+		AA00000000000000000000BA /* MathChallengeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathChallengeView.swift; sourceTree = "<group>"; };
+		AA00000000000000000000CA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA00000000000000000000DA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA00000000000000000000EA /* MathProblemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathProblemTests.swift; sourceTree = "<group>"; };
+		AA00000000000000000000FA /* AlarmTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DD000000000000000000003D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DD000000000000000000006D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CC000000000000000000001C = {
+			isa = PBXGroup;
+			children = (
+				CC000000000000000000003C /* AlarmedByMath */,
+				CC000000000000000000007C /* AlarmedByMathTests */,
+				CC000000000000000000002C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CC000000000000000000002C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000001A /* AlarmedByMath.app */,
+				AA000000000000000000002A /* AlarmedByMathTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CC000000000000000000003C /* AlarmedByMath */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000003A /* AlarmedByMathApp.swift */,
+				AA000000000000000000004A /* ContentView.swift */,
+				CC000000000000000000004C /* Models */,
+				CC000000000000000000005C /* Services */,
+				CC000000000000000000006C /* Views */,
+				AA00000000000000000000DA /* Assets.xcassets */,
+				AA00000000000000000000CA /* Info.plist */,
+			);
+			path = AlarmedByMath;
+			sourceTree = "<group>";
+		};
+		CC000000000000000000004C /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000005A /* Alarm.swift */,
+				AA000000000000000000006A /* MathProblem.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CC000000000000000000005C /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000007A /* AlarmStore.swift */,
+				AA000000000000000000008A /* AlarmScheduler.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		CC000000000000000000006C /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000009A /* AddAlarmView.swift */,
+				AA00000000000000000000AA /* AlarmRingingView.swift */,
+				AA00000000000000000000BA /* MathChallengeView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		CC000000000000000000007C /* AlarmedByMathTests */ = {
+			isa = PBXGroup;
+			children = (
+				AA00000000000000000000EA /* MathProblemTests.swift */,
+				AA00000000000000000000FA /* AlarmTests.swift */,
+			);
+			path = AlarmedByMathTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EE000000000000000000001E /* AlarmedByMath */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FF000000000000000000002F /* Build configuration list for PBXNativeTarget "AlarmedByMath" */;
+			buildPhases = (
+				DD000000000000000000001D /* Sources */,
+				DD000000000000000000002D /* Resources */,
+				DD000000000000000000003D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AlarmedByMath;
+			productName = AlarmedByMath;
+			productReference = AA000000000000000000001A /* AlarmedByMath.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EE000000000000000000002E /* AlarmedByMathTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FF000000000000000000003F /* Build configuration list for PBXNativeTarget "AlarmedByMathTests" */;
+			buildPhases = (
+				DD000000000000000000004D /* Sources */,
+				DD000000000000000000005D /* Resources */,
+				DD000000000000000000006D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DEAD00000000000000000001 /* PBXTargetDependency */,
+			);
+			name = AlarmedByMathTests;
+			productName = AlarmedByMathTests;
+			productReference = AA000000000000000000002A /* AlarmedByMathTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		00000000000000000000000F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					EE000000000000000000001E = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					EE000000000000000000002E = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = EE000000000000000000001E;
+					};
+				};
+			};
+			buildConfigurationList = FF000000000000000000001F /* Build configuration list for PBXProject "AlarmedByMath" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CC000000000000000000001C;
+			productRefGroup = CC000000000000000000002C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EE000000000000000000001E /* AlarmedByMath */,
+				EE000000000000000000002E /* AlarmedByMathTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DD000000000000000000002D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB00000000000000000000DB /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DD000000000000000000005D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DD000000000000000000001D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB000000000000000000003B /* AlarmedByMathApp.swift in Sources */,
+				BB000000000000000000004B /* ContentView.swift in Sources */,
+				BB000000000000000000005B /* Alarm.swift in Sources */,
+				BB000000000000000000006B /* MathProblem.swift in Sources */,
+				BB000000000000000000007B /* AlarmStore.swift in Sources */,
+				BB000000000000000000008B /* AlarmScheduler.swift in Sources */,
+				BB000000000000000000009B /* AddAlarmView.swift in Sources */,
+				BB00000000000000000000AB /* AlarmRingingView.swift in Sources */,
+				BB00000000000000000000BB /* MathChallengeView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DD000000000000000000004D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB00000000000000000000EB /* MathProblemTests.swift in Sources */,
+				BB00000000000000000000FB /* AlarmTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DEAD00000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EE000000000000000000001E /* AlarmedByMath */;
+			targetProxy = BEEF00000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		F0000000000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLE = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_EXCEPTION = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F0000000000000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLE = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_EXCEPTION = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F0000000000000000000000C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlarmedByMath/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alarmedbymath.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F0000000000000000000000D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlarmedByMath/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alarmedbymath.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F0000000000000000000000E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alarmedbymath.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AlarmedByMath.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AlarmedByMath";
+			};
+			name = Debug;
+		};
+		F000000000000000000000F0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alarmedbymath.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AlarmedByMath.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AlarmedByMath";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FF000000000000000000001F /* Build configuration list for PBXProject "AlarmedByMath" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0000000000000000000000A /* Debug */,
+				F0000000000000000000000B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FF000000000000000000002F /* Build configuration list for PBXNativeTarget "AlarmedByMath" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0000000000000000000000C /* Debug */,
+				F0000000000000000000000D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FF000000000000000000003F /* Build configuration list for PBXNativeTarget "AlarmedByMathTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0000000000000000000000E /* Debug */,
+				F000000000000000000000F0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = 00000000000000000000000F /* Project object */;
+}
