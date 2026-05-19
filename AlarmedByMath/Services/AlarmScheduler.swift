@@ -146,7 +146,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
                 .playback, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
             audioPlayer              = try AVAudioPlayer(contentsOf: soundURL)
-            audioPlayer?.numberOfLoops = -1
+            audioPlayer?.numberOfLoops = -1  // -1 means loop indefinitely until stopped
             audioPlayer?.play()
         } catch {
             AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)

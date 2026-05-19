@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Presents a random math problem that the user must solve correctly to dismiss the alarm.
 ///
-/// Behaviour:
+/// Behavior:
 /// - The alarm is **snoozed immediately** when this view appears (sound stops; a re-ring
 ///   notification is scheduled for 5 minutes later).
 /// - A correct answer cancels the snooze notification and fully dismisses the alarm.
