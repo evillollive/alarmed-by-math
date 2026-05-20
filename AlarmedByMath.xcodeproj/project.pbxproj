@@ -89,7 +89,6 @@
 			isa = PBXGroup;
 			children = (
 				AA000000000000000000003A /* AlarmedByMathApp.swift */,
-				AA000000000000000000004A /* ContentView.swift */,
 				CC000000000000000000004C /* Models */,
 				CC000000000000000000005C /* Services */,
 				CC000000000000000000006C /* Views */,
@@ -120,6 +119,7 @@
 		CC000000000000000000006C /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				AA000000000000000000004A /* ContentView.swift */,
 				AA000000000000000000009A /* AddAlarmView.swift */,
 				AA00000000000000000000AA /* AlarmRingingView.swift */,
 				AA00000000000000000000BA /* MathChallengeView.swift */,
