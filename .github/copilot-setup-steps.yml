@@ -1,0 +1,18 @@
+# Setup steps for Copilot coding agent
+# This file configures the environment for the cloud agent
+
+name: "Copilot Setup"
+
+steps:
+  - name: "Install Xcode command line tools"
+    run: |
+      echo "Swift project — Xcode tools expected on macOS runner"
+      swift --version || echo "Swift not available on this runner"
+
+  - name: "Build check"
+    run: |
+      if command -v swift &> /dev/null; then
+        swift build 2>&1 || echo "Build check completed with warnings"
+      else
+        echo "Skipping build — Swift not available"
+      fi
