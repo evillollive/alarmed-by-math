@@ -30,7 +30,25 @@ class AlarmStore: ObservableObject {
     func toggle(_ alarm: Alarm) {
         var updated = alarm
         updated.isEnabled.toggle()
+        // Reset hasFired when re-enabling a one-time alarm
+        if updated.isEnabled && updated.isOneTime {
+            updated.hasFired = false
+        }
         update(updated)
+    }
+
+    /// Marks a one-time alarm as fired so it won't be rescheduled.
+    func markFired(_ alarm: Alarm) {
+        guard alarm.isOneTime else { return }
+        var updated = alarm
+        updated.hasFired = true
+        update(updated)
+    }
+
+    /// Finds an alarm by its UUID string.
+    func alarm(forID idString: String) -> Alarm? {
+        guard let uuid = UUID(uuidString: idString) else { return nil }
+        return alarms.first { $0.id == uuid }
     }
 
     // MARK: - Persistence

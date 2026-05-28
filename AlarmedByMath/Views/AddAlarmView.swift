@@ -9,6 +9,9 @@ struct AddAlarmView: View {
     @State private var label        = ""
     @State private var repeatDays: Set<Int> = []
 
+    /// Alarm to edit; nil means creating a new alarm.
+    var editingAlarm: Alarm?
+
     private let daySymbols = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
     var body: some View {
@@ -16,7 +19,7 @@ struct AddAlarmView: View {
             Form {
                 Section {
                     DatePicker(
-                        "",
+                        "Alarm time",
                         selection: $selectedTime,
                         displayedComponents: .hourAndMinute
                     )
@@ -47,7 +50,7 @@ struct AddAlarmView: View {
                     .padding(.vertical, 4)
                 }
             }
-            .navigationTitle("New Alarm")
+            .navigationTitle(editingAlarm == nil ? "New Alarm" : "Edit Alarm")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -58,20 +61,47 @@ struct AddAlarmView: View {
                         .fontWeight(.semibold)
                 }
             }
+            .onAppear(perform: populateFromEditingAlarm)
+        }
+    }
+
+    private func populateFromEditingAlarm() {
+        guard let alarm = editingAlarm else { return }
+        label = alarm.label
+        repeatDays = alarm.repeatDays
+        var cal = Calendar.current
+        cal.timeZone = .current
+        var components = DateComponents()
+        components.hour = alarm.hour
+        components.minute = alarm.minute
+        if let date = cal.date(from: components) {
+            selectedTime = date
         }
     }
 
     private func save() {
         let cal        = Calendar.current
         let components = cal.dateComponents([.hour, .minute], from: selectedTime)
-        let alarm      = Alarm(
-            label:      label,
-            hour:       components.hour   ?? 8,
-            minute:     components.minute ?? 0,
-            repeatDays: repeatDays
-        )
-        alarmStore.add(alarm)
-        scheduler.schedule(alarm)
+
+        if var existing = editingAlarm {
+            existing.label = label
+            existing.hour = components.hour ?? existing.hour
+            existing.minute = components.minute ?? existing.minute
+            existing.repeatDays = repeatDays
+            existing.hasFired = false
+            scheduler.cancel(existing)
+            alarmStore.update(existing)
+            scheduler.schedule(existing)
+        } else {
+            let alarm = Alarm(
+                label:      label,
+                hour:       components.hour   ?? 8,
+                minute:     components.minute ?? 0,
+                repeatDays: repeatDays
+            )
+            alarmStore.add(alarm)
+            scheduler.schedule(alarm)
+        }
         dismiss()
     }
 }
@@ -95,5 +125,8 @@ struct DayToggleButton: View {
                 .clipShape(Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }

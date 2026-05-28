@@ -3,13 +3,15 @@ import SwiftUI
 /// Presents a random math problem that the user must solve correctly to dismiss the alarm.
 ///
 /// Behavior:
-/// - The alarm is **snoozed immediately** when this view appears (sound stops; a re-ring
-///   notification is scheduled for 5 minutes later).
+/// - The alarm sound **keeps playing** while this view is shown.
+/// - A snooze notification is scheduled in case the user backgrounds the app.
 /// - A correct answer cancels the snooze notification and fully dismisses the alarm.
 /// - A wrong answer shakes the input field, generates a new problem, and lets the user try again.
 struct MathChallengeView: View {
+    @EnvironmentObject var alarmStore: AlarmStore
     @EnvironmentObject var scheduler: AlarmScheduler
     @Environment(\.dismiss) var dismiss
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     @State private var problem     = MathProblem.generate()
     @State private var userInput   = ""
@@ -33,6 +35,7 @@ struct MathChallengeView: View {
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                     .padding(.horizontal)
+                    .accessibilityLabel("Solve: \(problem.expression)")
 
                 // Answer display box
                 ZStack {
@@ -45,7 +48,8 @@ struct MathChallengeView: View {
                         .foregroundColor(userInput.isEmpty ? .secondary : .primary)
                 }
                 .padding(.horizontal, 60)
-                .modifier(ShakeModifier(active: isWrong))
+                .modifier(ShakeModifier(active: isWrong, reduceMotion: reduceMotion))
+                .accessibilityLabel("Your answer: \(userInput.isEmpty ? "empty" : userInput)")
 
                 Spacer()
 
@@ -54,10 +58,17 @@ struct MathChallengeView: View {
                     .padding(.bottom, 20)
             }
         }
-        .onAppear(perform: snoozeIfNeeded)
-        .onChange(of: showSuccess) { solved in
+        .interactiveDismissDisabled(true)
+        .onAppear(perform: scheduleSnoozeIfNeeded)
+        .onChange(of: showSuccess) { _, solved in
             guard solved else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                // Mark one-time alarms as fired
+                if let alarmID = scheduler.activeAlarmID,
+                   let alarm = alarmStore.alarm(forID: alarmID),
+                   alarm.isOneTime {
+                    alarmStore.markFired(alarm)
+                }
                 scheduler.dismiss()
                 dismiss()
             }
@@ -74,7 +85,7 @@ struct MathChallengeView: View {
 
             if hasSnoozed {
                 Label(
-                    "Alarm snoozed — solve the problem to fully dismiss",
+                    "Alarm will re-ring if not solved",
                     systemImage: "moon.zzz.fill"
                 )
                 .font(.caption)
@@ -87,7 +98,8 @@ struct MathChallengeView: View {
 
     // MARK: - Logic
 
-    private func snoozeIfNeeded() {
+    /// Schedules a snooze notification as a safety net, but does NOT stop the alarm sound.
+    private func scheduleSnoozeIfNeeded() {
         guard !hasSnoozed else { return }
         hasSnoozed = true
         scheduler.snooze()
@@ -101,6 +113,7 @@ struct MathChallengeView: View {
         if answer == problem.answer {
             showSuccess = true
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+            UIAccessibility.post(notification: .announcement, argument: "Correct! Alarm dismissed.")
         } else {
             triggerWrong()
         }
@@ -108,6 +121,7 @@ struct MathChallengeView: View {
 
     private func triggerWrong() {
         UINotificationFeedbackGenerator().notificationOccurred(.error)
+        UIAccessibility.post(notification: .announcement, argument: "Incorrect, try again.")
         isWrong = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             isWrong    = false
@@ -169,6 +183,15 @@ struct NumberKey: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityName)
+    }
+
+    private var accessibilityName: String {
+        switch label {
+        case "⌫": return "Delete"
+        case "✓": return "Submit answer"
+        default:  return label
+        }
     }
 }
 
@@ -176,13 +199,14 @@ struct NumberKey: View {
 
 struct ShakeModifier: ViewModifier {
     let active: Bool
+    var reduceMotion: Bool = false
     @State private var offsetX: CGFloat = 0
 
     func body(content: Content) -> some View {
         content
             .offset(x: offsetX)
-            .onChange(of: active) { isActive in
-                guard isActive else { return }
+            .onChange(of: active) { _, isActive in
+                guard isActive, !reduceMotion else { return }
                 let steps: [(Double, CGFloat)] = [
                     (0.00, 10), (0.10, -10), (0.20, 8), (0.30, 0),
                 ]
