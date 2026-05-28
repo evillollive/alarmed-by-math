@@ -5,6 +5,7 @@ import SwiftUI
 struct AlarmRingingView: View {
     @EnvironmentObject var alarmStore: AlarmStore
     @EnvironmentObject var scheduler:  AlarmScheduler
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     @State private var showingMath = false
     @State private var pulsing     = false
@@ -29,15 +30,16 @@ struct AlarmRingingView: View {
                     Circle()
                         .fill(Color.red.opacity(0.2))
                         .frame(width: 180, height: 180)
-                        .scaleEffect(pulsing ? 1.25 : 1.0)
+                        .scaleEffect(pulsing && !reduceMotion ? 1.25 : 1.0)
                         .animation(
-                            .easeInOut(duration: 1).repeatForever(autoreverses: true),
+                            reduceMotion ? nil : .easeInOut(duration: 1).repeatForever(autoreverses: true),
                             value: pulsing
                         )
 
                     Image(systemName: "alarm.fill")
                         .font(.system(size: 80))
                         .foregroundColor(.red)
+                        .accessibilityLabel("Alarm ringing")
                 }
 
                 // Time + optional label
@@ -50,6 +52,8 @@ struct AlarmRingingView: View {
                     Text(currentTimeString)
                         .font(.system(size: 80, weight: .thin, design: .rounded))
                         .foregroundColor(.white)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
                 }
 
                 Spacer()
@@ -68,11 +72,14 @@ struct AlarmRingingView: View {
                 }
                 .padding(.horizontal, 40)
                 .padding(.bottom, 60)
+                .accessibilityHint("Opens a math problem you must solve to turn off the alarm")
             }
         }
         .onAppear { pulsing = true }
+        .interactiveDismissDisabled(true)
         .fullScreenCover(isPresented: $showingMath) {
             MathChallengeView()
+                .environmentObject(alarmStore)
                 .environmentObject(scheduler)
         }
     }
