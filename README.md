@@ -1,6 +1,6 @@
 # Alarmed by Math 🔔🧮
 
-An iOS alarm app that forces you to solve a math problem before you can dismiss the alarm — no more sleeping through snooze.
+An iOS alarm app that forces you to solve a math problem before you can dismiss the alarm. No more sleeping through snooze!
 
 ## Features
 
