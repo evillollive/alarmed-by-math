@@ -6,19 +6,40 @@ import MediaPlayer
 
 /// Manages alarm scheduling, in-app audio playback, and the ringing state.
 ///
-/// Registered as the `UNUserNotificationCenterDelegate` so it can:
-/// - Surface foreground notifications as a full-screen ringing UI.
-/// - Handle notification taps that launch the app from the background.
+/// Locked-screen behaviour depends on the OS:
+/// - **iOS 26+**: alarms are handed to `AlarmKitScheduler`, which rings like the
+///   system Clock app (sounds on the lock screen, breaks through silent mode and
+///   Focus). The math gate is enforced there via re-ringing.
+/// - **iOS 17–25**: AlarmKit does not exist, so we approximate a persistent
+///   alarm by scheduling a *chain* of notifications a few seconds apart, each
+///   playing the bundled sound, since a single notification only plays once and
+///   app code cannot run while the device is locked.
 class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     // MARK: - Published state
 
     @Published var activeAlarmID: String?
     @Published var isRinging: Bool = false
+    /// When true, the ringing UI should jump straight to the math challenge
+    /// (used on iOS 26 when the app is opened from the alarm's secondary button).
+    @Published var autoPresentMath: Bool = false
 
     // MARK: - Constants
 
     static let alarmCategory = "ALARM_CATEGORY"
+
+    /// Bundled alarm tone. Must be < 30 seconds or iOS silently substitutes the
+    /// default notification sound.
+    private static let soundFile = "alarm.caf"
+
+    /// Chained-notification fallback tuning (iOS 17–25).
+    private static let chainSpacing: TimeInterval = 30   // seconds between rings
+    private static let chainBurst    = 24                // ~12 minutes of ringing
+    private static let chainBudget   = 58                // stay under iOS's 64 limit
+
+    private var useAlarmKit: Bool {
+        if #available(iOS 26.1, *) { return true } else { return false }
+    }
 
     // MARK: - Active alarm state (set when ringing starts)
 
@@ -46,22 +67,108 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             .requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
                 DispatchQueue.main.async { completion(granted) }
             }
+        // AlarmKit has its own authorization, requested lazily when scheduling.
     }
 
-    // MARK: - Scheduling helpers
+    // MARK: - Scheduling
 
-    /// Re-schedules all enabled alarms (call after store changes).
+    /// Re-schedules all enabled alarms (call after store changes / on launch).
     func scheduleAlarms(_ alarms: [Alarm]) {
-        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        alarms.filter(\.isEnabled).forEach { schedule($0) }
+        if #available(iOS 26.1, *) {
+            Task { await AlarmKitScheduler.scheduleAll(alarms) }
+        } else {
+            scheduleChainedAll(alarms)
+        }
     }
 
-    /// Schedules local notification(s) for a single alarm.
+    /// Schedules a single alarm.
     func schedule(_ alarm: Alarm) {
+        if #available(iOS 26.1, *) {
+            Task { await AlarmKitScheduler.schedule(alarm) }
+        } else {
+            scheduleChained(alarm)
+        }
+    }
+
+    /// Removes all pending notifications / alarms for a given alarm.
+    func cancel(_ alarm: Alarm) {
+        if #available(iOS 26.1, *) {
+            AlarmKitScheduler.cancel(alarm.id.uuidString)
+        } else {
+            removeChained(alarm)
+        }
+    }
+
+    // MARK: - Chained notifications (iOS 17–25 fallback)
+
+    private func scheduleChainedAll(_ alarms: [Alarm]) {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        // Nearest alarms get priority on the shared budget.
+        let enabled = alarms
+            .filter(\.isEnabled)
+            .compactMap { alarm -> (Alarm, Date)? in
+                guard let next = Self.nextFireDate(for: alarm) else { return nil }
+                return (alarm, next)
+            }
+            .sorted { $0.1 < $1.1 }
+
+        var budget = Self.chainBudget
+        for (alarm, next) in enabled {
+            guard budget > 0 else { break }
+            budget -= scheduleChain(for: alarm, firstFire: next, budget: budget)
+        }
+    }
+
+    /// Convenience used by `schedule(_:)`; schedules just this alarm's chain.
+    /// A full, budget-balanced rebuild happens on the next app launch.
+    private func scheduleChained(_ alarm: Alarm) {
+        guard alarm.isEnabled, let next = Self.nextFireDate(for: alarm) else {
+            removeChained(alarm); return
+        }
+        removeChained(alarm)
+        _ = scheduleChain(for: alarm, firstFire: next, budget: Self.chainBudget)
+    }
+
+    /// Schedules the notification chain for one alarm and returns how many
+    /// notifications it consumed from the budget.
+    @discardableResult
+    private func scheduleChain(for alarm: Alarm, firstFire: Date, budget: Int) -> Int {
+        var used = 0
+        let cal = Calendar.current
+
+        // Long-term recurrence: one repeating notification per selected weekday.
+        if !alarm.repeatDays.isEmpty {
+            for day in alarm.repeatDays.sorted() {
+                guard used < budget else { return used }
+                var comps = DateComponents()
+                comps.hour    = alarm.hour
+                comps.minute  = alarm.minute
+                comps.weekday = day
+                let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: true)
+                add(makeChainRequest(alarm: alarm, identifier: "\(alarm.id.uuidString)-w\(day)", trigger: trigger))
+                used += 1
+            }
+        }
+
+        // Persistent burst for the soonest occurrence. For repeating alarms the
+        // exact-time ring is already covered above, so start one spacing later.
+        let startIndex = alarm.repeatDays.isEmpty ? 0 : 1
+        for k in startIndex..<Self.chainBurst {
+            guard used < budget else { break }
+            let fire = firstFire.addingTimeInterval(Double(k) * Self.chainSpacing)
+            let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: fire)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            add(makeChainRequest(alarm: alarm, identifier: "\(alarm.id.uuidString)::\(k)", trigger: trigger))
+            used += 1
+        }
+        return used
+    }
+
+    private func makeChainRequest(alarm: Alarm, identifier: String, trigger: UNNotificationTrigger) -> UNNotificationRequest {
         let content = UNMutableNotificationContent()
-        content.title              = alarm.label.isEmpty ? "Alarm" : alarm.label
+        content.title              = alarm.displayLabel
         content.body               = "Tap to solve a math problem and dismiss"
-        content.sound              = UNNotificationSound(named: UNNotificationSoundName("alarm.wav"))
+        content.sound              = UNNotificationSound(named: UNNotificationSoundName(Self.soundFile))
         content.interruptionLevel  = .timeSensitive
         content.categoryIdentifier = Self.alarmCategory
         var userInfo: [String: Any] = [
@@ -72,37 +179,33 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         ]
         if let songID = alarm.songPersistentID { userInfo["songPersistentID"] = songID }
         content.userInfo = userInfo
-
-        var components    = DateComponents()
-        components.hour   = alarm.hour
-        components.minute = alarm.minute
-
-        if alarm.repeatDays.isEmpty {
-            let trigger = UNCalendarNotificationTrigger(
-                dateMatching: components, repeats: false)
-            add(UNNotificationRequest(
-                identifier: alarm.id.uuidString,
-                content: content,
-                trigger: trigger))
-        } else {
-            for day in alarm.repeatDays {
-                components.weekday = day
-                let trigger = UNCalendarNotificationTrigger(
-                    dateMatching: components, repeats: true)
-                add(UNNotificationRequest(
-                    identifier: "\(alarm.id.uuidString)-\(day)",
-                    content: content,
-                    trigger: trigger))
-            }
-        }
+        return UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
     }
 
-    /// Removes all pending notifications for a given alarm.
-    func cancel(_ alarm: Alarm) {
-        var ids = [alarm.id.uuidString]
-        for day in 1...7 { ids.append("\(alarm.id.uuidString)-\(day)") }
-        UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: ids)
+    private func removeChained(_ alarm: Alarm) {
+        var ids: [String] = ["\(alarm.id.uuidString)-snooze", alarm.id.uuidString]
+        for day in 1...7 { ids.append("\(alarm.id.uuidString)-w\(day)") }
+        for k in 0..<Self.chainBurst { ids.append("\(alarm.id.uuidString)::\(k)") }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
+    /// Computes the next time an alarm will fire, mirroring `AlarmStore`.
+    static func nextFireDate(for alarm: Alarm) -> Date? {
+        let now = Date()
+        let cal = Calendar.current
+        var comps = DateComponents()
+        comps.hour   = alarm.hour
+        comps.minute = alarm.minute
+        comps.second = 0
+
+        if alarm.repeatDays.isEmpty {
+            return cal.nextDate(after: now.addingTimeInterval(-1), matching: comps, matchingPolicy: .nextTime)
+        }
+        return alarm.repeatDays.compactMap { weekday -> Date? in
+            var c = comps
+            c.weekday = weekday
+            return cal.nextDate(after: now.addingTimeInterval(-1), matching: c, matchingPolicy: .nextTime)
+        }.min()
     }
 
     // MARK: - Ringing state
@@ -120,25 +223,54 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         activeSnoozeDuration = snoozeDuration
         activeKeepRinging    = keepRinging
         isRinging            = true
+
+        if useAlarmKit {
+            // AlarmKit owns the sound on iOS 26; don't double up with in-app audio.
+            return
+        }
+        // Foreground ring: the queued chain is now redundant, cancel it so we
+        // don't double-fire while the user is in the app.
+        if let uuid = UUID(uuidString: alarmID) {
+            removeChainedByID(uuid)
+        }
         playAlarmSound(songPersistentID: songPersistentID, volume: volume)
     }
 
-    /// Stops the in-app sound and schedules a re-ring notification.
-    /// Called as soon as the user opens the math challenge view.
+    private func removeChainedByID(_ id: UUID) {
+        var ids: [String] = []
+        for k in 0..<Self.chainBurst { ids.append("\(id.uuidString)::\(k)") }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
+    /// On iOS 26 the app is opened straight into the math challenge for the
+    /// alarm whose secondary button was tapped. Returns true if a challenge was
+    /// presented.
+    @discardableResult
+    func presentMathIfPending() -> Bool {
+        guard let id = AlarmGate.pendingMathAlarmID else { return false }
+        AlarmGate.pendingMathAlarmID = nil
+        activeAlarmID   = id
+        autoPresentMath = true
+        isRinging       = true
+        return true
+    }
+
+    /// Stops the in-app sound and schedules a re-ring notification. Called as
+    /// soon as the user opens the math challenge view. No-op on iOS 26, where
+    /// AlarmKit keeps ringing and the gate enforces solving.
     func snooze() {
+        if useAlarmKit { return }
         guard let alarmID = activeAlarmID else { return }
-        // Only stop sound if keep-ringing is off; otherwise let it play through the challenge
         if !activeKeepRinging { stopSound() }
         StatsStore.shared.recordSnooze()
 
         let content = UNMutableNotificationContent()
         content.title              = "Snoozed Alarm"
         content.body               = "Tap to solve a math problem and dismiss"
-        content.sound              = UNNotificationSound(named: UNNotificationSoundName("alarm.wav"))
+        content.sound              = UNNotificationSound(named: UNNotificationSoundName(Self.soundFile))
         content.interruptionLevel  = .timeSensitive
         content.categoryIdentifier = Self.alarmCategory
 
-        // Carry all per-alarm settings into the snooze notification
         var userInfo: [String: Any] = [
             "alarmID":        alarmID,
             "volume":         String(activeVolume),
@@ -156,21 +288,24 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             trigger: trigger))
     }
 
-    /// Cancels the snooze notification and clears ringing state.
-    /// Called when the user solves the math problem correctly.
+    /// Clears ringing state once the user solves the math problem.
     func dismiss() {
-        guard let alarmID = activeAlarmID else { return }
+        let alarmID = activeAlarmID
         stopSound()
-        UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: ["\(alarmID)-snooze"])
-        activeAlarmID = nil
-        isRinging     = false
+        if #available(iOS 26.1, *) {
+            if let alarmID { AlarmKitScheduler.solve(alarmID) }
+        } else if let alarmID {
+            UNUserNotificationCenter.current()
+                .removePendingNotificationRequests(withIdentifiers: ["\(alarmID)-snooze"])
+        }
+        activeAlarmID   = nil
+        isRinging       = false
+        autoPresentMath = false
     }
 
-    // MARK: - Audio
+    // MARK: - Audio (foreground only)
 
     private func playAlarmSound(songPersistentID: String? = nil, volume: Float = 1.0) {
-        // Configure audio session to play over silent switch and on lock screen
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playback, mode: .default, options: [.duckOthers])
@@ -179,7 +314,6 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             print("Audio session setup failed: \(error)")
         }
 
-        // Try the user's chosen song first
         if let idString = songPersistentID,
            let persistentID = UInt64(idString) {
             let query = MPMediaQuery.songs()
@@ -193,15 +327,15 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
                     audioPlayer?.numberOfLoops = -1
                     audioPlayer?.volume        = volume
                     audioPlayer?.play()
-                    return  // Successfully playing the chosen song
+                    return
                 } catch {
-                    // Fall through to default sound below
+                    // Fall through to bundled sound below.
                 }
             }
         }
 
-        // Fall back to bundled alarm file
-        let url = Bundle.main.url(forResource: "alarm", withExtension: "wav")
+        let url = Bundle.main.url(forResource: "alarm", withExtension: "caf")
+               ?? Bundle.main.url(forResource: "alarm", withExtension: "wav")
                ?? Bundle.main.url(forResource: "alarm", withExtension: "mp3")
 
         guard let soundURL = url else {
@@ -219,13 +353,11 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         }
     }
 
-    /// Loops vibration + a built-in system alert tone until stopSound() is called.
     private func startFallbackLoop() {
         playFallbackOnce()
         fallbackTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { [weak self] _ in
             self?.playFallbackOnce()
         }
-        // Ensure the timer fires even while scroll views are tracking
         if let timer = fallbackTimer {
             RunLoop.main.add(timer, forMode: .common)
         }
@@ -234,7 +366,6 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     private func playFallbackOnce() {
         let sound = SettingsStore.shared.alarmSound
         AudioServicesPlaySystemSound(sound.systemSoundID)
-        // Always vibrate alongside the sound for maximum annoyance
         if sound != .buzzOnly {
             AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
         }
@@ -256,16 +387,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        let info          = notification.request.content.userInfo
-        let alarmID       = info["alarmID"] as? String ?? notification.request.identifier
-        let songID        = info["songPersistentID"] as? String
-        let volume        = (info["volume"] as? String).flatMap(Float.init) ?? 1.0
-        let snoozeDur     = info["snoozeDuration"] as? Int ?? 5
-        let keepRinging   = info["keepRinging"] as? Bool ?? false
-        DispatchQueue.main.async {
-            self.startRinging(alarmID: alarmID, songPersistentID: songID,
-                              volume: volume, snoozeDuration: snoozeDur, keepRinging: keepRinging)
-        }
+        startRingingFromNotification(notification)
         completionHandler([.banner, .sound])
     }
 
@@ -274,8 +396,13 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        let info        = response.notification.request.content.userInfo
-        let alarmID     = info["alarmID"] as? String ?? response.notification.request.identifier
+        startRingingFromNotification(response.notification)
+        completionHandler()
+    }
+
+    private func startRingingFromNotification(_ notification: UNNotification) {
+        let info        = notification.request.content.userInfo
+        let alarmID     = info["alarmID"] as? String ?? notification.request.identifier
         let songID      = info["songPersistentID"] as? String
         let volume      = (info["volume"] as? String).flatMap(Float.init) ?? 1.0
         let snoozeDur   = info["snoozeDuration"] as? Int ?? 5
@@ -284,7 +411,6 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             self.startRinging(alarmID: alarmID, songPersistentID: songID,
                               volume: volume, snoozeDuration: snoozeDur, keepRinging: keepRinging)
         }
-        completionHandler()
     }
 
     // MARK: - Private helpers

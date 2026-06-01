@@ -19,12 +19,16 @@
 		BB00000000000000000000DB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000DA /* Assets.xcassets */; };
 		BB00000000000000000000EB /* MathProblemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000EA /* MathProblemTests.swift */; };
 		BB00000000000000000000FB /* AlarmTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000FA /* AlarmTests.swift */; };
+		BB0000000000000000000800 /* AlarmGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000800 /* AlarmGateTests.swift */; };
 		BB0000000000000000000100 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000100 /* Theme.swift */; };
 		BB0000000000000000000200 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000200 /* SettingsStore.swift */; };
 		BB0000000000000000000300 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000300 /* SettingsView.swift */; };
 		BB0000000000000000000400 /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000400 /* StatsStore.swift */; };
 		BB0000000000000000000500 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000500 /* StatsView.swift */; };
+		BB0000000000000000000600 /* AlarmGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000600 /* AlarmGate.swift */; };
+		BB0000000000000000000700 /* AlarmKitScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000700 /* AlarmKitScheduler.swift */; };
 		A1B2C3D4E5F60002 /* alarm.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001 /* alarm.wav */; };
+		A1B2C3D4E5F60004 /* alarm.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60003 /* alarm.caf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,12 +57,16 @@
 		AA00000000000000000000DA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA00000000000000000000EA /* MathProblemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathProblemTests.swift; sourceTree = "<group>"; };
 		AA00000000000000000000FA /* AlarmTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000000800 /* AlarmGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmGateTests.swift; sourceTree = "<group>"; };
 		AA0000000000000000000100 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		AA0000000000000000000200 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		AA0000000000000000000300 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000400 /* StatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStore.swift; sourceTree = "<group>"; };
 		AA0000000000000000000500 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000600 /* AlarmGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmGate.swift; sourceTree = "<group>"; };
+		AA0000000000000000000700 /* AlarmKitScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmKitScheduler.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60001 /* alarm.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = alarm.wav; sourceTree = "<group>"; };
+		A1B2C3D4E5F60003 /* alarm.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = alarm.caf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,6 +110,7 @@
 			children = (
 				AA000000000000000000003A /* AlarmedByMathApp.swift */,
 				A1B2C3D4E5F60001 /* alarm.wav */,
+				A1B2C3D4E5F60003 /* alarm.caf */,
 				AA0000000000000000000100 /* Theme.swift */,
 				CC000000000000000000004C /* Models */,
 				CC000000000000000000005C /* Services */,
@@ -126,6 +135,8 @@
 			children = (
 				AA000000000000000000007A /* AlarmStore.swift */,
 				AA000000000000000000008A /* AlarmScheduler.swift */,
+				AA0000000000000000000600 /* AlarmGate.swift */,
+				AA0000000000000000000700 /* AlarmKitScheduler.swift */,
 				AA0000000000000000000200 /* SettingsStore.swift */,
 				AA0000000000000000000400 /* StatsStore.swift */,
 			);
@@ -150,6 +161,7 @@
 			children = (
 				AA00000000000000000000EA /* MathProblemTests.swift */,
 				AA00000000000000000000FA /* AlarmTests.swift */,
+				AA0000000000000000000800 /* AlarmGateTests.swift */,
 			);
 			path = AlarmedByMathTests;
 			sourceTree = "<group>";
@@ -237,6 +249,7 @@
 			files = (
 				BB00000000000000000000DB /* Assets.xcassets in Resources */,
 				A1B2C3D4E5F60002 /* alarm.wav in Resources */,
+				A1B2C3D4E5F60004 /* alarm.caf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -261,6 +274,8 @@
 				BB000000000000000000006B /* MathProblem.swift in Sources */,
 				BB000000000000000000007B /* AlarmStore.swift in Sources */,
 				BB000000000000000000008B /* AlarmScheduler.swift in Sources */,
+				BB0000000000000000000600 /* AlarmGate.swift in Sources */,
+				BB0000000000000000000700 /* AlarmKitScheduler.swift in Sources */,
 				BB000000000000000000009B /* AddAlarmView.swift in Sources */,
 				BB00000000000000000000AB /* AlarmRingingView.swift in Sources */,
 				BB00000000000000000000BB /* MathChallengeView.swift in Sources */,
@@ -277,6 +292,7 @@
 			files = (
 				BB00000000000000000000EB /* MathProblemTests.swift in Sources */,
 				BB00000000000000000000FB /* AlarmTests.swift in Sources */,
+				BB0000000000000000000800 /* AlarmGateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

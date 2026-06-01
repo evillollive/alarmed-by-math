@@ -101,7 +101,10 @@ struct AlarmRingingView: View {
                 .padding(.bottom, 60)
             }
         }
-        .onAppear { pulsing = true }
+        .onAppear {
+            pulsing = true
+            if scheduler.autoPresentMath { showingMath = true }
+        }
         .fullScreenCover(isPresented: $showingMath) {
             MathChallengeView()
                 .environmentObject(scheduler)

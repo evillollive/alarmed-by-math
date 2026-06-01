@@ -5,6 +5,7 @@ struct AlarmedByMathApp: App {
     @StateObject private var alarmStore = AlarmStore()
     @StateObject private var scheduler  = AlarmScheduler()
     @StateObject private var settings   = SettingsStore.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -16,7 +17,15 @@ struct AlarmedByMathApp: App {
                 .onAppear {
                     scheduler.requestPermission { _ in }
                     scheduler.scheduleAlarms(alarmStore.alarms)
+                    scheduler.presentMathIfPending()
                 }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            // Refresh schedules (keeps the chained-notification budget current)
+            // and pick up any alarm whose "Solve to Dismiss" button was tapped.
+            scheduler.scheduleAlarms(alarmStore.alarms)
+            scheduler.presentMathIfPending()
         }
     }
 }

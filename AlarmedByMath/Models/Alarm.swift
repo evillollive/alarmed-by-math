@@ -77,6 +77,9 @@ struct Alarm: Identifiable, Codable, Equatable {
 
     // MARK: - Computed
 
+    /// Label to show on the alarm, falling back to a generic title.
+    var displayLabel: String { label.isEmpty ? "Alarm" : label }
+
     var timeString: String {
         let h = hour % 12 == 0 ? 12 : hour % 12
         let period = hour < 12 ? "AM" : "PM"
