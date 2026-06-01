@@ -29,6 +29,10 @@
 		BB0000000000000000000700 /* AlarmKitScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000700 /* AlarmKitScheduler.swift */; };
 		A1B2C3D4E5F60002 /* alarm.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001 /* alarm.wav */; };
 		A1B2C3D4E5F60004 /* alarm.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60003 /* alarm.caf */; };
+		C0000000000000000000B1 /* chime.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C1 /* chime.caf */; };
+		C0000000000000000000B2 /* classic.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C2 /* classic.caf */; };
+		C0000000000000000000B3 /* bell.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C3 /* bell.caf */; };
+		C0000000000000000000B4 /* buzz.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C4 /* buzz.caf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +71,10 @@
 		AA0000000000000000000700 /* AlarmKitScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmKitScheduler.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60001 /* alarm.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = alarm.wav; sourceTree = "<group>"; };
 		A1B2C3D4E5F60003 /* alarm.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = alarm.caf; sourceTree = "<group>"; };
+		C0000000000000000000C1 /* chime.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = chime.caf; sourceTree = "<group>"; };
+		C0000000000000000000C2 /* classic.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = classic.caf; sourceTree = "<group>"; };
+		C0000000000000000000C3 /* bell.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = bell.caf; sourceTree = "<group>"; };
+		C0000000000000000000C4 /* buzz.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = buzz.caf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,6 +119,10 @@
 				AA000000000000000000003A /* AlarmedByMathApp.swift */,
 				A1B2C3D4E5F60001 /* alarm.wav */,
 				A1B2C3D4E5F60003 /* alarm.caf */,
+				C0000000000000000000C1 /* chime.caf */,
+				C0000000000000000000C2 /* classic.caf */,
+				C0000000000000000000C3 /* bell.caf */,
+				C0000000000000000000C4 /* buzz.caf */,
 				AA0000000000000000000100 /* Theme.swift */,
 				CC000000000000000000004C /* Models */,
 				CC000000000000000000005C /* Services */,
@@ -250,6 +262,10 @@
 				BB00000000000000000000DB /* Assets.xcassets in Resources */,
 				A1B2C3D4E5F60002 /* alarm.wav in Resources */,
 				A1B2C3D4E5F60004 /* alarm.caf in Resources */,
+				C0000000000000000000B1 /* chime.caf in Resources */,
+				C0000000000000000000B2 /* classic.caf in Resources */,
+				C0000000000000000000B3 /* bell.caf in Resources */,
+				C0000000000000000000B4 /* buzz.caf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -47,6 +47,7 @@ enum AlarmGate {
         defaults.removeObject(forKey: solvedKey(originalID))
         defaults.removeObject(forKey: reringKey(originalID))
         defaults.removeObject(forKey: labelKey(originalID))
+        defaults.removeObject(forKey: soundKey(originalID))
     }
 
     // MARK: - Active re-ring ids
@@ -93,6 +94,18 @@ enum AlarmGate {
 
     static func label(_ originalID: String) -> String {
         defaults.string(forKey: labelKey(originalID)) ?? "Alarm"
+    }
+
+    // MARK: - Sound file (needed to rebuild a re-ring off the main app)
+
+    private static func soundKey(_ id: String) -> String { "gate_sound_\(id)" }
+
+    static func setSound(_ originalID: String, _ fileName: String) {
+        defaults.set(fileName, forKey: soundKey(originalID))
+    }
+
+    static func sound(_ originalID: String) -> String {
+        defaults.string(forKey: soundKey(originalID)) ?? "alarm.caf"
     }
 
     // MARK: - Pending math hand-off

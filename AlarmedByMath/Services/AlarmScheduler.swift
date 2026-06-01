@@ -28,10 +28,6 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
     static let alarmCategory = "ALARM_CATEGORY"
 
-    /// Bundled alarm tone. Must be < 30 seconds or iOS silently substitutes the
-    /// default notification sound.
-    private static let soundFile = "alarm.caf"
-
     /// Chained-notification fallback tuning (iOS 17–25).
     private static let chainSpacing: TimeInterval = 30   // seconds between rings
     private static let chainBurst    = 24                // ~12 minutes of ringing
@@ -52,6 +48,8 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
     private var audioPlayer: AVAudioPlayer?
     private var fallbackTimer: Timer?
+    private var previewPlayer: AVAudioPlayer?
+    private var previewStopTimer: Timer?
 
     // MARK: - Init
 
@@ -180,7 +178,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let content = UNMutableNotificationContent()
         content.title              = alarm.displayLabel
         content.body               = "Tap to solve a math problem and dismiss"
-        content.sound              = UNNotificationSound(named: UNNotificationSoundName(Self.soundFile))
+        content.sound              = UNNotificationSound(named: UNNotificationSoundName(SettingsStore.shared.alarmSound.fileName))
         content.interruptionLevel  = .timeSensitive
         content.categoryIdentifier = Self.alarmCategory
         var userInfo: [String: Any] = [
@@ -296,7 +294,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let content = UNMutableNotificationContent()
         content.title              = "Snoozed Alarm"
         content.body               = "Tap to solve a math problem and dismiss"
-        content.sound              = UNNotificationSound(named: UNNotificationSoundName(Self.soundFile))
+        content.sound              = UNNotificationSound(named: UNNotificationSoundName(SettingsStore.shared.alarmSound.fileName))
         content.interruptionLevel  = .timeSensitive
         content.categoryIdentifier = Self.alarmCategory
 
@@ -334,6 +332,45 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
     // MARK: - Audio (foreground only)
 
+    /// Plays a single sound option once (capped at a few seconds) so users can
+    /// audition each alarm tone from Settings. Uses `.playback` so it overrides
+    /// the silent switch (but not the media volume level).
+    func previewSound(_ sound: AlarmSound) {
+        previewStopTimer?.invalidate()
+        previewPlayer?.stop()
+
+        do {
+            try AVAudioSession.sharedInstance().setCategory(
+                .playback, mode: .default, options: [.duckOthers])
+            try AVAudioSession.sharedInstance().setActive(true, options: [])
+        } catch {
+            print("Audio session setup failed: \(error)")
+        }
+
+        if sound.vibrates { AudioServicesPlaySystemSound(kSystemSoundID_Vibrate) }
+
+        guard let url = Bundle.main.url(
+            forResource: sound.resource.name, withExtension: sound.resource.ext) else {
+            AudioServicesPlaySystemSound(sound.systemSoundID)
+            return
+        }
+
+        do {
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.numberOfLoops = 0
+            player.volume        = 1.0
+            player.play()
+            previewPlayer = player
+            previewStopTimer = Timer.scheduledTimer(
+                withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+                self?.previewPlayer?.stop()
+                self?.previewPlayer = nil
+            }
+        } catch {
+            AudioServicesPlaySystemSound(sound.systemSoundID)
+        }
+    }
+
     private func playAlarmSound(songPersistentID: String? = nil, volume: Float = 1.0) {
         do {
             try AVAudioSession.sharedInstance().setCategory(
@@ -363,9 +400,10 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             }
         }
 
-        let url = Bundle.main.url(forResource: "alarm", withExtension: "caf")
+        let selected = SettingsStore.shared.alarmSound
+        let url = Bundle.main.url(forResource: selected.resource.name, withExtension: selected.resource.ext)
+               ?? Bundle.main.url(forResource: "alarm", withExtension: "caf")
                ?? Bundle.main.url(forResource: "alarm", withExtension: "wav")
-               ?? Bundle.main.url(forResource: "alarm", withExtension: "mp3")
 
         guard let soundURL = url else {
             startFallbackLoop()

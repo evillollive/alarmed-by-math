@@ -1,5 +1,4 @@
 import SwiftUI
-import AudioToolbox
 
 struct SettingsView: View {
     @EnvironmentObject var settings:  SettingsStore
@@ -69,8 +68,8 @@ struct SettingsView: View {
                             isSelected: settings.alarmSound == sound
                         ) {
                             settings.alarmSound = sound
-                            // Play a preview when tapped
-                            AudioServicesPlaySystemSound(sound.systemSoundID)
+                            // Play a preview of the actual tone when tapped.
+                            scheduler.previewSound(sound)
                         }
                     }
                 }

@@ -131,6 +131,23 @@ enum AlarmSound: String, CaseIterable, Codable {
         }
     }
 
+    /// Bundled looping tone (< 30s) used for the real alarm: AlarmKit, the
+    /// notification sound, and the in-app player all reference this by name.
+    var fileName: String { "\(resource.name).\(resource.ext)" }
+
+    /// Resource lookup parts for `Bundle.main.url(forResource:withExtension:)`.
+    var resource: (name: String, ext: String) {
+        switch self {
+        case .chime:    return ("chime", "caf")
+        case .classic:  return ("classic", "caf")
+        case .bell:     return ("bell", "caf")
+        case .buzzOnly: return ("buzz", "caf")
+        }
+    }
+
+    /// Whether this sound should also drive the vibration motor in-app.
+    var vibrates: Bool { self == .buzzOnly }
+
     var systemSoundID: SystemSoundID {
         switch self {
         case .chime:    return SystemSoundID(1005)

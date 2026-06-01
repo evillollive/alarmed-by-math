@@ -10,9 +10,6 @@ import AlarmKit
 @available(iOS 26.1, *)
 enum AlarmKitScheduler {
 
-    /// Bundled custom alarm tone (must be < 30s; see `alarm.caf`).
-    private static let soundName = "alarm.caf"
-
     // MARK: - Authorization
 
     @discardableResult
@@ -76,6 +73,8 @@ enum AlarmKitScheduler {
         AlarmGate.reset(originalID)
         AlarmGate.clearReringIDs(originalID)
         AlarmGate.setLabel(originalID, alarm.displayLabel)
+        let soundName = SettingsStore.shared.alarmSound.fileName
+        AlarmGate.setSound(originalID, soundName)
 
         let schedule: AlarmKit.Alarm.Schedule = .relative(.init(
             time: .init(hour: alarm.hour, minute: alarm.minute),
@@ -85,6 +84,7 @@ enum AlarmKitScheduler {
             originalID:    originalID,
             ringingID:     originalID,
             label:         alarm.displayLabel,
+            soundName:     soundName,
             schedule:      schedule
         )
         do {
@@ -119,6 +119,7 @@ enum AlarmKitScheduler {
             originalID:    originalAlarmID,
             ringingID:     ringingID.uuidString,
             label:         AlarmGate.label(originalAlarmID),
+            soundName:     AlarmGate.sound(originalAlarmID),
             schedule:      schedule
         )
         do {
@@ -165,6 +166,7 @@ enum AlarmKitScheduler {
         originalID: String,
         ringingID:  String,
         label:      String,
+        soundName:  String,
         schedule:   AlarmKit.Alarm.Schedule
     ) -> AlarmManager.AlarmConfiguration<AlarmMathMetadata> {
         let alert = AlarmPresentation.Alert(
