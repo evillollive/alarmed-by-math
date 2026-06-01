@@ -24,6 +24,7 @@
 		BB0000000000000000000300 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000300 /* SettingsView.swift */; };
 		BB0000000000000000000400 /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000400 /* StatsStore.swift */; };
 		BB0000000000000000000500 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000500 /* StatsView.swift */; };
+		A1B2C3D4E5F60002 /* alarm.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001 /* alarm.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,7 @@
 		AA0000000000000000000300 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000400 /* StatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStore.swift; sourceTree = "<group>"; };
 		AA0000000000000000000500 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60001 /* alarm.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = alarm.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				AA000000000000000000003A /* AlarmedByMathApp.swift */,
+				A1B2C3D4E5F60001 /* alarm.wav */,
 				AA0000000000000000000100 /* Theme.swift */,
 				CC000000000000000000004C /* Models */,
 				CC000000000000000000005C /* Services */,
@@ -233,6 +236,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB00000000000000000000DB /* Assets.xcassets in Resources */,
+				A1B2C3D4E5F60002 /* alarm.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

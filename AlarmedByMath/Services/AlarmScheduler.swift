@@ -170,6 +170,15 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     // MARK: - Audio
 
     private func playAlarmSound(songPersistentID: String? = nil, volume: Float = 1.0) {
+        // Configure audio session to play over silent switch and on lock screen
+        do {
+            try AVAudioSession.sharedInstance().setCategory(
+                .playback, mode: .default, options: [.duckOthers])
+            try AVAudioSession.sharedInstance().setActive(true, options: [])
+        } catch {
+            print("Audio session setup failed: \(error)")
+        }
+
         // Try the user's chosen song first
         if let idString = songPersistentID,
            let persistentID = UInt64(idString) {
@@ -180,9 +189,6 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             ))
             if let item = query.items?.first, let assetURL = item.assetURL {
                 do {
-                    try AVAudioSession.sharedInstance().setCategory(
-                        .playback, mode: .default, options: [])
-                    try AVAudioSession.sharedInstance().setActive(true)
                     audioPlayer                = try AVAudioPlayer(contentsOf: assetURL)
                     audioPlayer?.numberOfLoops = -1
                     audioPlayer?.volume        = volume
@@ -194,9 +200,9 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             }
         }
 
-        // Fall back to bundled alarm file or system sound
-        let url = Bundle.main.url(forResource: "alarm", withExtension: "mp3")
-               ?? Bundle.main.url(forResource: "alarm", withExtension: "wav")
+        // Fall back to bundled alarm file
+        let url = Bundle.main.url(forResource: "alarm", withExtension: "wav")
+               ?? Bundle.main.url(forResource: "alarm", withExtension: "mp3")
 
         guard let soundURL = url else {
             startFallbackLoop()
@@ -204,9 +210,6 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         }
 
         do {
-            try AVAudioSession.sharedInstance().setCategory(
-                .playback, mode: .default, options: [])
-            try AVAudioSession.sharedInstance().setActive(true)
             audioPlayer                = try AVAudioPlayer(contentsOf: soundURL)
             audioPlayer?.numberOfLoops = -1
             audioPlayer?.volume        = volume
