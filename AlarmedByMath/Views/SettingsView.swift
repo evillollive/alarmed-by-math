@@ -73,7 +73,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                Text("Tap to preview")
+                Text("Tap to preview. Turn your volume up to hear it, previews follow the media volume level even when your phone is on silent.")
                     .font(.caption2)
                     .foregroundColor(Theme.chalkFaded)
             }
@@ -86,7 +86,7 @@ struct SettingsView: View {
         settingsCard {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader("Test Alarm")
-                Text("Triggers the ringing screen immediately so you can preview the sound and math challenge. Plays even if your phone is on silent.")
+                Text("Triggers the ringing screen immediately so you can preview the sound and math challenge. It plays even on silent, but turn your volume up to hear it, the test follows your media volume level. Real scheduled alarms use the system alarm volume instead.")
                     .font(.caption)
                     .foregroundColor(Theme.chalkFaded)
                 Button {
