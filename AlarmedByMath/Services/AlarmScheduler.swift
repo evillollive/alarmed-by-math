@@ -61,7 +61,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let content = UNMutableNotificationContent()
         content.title              = alarm.label.isEmpty ? "Alarm" : alarm.label
         content.body               = "Tap to solve a math problem and dismiss"
-        content.sound              = UNNotificationSound.default
+        content.sound              = UNNotificationSound(named: UNNotificationSoundName("alarm.wav"))
         content.interruptionLevel  = .timeSensitive
         content.categoryIdentifier = Self.alarmCategory
         var userInfo: [String: Any] = [
@@ -134,7 +134,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let content = UNMutableNotificationContent()
         content.title              = "Snoozed Alarm"
         content.body               = "Tap to solve a math problem and dismiss"
-        content.sound              = UNNotificationSound.default
+        content.sound              = UNNotificationSound(named: UNNotificationSoundName("alarm.wav"))
         content.interruptionLevel  = .timeSensitive
         content.categoryIdentifier = Self.alarmCategory
 
