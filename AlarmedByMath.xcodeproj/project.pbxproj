@@ -19,6 +19,11 @@
 		BB00000000000000000000DB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000DA /* Assets.xcassets */; };
 		BB00000000000000000000EB /* MathProblemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000EA /* MathProblemTests.swift */; };
 		BB00000000000000000000FB /* AlarmTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000FA /* AlarmTests.swift */; };
+		BB0000000000000000000100 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000100 /* Theme.swift */; };
+		BB0000000000000000000200 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000200 /* SettingsStore.swift */; };
+		BB0000000000000000000300 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000300 /* SettingsView.swift */; };
+		BB0000000000000000000400 /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000400 /* StatsStore.swift */; };
+		BB0000000000000000000500 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000500 /* StatsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +52,11 @@
 		AA00000000000000000000DA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA00000000000000000000EA /* MathProblemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathProblemTests.swift; sourceTree = "<group>"; };
 		AA00000000000000000000FA /* AlarmTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000000100 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		AA0000000000000000000200 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		AA0000000000000000000300 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000400 /* StatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStore.swift; sourceTree = "<group>"; };
+		AA0000000000000000000500 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				AA000000000000000000003A /* AlarmedByMathApp.swift */,
+				AA0000000000000000000100 /* Theme.swift */,
 				CC000000000000000000004C /* Models */,
 				CC000000000000000000005C /* Services */,
 				CC000000000000000000006C /* Views */,
@@ -112,6 +123,8 @@
 			children = (
 				AA000000000000000000007A /* AlarmStore.swift */,
 				AA000000000000000000008A /* AlarmScheduler.swift */,
+				AA0000000000000000000200 /* SettingsStore.swift */,
+				AA0000000000000000000400 /* StatsStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -123,6 +136,8 @@
 				AA000000000000000000009A /* AddAlarmView.swift */,
 				AA00000000000000000000AA /* AlarmRingingView.swift */,
 				AA00000000000000000000BA /* MathChallengeView.swift */,
+				AA0000000000000000000300 /* SettingsView.swift */,
+				AA0000000000000000000500 /* StatsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -236,6 +251,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB000000000000000000003B /* AlarmedByMathApp.swift in Sources */,
+				BB0000000000000000000100 /* Theme.swift in Sources */,
 				BB000000000000000000004B /* ContentView.swift in Sources */,
 				BB000000000000000000005B /* Alarm.swift in Sources */,
 				BB000000000000000000006B /* MathProblem.swift in Sources */,
@@ -244,6 +260,10 @@
 				BB000000000000000000009B /* AddAlarmView.swift in Sources */,
 				BB00000000000000000000AB /* AlarmRingingView.swift in Sources */,
 				BB00000000000000000000BB /* MathChallengeView.swift in Sources */,
+				BB0000000000000000000200 /* SettingsStore.swift in Sources */,
+				BB0000000000000000000300 /* SettingsView.swift in Sources */,
+				BB0000000000000000000400 /* StatsStore.swift in Sources */,
+				BB0000000000000000000500 /* StatsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -317,7 +337,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -371,7 +391,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -387,10 +407,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = QU3YSD9P66;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AlarmedByMath/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -411,10 +431,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = QU3YSD9P66;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AlarmedByMath/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -436,7 +456,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.alarmedbymath.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -455,7 +475,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.alarmedbymath.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -497,7 +517,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = 00000000000000000000000F /* Project object */;
 }

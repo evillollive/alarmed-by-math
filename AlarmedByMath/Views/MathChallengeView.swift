@@ -3,72 +3,103 @@ import SwiftUI
 /// Presents a random math problem that the user must solve correctly to dismiss the alarm.
 ///
 /// Behavior:
-/// - The alarm sound **keeps playing** while this view is shown.
-/// - A snooze notification is scheduled in case the user backgrounds the app.
+/// - The alarm is snoozed immediately when this view appears (sound stops; a re-ring
+///   notification is scheduled for 5 minutes later).
 /// - A correct answer cancels the snooze notification and fully dismisses the alarm.
 /// - A wrong answer shakes the input field, generates a new problem, and lets the user try again.
 struct MathChallengeView: View {
+    @EnvironmentObject var scheduler:  AlarmScheduler
     @EnvironmentObject var alarmStore: AlarmStore
-    @EnvironmentObject var scheduler: AlarmScheduler
+    @EnvironmentObject var settings:   SettingsStore
     @Environment(\.dismiss) var dismiss
-    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
-    @State private var problem     = MathProblem.generate()
-    @State private var userInput   = ""
-    @State private var isWrong     = false
-    @State private var hasSnoozed  = false
-    @State private var showSuccess = false
+    /// Active alarm looked up by ID.
+    private var activeAlarm: Alarm? {
+        guard
+            let idString = scheduler.activeAlarmID,
+            let uuid     = UUID(uuidString: idString)
+        else { return nil }
+        return alarmStore.alarms.first(where: { $0.id == uuid })
+    }
+
+    private var difficulty:   Difficulty { activeAlarm?.difficulty   ?? .medium }
+    private var problemCount: Int        { activeAlarm?.problemCount ?? 1 }
+
+    @State private var problem        = MathProblem.generate() // replaced on appear
+    @State private var userInput      = ""
+    @State private var isWrong        = false
+    @State private var hasSnoozed     = false
+    @State private var showSuccess    = false
+    @State private var solvedCount    = 0
+    @State private var solveStartTime: Date? = nil
 
     var body: some View {
         ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+            Theme.board.ignoresSafeArea()
 
-            VStack(spacing: 32) {
+            // Ruled chalkboard lines
+            GeometryReader { geo in
+                Path { path in
+                    let spacing: CGFloat = 44
+                    var y: CGFloat = spacing
+                    while y < geo.size.height {
+                        path.move(to: CGPoint(x: 0, y: y))
+                        path.addLine(to: CGPoint(x: geo.size.width, y: y))
+                        y += spacing
+                    }
+                }
+                .stroke(Theme.chalk.opacity(0.07), lineWidth: 1)
+            }
+            .ignoresSafeArea()
+
+            VStack(spacing: 28) {
                 header
-                    .padding(.top, 40)
+                    .padding(.top, 48)
 
                 Spacer()
 
                 // Math expression
-                Text(problem.expression)
-                    .font(.system(size: 52, weight: .bold, design: .rounded))
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-                    .padding(.horizontal)
-                    .accessibilityLabel("Solve: \(problem.expression)")
+                VStack(spacing: 8) {
+                    Text(problemCount > 1 ? "Problem \(solvedCount + 1) of \(problemCount)" : "Solve for x")
+                        .font(.system(.caption, design: Theme.fontDesign))
+                        .foregroundColor(Theme.chalkFaded)
 
-                // Answer display box
+                    Text(problem.expression)
+                        .font(.system(size: 54, weight: .bold, design: Theme.fontDesign))
+                        .foregroundColor(Theme.chalkYellow)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                        .padding(.horizontal)
+                }
+
+                // Answer box
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(isWrong ? Color.red : Color(.systemGray4), lineWidth: 2)
-                        .frame(height: 64)
-
+                        .fill(Theme.boardDark.opacity(0.6))
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(
+                            isWrong ? Theme.chalkRed : Theme.chalk.opacity(0.5),
+                            style: StrokeStyle(lineWidth: 2, dash: [8, 4])
+                        )
                     Text(userInput.isEmpty ? "?" : userInput)
-                        .font(.system(size: 36, weight: .medium, design: .rounded))
-                        .foregroundColor(userInput.isEmpty ? .secondary : .primary)
+                        .font(.system(size: 40, weight: .medium, design: Theme.fontDesign))
+                        .foregroundColor(userInput.isEmpty ? Theme.chalkFaded : Theme.chalk)
                 }
+                .frame(height: 72)
                 .padding(.horizontal, 60)
-                .modifier(ShakeModifier(active: isWrong, reduceMotion: reduceMotion))
-                .accessibilityLabel("Your answer: \(userInput.isEmpty ? "empty" : userInput)")
+                .modifier(ShakeModifier(active: isWrong))
 
                 Spacer()
 
-                // Custom number pad
+                // Number pad
                 NumberPad(input: $userInput, onSubmit: checkAnswer)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 24)
             }
         }
-        .interactiveDismissDisabled(true)
-        .onAppear(perform: scheduleSnoozeIfNeeded)
-        .onChange(of: showSuccess) { _, solved in
+        .onAppear(perform: snoozeIfNeeded)
+        .onChange(of: showSuccess) { solved in
             guard solved else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                // Mark one-time alarms as fired
-                if let alarmID = scheduler.activeAlarmID,
-                   let alarm = alarmStore.alarm(forID: alarmID),
-                   alarm.isOneTime {
-                    alarmStore.markFired(alarm)
-                }
                 scheduler.dismiss()
                 dismiss()
             }
@@ -80,16 +111,17 @@ struct MathChallengeView: View {
     private var header: some View {
         VStack(spacing: 6) {
             Text("Solve to Dismiss")
-                .font(.headline)
-                .foregroundColor(.secondary)
+                .font(.system(.caption, design: Theme.fontDesign))
+                .fontWeight(.semibold)
+                .foregroundColor(Theme.chalkFaded)
 
             if hasSnoozed {
                 Label(
-                    "Alarm will re-ring if not solved",
+                    "Alarm snoozed — solve to fully dismiss",
                     systemImage: "moon.zzz.fill"
                 )
                 .font(.caption)
-                .foregroundColor(.orange)
+                .foregroundColor(Theme.chalkYellow)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
             }
@@ -98,10 +130,11 @@ struct MathChallengeView: View {
 
     // MARK: - Logic
 
-    /// Schedules a snooze notification as a safety net, but does NOT stop the alarm sound.
-    private func scheduleSnoozeIfNeeded() {
+    private func snoozeIfNeeded() {
         guard !hasSnoozed else { return }
-        hasSnoozed = true
+        hasSnoozed     = true
+        solveStartTime = Date()
+        problem        = MathProblem.generate(difficulty: difficulty)
         scheduler.snooze()
     }
 
@@ -111,22 +144,33 @@ struct MathChallengeView: View {
             return
         }
         if answer == problem.answer {
-            showSuccess = true
+            StatsStore.shared.recordAttempt(difficulty: difficulty, correct: true)
+            solvedCount += 1
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            UIAccessibility.post(notification: .announcement, argument: "Correct! Alarm dismissed.")
+            if solvedCount >= problemCount {
+                if let start = solveStartTime {
+                    StatsStore.shared.recordSolveTime(Date().timeIntervalSince(start))
+                }
+                StatsStore.shared.recordAlarmDismissed()
+                showSuccess = true
+            } else {
+                // More problems to go — reset input and generate next
+                userInput = ""
+                problem   = MathProblem.generate(difficulty: difficulty)
+            }
         } else {
+            StatsStore.shared.recordAttempt(difficulty: difficulty, correct: false)
             triggerWrong()
         }
     }
 
     private func triggerWrong() {
         UINotificationFeedbackGenerator().notificationOccurred(.error)
-        UIAccessibility.post(notification: .announcement, argument: "Incorrect, try again.")
         isWrong = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             isWrong    = false
             userInput  = ""
-            problem    = MathProblem.generate()
+            problem    = MathProblem.generate(difficulty: difficulty)
         }
     }
 }
@@ -141,18 +185,20 @@ struct NumberPad: View {
         ["1", "2", "3"],
         ["4", "5", "6"],
         ["7", "8", "9"],
-        ["⌫", "0", "✓"],
+        ["+/-", "0", "⌫"],
     ]
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             ForEach(rows, id: \.self) { row in
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     ForEach(row, id: \.self) { key in
                         NumberKey(label: key) { tap(key) }
                     }
                 }
             }
+            // Full-width submit button
+            NumberKey(label: "✓") { tap("✓") }
         }
         .padding(.horizontal, 20)
     }
@@ -163,8 +209,17 @@ struct NumberPad: View {
             if !input.isEmpty { input.removeLast() }
         case "✓":
             onSubmit()
+        case "+/-":
+            if input.isEmpty { return }
+            if input.hasPrefix("-") {
+                input = String(input.dropFirst())
+            } else {
+                input = "-" + input
+            }
         default:
-            if input.count < 6 { input += key }
+            // Max 6 digits; don't count the leading minus toward that limit
+            let digitCount = input.hasPrefix("-") ? input.count - 1 : input.count
+            if digitCount < 6 { input += key }
         }
     }
 }
@@ -173,25 +228,29 @@ struct NumberKey: View {
     let label:  String
     let action: () -> Void
 
+    var isSubmit: Bool { label == "✓" }
+    var isDelete: Bool { label == "⌫" }
+
     var body: some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 28, weight: .regular, design: .rounded))
+                .font(.system(size: 28, weight: .regular, design: Theme.fontDesign))
                 .frame(maxWidth: .infinity)
                 .frame(height: 64)
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .foregroundColor(
+                    isSubmit ? Theme.boardDark :
+                    isDelete ? Theme.chalkFaded : Theme.chalk
+                )
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isSubmit ? Theme.chalkYellow : Theme.boardDark.opacity(0.6))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Theme.chalk.opacity(0.2), lineWidth: 1)
+                        )
+                )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityName)
-    }
-
-    private var accessibilityName: String {
-        switch label {
-        case "⌫": return "Delete"
-        case "✓": return "Submit answer"
-        default:  return label
-        }
     }
 }
 
@@ -199,14 +258,13 @@ struct NumberKey: View {
 
 struct ShakeModifier: ViewModifier {
     let active: Bool
-    var reduceMotion: Bool = false
     @State private var offsetX: CGFloat = 0
 
     func body(content: Content) -> some View {
         content
             .offset(x: offsetX)
-            .onChange(of: active) { _, isActive in
-                guard isActive, !reduceMotion else { return }
+            .onChange(of: active) { isActive in
+                guard isActive else { return }
                 let steps: [(Double, CGFloat)] = [
                     (0.00, 10), (0.10, -10), (0.20, 8), (0.30, 0),
                 ]

@@ -5,7 +5,7 @@ import SwiftUI
 struct AlarmRingingView: View {
     @EnvironmentObject var alarmStore: AlarmStore
     @EnvironmentObject var scheduler:  AlarmScheduler
-    @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @EnvironmentObject var settings:   SettingsStore
 
     @State private var showingMath = false
     @State private var pulsing     = false
@@ -20,7 +20,22 @@ struct AlarmRingingView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Theme.boardDark.ignoresSafeArea()
+
+            // Subtle ruled lines
+            GeometryReader { geo in
+                Path { path in
+                    let spacing: CGFloat = 44
+                    var y: CGFloat = spacing
+                    while y < geo.size.height {
+                        path.move(to: CGPoint(x: 0, y: y))
+                        path.addLine(to: CGPoint(x: geo.size.width, y: y))
+                        y += spacing
+                    }
+                }
+                .stroke(Theme.chalk.opacity(0.06), lineWidth: 1)
+            }
+            .ignoresSafeArea()
 
             VStack(spacing: 40) {
                 Spacer()
@@ -28,59 +43,70 @@ struct AlarmRingingView: View {
                 // Pulsing alarm icon
                 ZStack {
                     Circle()
-                        .fill(Color.red.opacity(0.2))
-                        .frame(width: 180, height: 180)
-                        .scaleEffect(pulsing && !reduceMotion ? 1.25 : 1.0)
+                        .fill(Theme.chalkRed.opacity(0.12))
+                        .frame(width: 200, height: 200)
+                        .scaleEffect(pulsing ? 1.3 : 1.0)
                         .animation(
-                            reduceMotion ? nil : .easeInOut(duration: 1).repeatForever(autoreverses: true),
+                            .easeInOut(duration: 1).repeatForever(autoreverses: true),
                             value: pulsing
                         )
-
+                    Circle()
+                        .stroke(Theme.chalkRed.opacity(0.35), lineWidth: 2)
+                        .frame(width: 200, height: 200)
+                        .scaleEffect(pulsing ? 1.3 : 1.0)
+                        .animation(
+                            .easeInOut(duration: 1).repeatForever(autoreverses: true),
+                            value: pulsing
+                        )
                     Image(systemName: "alarm.fill")
                         .font(.system(size: 80))
-                        .foregroundColor(.red)
-                        .accessibilityLabel("Alarm ringing")
+                        .foregroundColor(Theme.chalkRed)
                 }
 
                 // Time + optional label
                 VStack(spacing: 8) {
                     if let label = currentAlarm?.label, !label.isEmpty {
                         Text(label)
-                            .font(.title2)
-                            .foregroundColor(.white.opacity(0.7))
+                            .font(.system(.title2, design: Theme.fontDesign))
+                            .foregroundColor(Theme.chalkFaded)
                     }
                     Text(currentTimeString)
-                        .font(.system(size: 80, weight: .thin, design: .rounded))
-                        .foregroundColor(.white)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
+                        .font(.system(size: 80, weight: .thin, design: .monospaced))
+                        .foregroundColor(Theme.chalk)
                 }
 
                 Spacer()
 
-                // CTA
+                // CTA button
                 Button {
                     showingMath = true
                 } label: {
-                    Text("Solve to Dismiss")
-                        .font(.title3.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    HStack(spacing: 10) {
+                        Text("∑")
+                            .font(.title2)
+                        Text("Solve to Dismiss")
+                            .font(.title3.weight(.semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Theme.chalkRed)
+                    .foregroundColor(Theme.chalk)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Theme.chalk.opacity(0.4), lineWidth: 1.5)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
                 .padding(.horizontal, 40)
                 .padding(.bottom, 60)
-                .accessibilityHint("Opens a math problem you must solve to turn off the alarm")
             }
         }
         .onAppear { pulsing = true }
-        .interactiveDismissDisabled(true)
         .fullScreenCover(isPresented: $showingMath) {
             MathChallengeView()
-                .environmentObject(alarmStore)
                 .environmentObject(scheduler)
+                .environmentObject(alarmStore)
+                .environmentObject(settings)
         }
     }
 

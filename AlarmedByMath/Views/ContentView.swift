@@ -3,150 +3,187 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var alarmStore: AlarmStore
     @EnvironmentObject var scheduler:  AlarmScheduler
-    @State private var showingAddAlarm = false
-    @State private var editingAlarm: Alarm?
+    @EnvironmentObject var settings:   SettingsStore
+    @State private var showingAddAlarm    = false
+    @State private var alarmToEdit:       Alarm? = nil
+    @State private var showingSettings    = false
+    @State private var showingStats       = false
+    @State private var now                = Date()
+
+    private let timer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if alarmStore.alarms.isEmpty {
-                    emptyState
-                } else {
-                    alarmList
+        NavigationView {
+            ZStack {
+                Theme.board.ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    // Next alarm banner
+                    if let label = alarmStore.nextAlarmLabel {
+                        HStack {
+                            Image(systemName: "clock.fill")
+                                .font(.caption)
+                            Text("Next alarm \(label)")
+                                .font(.system(.caption, design: Theme.fontDesign))
+                        }
+                        .foregroundColor(Theme.chalkYellow)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                        .background(Theme.boardDark.opacity(0.6))
+                    }
+
+                    if alarmStore.alarms.isEmpty {
+                        emptyState
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        alarmList
+                    }
                 }
             }
             .navigationTitle("Alarms")
+            .onReceive(timer) { now = $0 }
+            .toolbarBackground(Theme.boardDark, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(settings.activeTheme.colorScheme == .light ? .light : .dark, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    HStack(spacing: 16) {
+                        Button { showingSettings = true } label: {
+                            Image(systemName: "gearshape.fill")
+                                .font(.title3)
+                                .foregroundColor(Theme.chalkFaded)
+                        }
+                        Button { showingStats = true } label: {
+                            Image(systemName: "trophy.fill")
+                                .font(.title3)
+                                .foregroundColor(Theme.chalkFaded)
+                        }
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showingAddAlarm = true } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundColor(Theme.chalkYellow)
                     }
-                    .accessibilityLabel("Add alarm")
                 }
             }
+            // Add new alarm
             .sheet(isPresented: $showingAddAlarm) {
                 AddAlarmView()
                     .environmentObject(alarmStore)
                     .environmentObject(scheduler)
+                    .environmentObject(settings)
             }
-            .sheet(item: $editingAlarm) { alarm in
-                AddAlarmView(editingAlarm: alarm)
+            // Edit existing alarm
+            .sheet(item: $alarmToEdit) { alarm in
+                AddAlarmView(alarmToEdit: alarm)
                     .environmentObject(alarmStore)
                     .environmentObject(scheduler)
+                    .environmentObject(settings)
             }
-            .overlay(alignment: .top) {
-                if !scheduler.notificationsAuthorized {
-                    notificationWarning
-                }
+            // Settings
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+                    .environmentObject(settings)
+                    .environmentObject(scheduler)
+            }
+            // Stats
+            .sheet(isPresented: $showingStats) {
+                StatsView()
+                    .environmentObject(settings)
             }
         }
+        .navigationViewStyle(.stack)
         .fullScreenCover(isPresented: $scheduler.isRinging) {
             AlarmRingingView()
                 .environmentObject(alarmStore)
                 .environmentObject(scheduler)
+                .environmentObject(settings)
         }
     }
 
     // MARK: - Subviews
 
-    private var notificationWarning: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.yellow)
-            Text("Notifications disabled — alarms won't ring.")
-                .font(.caption)
-            Spacer()
-            Button("Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            }
-            .font(.caption.weight(.semibold))
-        }
-        .padding(10)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .padding(.horizontal)
-    }
-
     private var emptyState: some View {
         VStack(spacing: 20) {
-            Image(systemName: "alarm")
-                .font(.system(size: 60))
-                .foregroundColor(.secondary)
+            Text("∑ π ÷")
+                .font(.system(size: 48, weight: .light, design: Theme.fontDesign))
+                .foregroundColor(Theme.chalkFaded)
             Text("No Alarms")
-                .font(.title2)
-                .foregroundColor(.secondary)
-            Text("Tap + to add an alarm")
-                .foregroundColor(.secondary)
+                .font(.system(.title2, design: Theme.fontDesign))
+                .foregroundColor(Theme.chalk)
+            Text("Tap + to write your first alarm")
+                .font(.subheadline)
+                .foregroundColor(Theme.chalkFaded)
         }
     }
 
     private var alarmList: some View {
         List {
             ForEach(alarmStore.alarms) { alarm in
-                AlarmRow(alarm: alarm, onEdit: { editingAlarm = alarm })
+                AlarmRow(alarm: alarm, onEdit: { alarmToEdit = alarm })
                     .environmentObject(alarmStore)
                     .environmentObject(scheduler)
+                    .listRowBackground(Theme.boardDark.opacity(0.6))
+                    .listRowSeparatorTint(Theme.chalk.opacity(0.2))
             }
             .onDelete { offsets in
                 offsets.map { alarmStore.alarms[$0] }.forEach { scheduler.cancel($0) }
                 alarmStore.delete(at: offsets)
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
 }
 
 // MARK: - AlarmRow
 
 struct AlarmRow: View {
-    let alarm: Alarm
-    var onEdit: () -> Void = {}
+    let alarm:  Alarm
+    let onEdit: () -> Void
     @EnvironmentObject var alarmStore: AlarmStore
     @EnvironmentObject var scheduler:  AlarmScheduler
 
     var body: some View {
-        Button(action: onEdit) {
-            HStack {
+        HStack {
+            // Tappable content area opens edit sheet
+            Button(action: onEdit) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(alarm.timeString)
-                        .font(.system(size: 36, weight: .light, design: .rounded))
+                        .font(.system(size: 38, weight: .light, design: Theme.fontDesign))
+                        .foregroundColor(alarm.isEnabled ? Theme.chalk : Theme.chalkFaded)
                     HStack(spacing: 6) {
                         if !alarm.label.isEmpty {
                             Text(alarm.label)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Theme.chalkFaded)
                         }
                         Text(alarm.repeatLabel)
-                            .foregroundColor(.secondary)
-                        if alarm.isOneTime && alarm.hasFired {
-                            Text("(Fired)")
-                                .foregroundColor(.orange)
-                                .font(.caption)
-                        }
+                            .foregroundColor(Theme.chalkFaded)
                     }
                     .font(.subheadline)
                 }
-                Spacer()
-                Toggle("", isOn: Binding(
-                    get: { alarm.isEnabled },
-                    set: { _ in
-                        let wasEnabled = alarm.isEnabled
-                        alarmStore.toggle(alarm)
-                        if wasEnabled {
-                            scheduler.cancel(alarm)
-                        } else {
-                            scheduler.schedule(alarm)
-                        }
-                    }
-                ))
-                .labelsHidden()
-                .accessibilityLabel("Alarm \(alarm.timeString)")
-                .accessibilityValue(alarm.isEnabled ? "On" : "Off")
             }
-            .padding(.vertical, 4)
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Toggle("", isOn: Binding(
+                get: { alarm.isEnabled },
+                set: { _ in
+                    let wasEnabled = alarm.isEnabled
+                    alarmStore.toggle(alarm)
+                    if wasEnabled {
+                        scheduler.cancel(alarm)
+                    } else {
+                        scheduler.schedule(alarm)
+                    }
+                }
+            ))
+            .tint(Theme.chalkYellow)
+            .labelsHidden()
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("Double tap to edit")
+        .padding(.vertical, 6)
     }
 }

@@ -30,25 +30,64 @@ class AlarmStore: ObservableObject {
     func toggle(_ alarm: Alarm) {
         var updated = alarm
         updated.isEnabled.toggle()
-        // Reset hasFired when re-enabling a one-time alarm
-        if updated.isEnabled && updated.isOneTime {
-            updated.hasFired = false
+        update(updated)
+    }
+
+    // MARK: - Next alarm
+
+    /// Returns the next date any enabled alarm will fire, or nil if none are enabled.
+    var nextAlarmDate: Date? {
+        let now = Date()
+        let cal = Calendar.current
+
+        return alarms
+            .filter(\.isEnabled)
+            .compactMap { alarm -> Date? in
+                var components        = DateComponents()
+                components.hour       = alarm.hour
+                components.minute     = alarm.minute
+                components.second     = 0
+
+                if alarm.repeatDays.isEmpty {
+                    // One-time: fire today if still in the future, otherwise tomorrow
+                    return cal.nextDate(
+                        after: now.addingTimeInterval(-1),
+                        matching: components,
+                        matchingPolicy: .nextTime
+                    )
+                } else {
+                    // Repeating: find the nearest matching weekday
+                    return alarm.repeatDays.compactMap { weekday -> Date? in
+                        var comps          = components
+                        comps.weekday      = weekday
+                        return cal.nextDate(
+                            after: now.addingTimeInterval(-1),
+                            matching: comps,
+                            matchingPolicy: .nextTime
+                        )
+                    }.min()
+                }
+            }
+            .min()
+    }
+
+    /// Human-readable countdown string, e.g. "in 6h 23m".
+    var nextAlarmLabel: String? {
+        guard let next = nextAlarmDate else { return nil }
+        let interval     = next.timeIntervalSince(Date())
+        guard interval > 0 else { return nil }
+        let totalMinutes = Int(interval / 60)
+        let days         = totalMinutes / (60 * 24)
+        let hours        = (totalMinutes % (60 * 24)) / 60
+        let minutes      = totalMinutes % 60
+
+        if days > 0 {
+            return hours > 0 ? "in \(days)d \(hours)h" : "in \(days)d"
+        } else if hours > 0 {
+            return minutes > 0 ? "in \(hours)h \(minutes)m" : "in \(hours)h"
+        } else {
+            return "in \(max(1, minutes))m"
         }
-        update(updated)
-    }
-
-    /// Marks a one-time alarm as fired so it won't be rescheduled.
-    func markFired(_ alarm: Alarm) {
-        guard alarm.isOneTime else { return }
-        var updated = alarm
-        updated.hasFired = true
-        update(updated)
-    }
-
-    /// Finds an alarm by its UUID string.
-    func alarm(forID idString: String) -> Alarm? {
-        guard let uuid = UUID(uuidString: idString) else { return nil }
-        return alarms.first { $0.id == uuid }
     }
 
     // MARK: - Persistence

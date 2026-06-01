@@ -2,6 +2,7 @@ import Foundation
 import UserNotifications
 import AVFoundation
 import AudioToolbox
+import MediaPlayer
 
 /// Manages alarm scheduling, in-app audio playback, and the ringing state.
 ///
@@ -12,39 +13,30 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
     // MARK: - Published state
 
-    /// Queue of active alarm IDs (supports multiple simultaneous alarms).
-    @Published var activeAlarmIDs: [String] = []
+    @Published var activeAlarmID: String?
     @Published var isRinging: Bool = false
-    @Published var notificationsAuthorized: Bool = true
-
-    /// Convenience: the alarm currently being presented.
-    var activeAlarmID: String? { activeAlarmIDs.first }
 
     // MARK: - Constants
 
-    static let alarmCategory  = "ALARM_CATEGORY"
-    /// How long the alarm is snoozed when the user starts the math challenge (seconds).
-    static let snoozeInterval: TimeInterval = 5 * 60
+    static let alarmCategory = "ALARM_CATEGORY"
+
+    // MARK: - Active alarm state (set when ringing starts)
+
+    private var activeSnoozeDuration: Int    = 5
+    private var activeVolume:         Float  = 1.0
+    private var activeSongID:         String? = nil
+    private var activeKeepRinging:    Bool   = false
 
     // MARK: - Private
 
     private var audioPlayer: AVAudioPlayer?
+    private var fallbackTimer: Timer?
 
     // MARK: - Init
 
     override init() {
         super.init()
-        let center = UNUserNotificationCenter.current()
-        center.delegate = self
-
-        // Register notification category
-        let category = UNNotificationCategory(
-            identifier: Self.alarmCategory,
-            actions: [],
-            intentIdentifiers: [],
-            options: []
-        )
-        center.setNotificationCategories([category])
+        UNUserNotificationCenter.current().delegate = self
     }
 
     // MARK: - Permissions
@@ -52,40 +44,34 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     func requestPermission(completion: @escaping (Bool) -> Void) {
         UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-                DispatchQueue.main.async {
-                    self.notificationsAuthorized = granted
-                    completion(granted)
-                }
+                DispatchQueue.main.async { completion(granted) }
             }
-    }
-
-    /// Re-checks notification authorization status (call on foreground return).
-    func refreshPermissionStatus() {
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            DispatchQueue.main.async {
-                self.notificationsAuthorized = settings.authorizationStatus == .authorized
-            }
-        }
     }
 
     // MARK: - Scheduling helpers
 
-    /// Re-schedules all schedulable alarms (call after store changes).
+    /// Re-schedules all enabled alarms (call after store changes).
     func scheduleAlarms(_ alarms: [Alarm]) {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        alarms.filter(\.isSchedulable).forEach { schedule($0) }
+        alarms.filter(\.isEnabled).forEach { schedule($0) }
     }
 
     /// Schedules local notification(s) for a single alarm.
     func schedule(_ alarm: Alarm) {
-        guard alarm.isSchedulable else { return }
-
         let content = UNMutableNotificationContent()
-        content.title            = alarm.label.isEmpty ? "Alarm" : alarm.label
-        content.body             = "Solve a math problem to dismiss"
-        content.sound            = .default
+        content.title              = alarm.label.isEmpty ? "Alarm" : alarm.label
+        content.body               = "Tap to solve a math problem and dismiss"
+        content.sound              = UNNotificationSound.default
+        content.interruptionLevel  = .timeSensitive
         content.categoryIdentifier = Self.alarmCategory
-        content.userInfo         = ["alarmID": alarm.id.uuidString]
+        var userInfo: [String: Any] = [
+            "alarmID":        alarm.id.uuidString,
+            "volume":         String(alarm.volume),
+            "snoozeDuration": alarm.snoozeDuration,
+            "keepRinging":    alarm.keepRinging
+        ]
+        if let songID = alarm.songPersistentID { userInfo["songPersistentID"] = songID }
+        content.userInfo = userInfo
 
         var components    = DateComponents()
         components.hour   = alarm.hour
@@ -121,65 +107,99 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
     // MARK: - Ringing state
 
-    func startRinging(alarmID: String) {
-        if !activeAlarmIDs.contains(alarmID) {
-            activeAlarmIDs.append(alarmID)
-        }
-        isRinging = true
-        playAlarmSound()
+    func startRinging(
+        alarmID:          String,
+        songPersistentID: String? = nil,
+        volume:           Float   = 1.0,
+        snoozeDuration:   Int     = 5,
+        keepRinging:      Bool    = false
+    ) {
+        activeAlarmID        = alarmID
+        activeSongID         = songPersistentID
+        activeVolume         = volume
+        activeSnoozeDuration = snoozeDuration
+        activeKeepRinging    = keepRinging
+        isRinging            = true
+        playAlarmSound(songPersistentID: songPersistentID, volume: volume)
     }
 
-    /// Schedules a re-ring notification for the current alarm.
-    /// Does NOT stop the sound — caller decides when to stop.
+    /// Stops the in-app sound and schedules a re-ring notification.
+    /// Called as soon as the user opens the math challenge view.
     func snooze() {
         guard let alarmID = activeAlarmID else { return }
+        // Only stop sound if keep-ringing is off; otherwise let it play through the challenge
+        if !activeKeepRinging { stopSound() }
+        StatsStore.shared.recordSnooze()
 
         let content = UNMutableNotificationContent()
-        content.title               = "Snoozed Alarm"
-        content.body                = "Solve a math problem to dismiss"
-        content.sound               = .default
-        content.categoryIdentifier  = Self.alarmCategory
-        content.userInfo            = ["alarmID": alarmID]
+        content.title              = "Snoozed Alarm"
+        content.body               = "Tap to solve a math problem and dismiss"
+        content.sound              = UNNotificationSound.default
+        content.interruptionLevel  = .timeSensitive
+        content.categoryIdentifier = Self.alarmCategory
+
+        // Carry all per-alarm settings into the snooze notification
+        var userInfo: [String: Any] = [
+            "alarmID":        alarmID,
+            "volume":         String(activeVolume),
+            "snoozeDuration": activeSnoozeDuration,
+            "keepRinging":    activeKeepRinging
+        ]
+        if let songID = activeSongID { userInfo["songPersistentID"] = songID }
+        content.userInfo = userInfo
 
         let trigger = UNTimeIntervalNotificationTrigger(
-            timeInterval: Self.snoozeInterval, repeats: false)
+            timeInterval: TimeInterval(activeSnoozeDuration * 60), repeats: false)
         add(UNNotificationRequest(
             identifier: "\(alarmID)-snooze",
             content: content,
             trigger: trigger))
     }
 
-    /// Cancels the snooze notification and clears ringing state for the current alarm.
+    /// Cancels the snooze notification and clears ringing state.
     /// Called when the user solves the math problem correctly.
     func dismiss() {
         guard let alarmID = activeAlarmID else { return }
+        stopSound()
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: ["\(alarmID)-snooze"])
-        activeAlarmIDs.removeAll { $0 == alarmID }
-
-        if activeAlarmIDs.isEmpty {
-            stopSound()
-            isRinging = false
-        }
-    }
-
-    /// Stops all alarm sound and clears state entirely.
-    func stopAll() {
-        stopSound()
-        activeAlarmIDs.removeAll()
-        isRinging = false
+        activeAlarmID = nil
+        isRinging     = false
     }
 
     // MARK: - Audio
 
-    private func playAlarmSound() {
-        guard audioPlayer == nil || audioPlayer?.isPlaying != true else { return }
+    private func playAlarmSound(songPersistentID: String? = nil, volume: Float = 1.0) {
+        // Try the user's chosen song first
+        if let idString = songPersistentID,
+           let persistentID = UInt64(idString) {
+            let query = MPMediaQuery.songs()
+            query.addFilterPredicate(MPMediaPropertyPredicate(
+                value: NSNumber(value: persistentID),
+                forProperty: MPMediaItemPropertyPersistentID
+            ))
+            if let item = query.items?.first, let assetURL = item.assetURL {
+                do {
+                    try AVAudioSession.sharedInstance().setCategory(
+                        .playback, mode: .default, options: [])
+                    try AVAudioSession.sharedInstance().setActive(true)
+                    audioPlayer                = try AVAudioPlayer(contentsOf: assetURL)
+                    audioPlayer?.numberOfLoops = -1
+                    audioPlayer?.volume        = volume
+                    audioPlayer?.play()
+                    return  // Successfully playing the chosen song
+                } catch {
+                    // Fall through to default sound below
+                }
+            }
+        }
 
+        // Fall back to bundled alarm file or system sound
         let url = Bundle.main.url(forResource: "alarm", withExtension: "mp3")
                ?? Bundle.main.url(forResource: "alarm", withExtension: "wav")
 
         guard let soundURL = url else {
-            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+            startFallbackLoop()
             return
         }
 
@@ -187,15 +207,39 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             try AVAudioSession.sharedInstance().setCategory(
                 .playback, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
-            audioPlayer              = try AVAudioPlayer(contentsOf: soundURL)
-            audioPlayer?.numberOfLoops = -1  // loop indefinitely
+            audioPlayer                = try AVAudioPlayer(contentsOf: soundURL)
+            audioPlayer?.numberOfLoops = -1
+            audioPlayer?.volume        = volume
             audioPlayer?.play()
         } catch {
+            startFallbackLoop()
+        }
+    }
+
+    /// Loops vibration + a built-in system alert tone until stopSound() is called.
+    private func startFallbackLoop() {
+        playFallbackOnce()
+        fallbackTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { [weak self] _ in
+            self?.playFallbackOnce()
+        }
+        // Ensure the timer fires even while scroll views are tracking
+        if let timer = fallbackTimer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+
+    private func playFallbackOnce() {
+        let sound = SettingsStore.shared.alarmSound
+        AudioServicesPlaySystemSound(sound.systemSoundID)
+        // Always vibrate alongside the sound for maximum annoyance
+        if sound != .buzzOnly {
             AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
         }
     }
 
     private func stopSound() {
+        fallbackTimer?.invalidate()
+        fallbackTimer = nil
         audioPlayer?.stop()
         audioPlayer = nil
         try? AVAudioSession.sharedInstance()
@@ -209,9 +253,16 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        let alarmID = notification.request.content.userInfo["alarmID"] as? String
-                    ?? notification.request.identifier
-        DispatchQueue.main.async { self.startRinging(alarmID: alarmID) }
+        let info          = notification.request.content.userInfo
+        let alarmID       = info["alarmID"] as? String ?? notification.request.identifier
+        let songID        = info["songPersistentID"] as? String
+        let volume        = (info["volume"] as? String).flatMap(Float.init) ?? 1.0
+        let snoozeDur     = info["snoozeDuration"] as? Int ?? 5
+        let keepRinging   = info["keepRinging"] as? Bool ?? false
+        DispatchQueue.main.async {
+            self.startRinging(alarmID: alarmID, songPersistentID: songID,
+                              volume: volume, snoozeDuration: snoozeDur, keepRinging: keepRinging)
+        }
         completionHandler([.banner, .sound])
     }
 
@@ -220,9 +271,16 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        let alarmID = response.notification.request.content.userInfo["alarmID"] as? String
-                    ?? response.notification.request.identifier
-        DispatchQueue.main.async { self.startRinging(alarmID: alarmID) }
+        let info        = response.notification.request.content.userInfo
+        let alarmID     = info["alarmID"] as? String ?? response.notification.request.identifier
+        let songID      = info["songPersistentID"] as? String
+        let volume      = (info["volume"] as? String).flatMap(Float.init) ?? 1.0
+        let snoozeDur   = info["snoozeDuration"] as? Int ?? 5
+        let keepRinging = info["keepRinging"] as? Bool ?? false
+        DispatchQueue.main.async {
+            self.startRinging(alarmID: alarmID, songPersistentID: songID,
+                              volume: volume, snoozeDuration: snoozeDur, keepRinging: keepRinging)
+        }
         completionHandler()
     }
 

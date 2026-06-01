@@ -1,108 +1,362 @@
 import SwiftUI
+import MediaPlayer
 
 struct AddAlarmView: View {
     @EnvironmentObject var alarmStore: AlarmStore
     @EnvironmentObject var scheduler:  AlarmScheduler
+    @EnvironmentObject var settings:   SettingsStore
     @Environment(\.dismiss) var dismiss
 
-    @State private var selectedTime = Date()
-    @State private var label        = ""
-    @State private var repeatDays: Set<Int> = []
+    let alarmToEdit: Alarm?
 
-    /// Alarm to edit; nil means creating a new alarm.
-    var editingAlarm: Alarm?
+    @State private var selectedTime:      Date
+    @State private var label:             String
+    @State private var repeatDays:        Set<Int>
+    @State private var difficulty:        Difficulty
+    @State private var problemCount:      Int
+    @State private var songPersistentID:  String?
+    @State private var songTitle:         String?
+    @State private var volume:            Float
+    @State private var snoozeDuration:    Int
+    @State private var keepRinging:       Bool
+    @State private var showingMusicPicker = false
 
     private let daySymbols = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
+    // Designated init — pre-fills fields when editing an existing alarm
+    init(alarmToEdit: Alarm? = nil) {
+        self.alarmToEdit = alarmToEdit
+        if let alarm = alarmToEdit {
+            var components    = DateComponents()
+            components.hour   = alarm.hour
+            components.minute = alarm.minute
+            let date = Calendar.current.date(from: components) ?? Date()
+            _selectedTime     = State(initialValue: date)
+            _label            = State(initialValue: alarm.label)
+            _repeatDays       = State(initialValue: alarm.repeatDays)
+            _difficulty       = State(initialValue: alarm.difficulty)
+            _problemCount     = State(initialValue: alarm.problemCount)
+            _songPersistentID = State(initialValue: alarm.songPersistentID)
+            _songTitle        = State(initialValue: alarm.songTitle)
+            _volume           = State(initialValue: alarm.volume)
+            _snoozeDuration   = State(initialValue: alarm.snoozeDuration)
+            _keepRinging      = State(initialValue: alarm.keepRinging)
+        } else {
+            _selectedTime     = State(initialValue: Date())
+            _label            = State(initialValue: "")
+            _repeatDays       = State(initialValue: [])
+            _difficulty       = State(initialValue: .medium)
+            _problemCount     = State(initialValue: 1)
+            _songPersistentID = State(initialValue: nil)
+            _songTitle        = State(initialValue: nil)
+            _volume           = State(initialValue: 1.0)
+            _snoozeDuration   = State(initialValue: 5)
+            _keepRinging      = State(initialValue: false)
+        }
+    }
+
     var body: some View {
         NavigationView {
-            Form {
-                Section {
-                    DatePicker(
-                        "Alarm time",
-                        selection: $selectedTime,
-                        displayedComponents: .hourAndMinute
-                    )
-                    .datePickerStyle(.wheel)
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity)
-                }
+            ZStack {
+                Theme.board.ignoresSafeArea()
 
-                Section("Label") {
-                    TextField("Alarm label (optional)", text: $label)
-                }
+                ScrollView {
+                    VStack(spacing: 20) {
 
-                Section("Repeat") {
-                    HStack(spacing: 6) {
-                        ForEach(1...7, id: \.self) { day in
-                            DayToggleButton(
-                                title: daySymbols[day - 1],
-                                isSelected: repeatDays.contains(day)
-                            ) {
-                                if repeatDays.contains(day) {
-                                    repeatDays.remove(day)
-                                } else {
-                                    repeatDays.insert(day)
+                        // Time picker
+                        chalkCard {
+                            DatePicker(
+                                "",
+                                selection: $selectedTime,
+                                displayedComponents: .hourAndMinute
+                            )
+                            .datePickerStyle(.wheel)
+                            .labelsHidden()
+                            .frame(maxWidth: .infinity)
+                        }
+
+                        // Label
+                        chalkCard {
+                            VStack(alignment: .leading, spacing: 10) {
+                                sectionHeader("Label")
+                                TextField("Alarm label (optional)", text: $label)
+                                    .foregroundColor(Theme.chalk)
+                                    .font(.system(.body, design: Theme.fontDesign))
+                            }
+                        }
+
+                        // Difficulty
+                        chalkCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                sectionHeader("Difficulty")
+                                HStack(spacing: 6) {
+                                    ForEach(Difficulty.allCases.filter { $0 != .whiz }, id: \.self) { level in
+                                        DayToggleButton(
+                                            title: level.label,
+                                            isSelected: difficulty == level
+                                        ) { difficulty = level }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Problems to solve
+                        chalkCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                sectionHeader("Problems to Solve")
+                                HStack {
+                                    Text("\(problemCount) problem\(problemCount == 1 ? "" : "s")")
+                                        .font(.system(.body, design: Theme.fontDesign))
+                                        .foregroundColor(Theme.chalk)
+                                    Spacer()
+                                    Stepper("", value: $problemCount, in: 1...10)
+                                        .labelsHidden()
+                                }
+                            }
+                        }
+
+                        // Alarm sound
+                        chalkCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                sectionHeader("Alarm Sound")
+                                Button {
+                                    showingMusicPicker = true
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "music.note")
+                                            .foregroundColor(Theme.chalkYellow)
+                                        Text(songTitle ?? "Default Sound")
+                                            .font(.system(.body, design: Theme.fontDesign))
+                                            .foregroundColor(songTitle == nil ? Theme.chalkFaded : Theme.chalk)
+                                            .lineLimit(1)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(Theme.chalkFaded)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+
+                                if songTitle != nil {
+                                    Button("Remove Song") {
+                                        songPersistentID = nil
+                                        songTitle        = nil
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(Theme.chalkRed)
+                                }
+                            }
+                        }
+
+                        // Volume
+                        chalkCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                sectionHeader("Volume")
+                                HStack(spacing: 10) {
+                                    Image(systemName: "speaker.fill")
+                                        .foregroundColor(Theme.chalkFaded)
+                                        .font(.caption)
+                                    Slider(value: $volume, in: 0.1...1.0)
+                                        .tint(Theme.chalkYellow)
+                                    Image(systemName: "speaker.wave.3.fill")
+                                        .foregroundColor(Theme.chalkFaded)
+                                        .font(.caption)
+                                }
+                            }
+                        }
+
+                        // Keep ringing
+                        chalkCard {
+                            VStack(alignment: .leading, spacing: 8) {
+                                sectionHeader("Keep Ringing While Solving")
+                                HStack {
+                                    Text("Sound keeps playing during the math challenge.")
+                                        .font(.caption)
+                                        .foregroundColor(Theme.chalkFaded)
+                                    Spacer()
+                                    Toggle("", isOn: $keepRinging)
+                                        .tint(Theme.chalkYellow)
+                                        .labelsHidden()
+                                }
+                            }
+                        }
+
+                        // Snooze duration
+                        chalkCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                sectionHeader("Snooze Duration")
+                                Text("How long before the alarm re-rings after you open the challenge.")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.chalkFaded)
+                                HStack {
+                                    Text("\(snoozeDuration) minute\(snoozeDuration == 1 ? "" : "s")")
+                                        .font(.system(.body, design: Theme.fontDesign))
+                                        .foregroundColor(Theme.chalk)
+                                    Spacer()
+                                    Stepper("", value: $snoozeDuration, in: 1...60)
+                                        .labelsHidden()
+                                }
+                            }
+                        }
+
+                        // Repeat days
+                        chalkCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                sectionHeader("Repeat")
+                                HStack(spacing: 6) {
+                                    ForEach(1...7, id: \.self) { day in
+                                        DayToggleButton(
+                                            title: daySymbols[day - 1],
+                                            isSelected: repeatDays.contains(day)
+                                        ) {
+                                            if repeatDays.contains(day) {
+                                                repeatDays.remove(day)
+                                            } else {
+                                                repeatDays.insert(day)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding()
                 }
             }
-            .navigationTitle(editingAlarm == nil ? "New Alarm" : "Edit Alarm")
+            .navigationTitle(alarmToEdit == nil ? "New Alarm" : "Edit Alarm")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Theme.boardDark, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(settings.activeTheme.colorScheme == .light ? .light : .dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
+                        .foregroundColor(Theme.chalkFaded)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") { save() }
+                        .foregroundColor(Theme.chalkYellow)
                         .fontWeight(.semibold)
                 }
             }
-            .onAppear(perform: populateFromEditingAlarm)
+        }
+        .colorScheme(settings.activeTheme.colorScheme)
+        .sheet(isPresented: $showingMusicPicker) {
+            MediaPickerRepresentable { item in
+                guard let item else { return }
+                let artist = item.artist ?? ""
+                let title  = item.title  ?? "Unknown"
+                songTitle        = artist.isEmpty ? title : "\(artist) — \(title)"
+                songPersistentID = String(item.persistentID)
+            }
+            .ignoresSafeArea()
         }
     }
 
-    private func populateFromEditingAlarm() {
-        guard let alarm = editingAlarm else { return }
-        label = alarm.label
-        repeatDays = alarm.repeatDays
-        var cal = Calendar.current
-        cal.timeZone = .current
-        var components = DateComponents()
-        components.hour = alarm.hour
-        components.minute = alarm.minute
-        if let date = cal.date(from: components) {
-            selectedTime = date
+    // MARK: - Helper views
+
+    @ViewBuilder
+    private func chalkCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading) {
+            content()
         }
+        .padding()
+        .background(Theme.boardDark.opacity(0.7))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Theme.chalk.opacity(0.25), lineWidth: 1.5)
+        )
+        .cornerRadius(12)
     }
+
+    private func sectionHeader(_ text: String) -> some View {
+        Text(text)
+            .font(.system(.caption, design: Theme.fontDesign))
+            .fontWeight(.semibold)
+            .foregroundColor(Theme.chalkYellow)
+    }
+
+    // MARK: - Save
 
     private func save() {
         let cal        = Calendar.current
         let components = cal.dateComponents([.hour, .minute], from: selectedTime)
+        let hour       = components.hour   ?? 8
+        let minute     = components.minute ?? 0
 
-        if var existing = editingAlarm {
-            existing.label = label
-            existing.hour = components.hour ?? existing.hour
-            existing.minute = components.minute ?? existing.minute
-            existing.repeatDays = repeatDays
-            existing.hasFired = false
+        if let existing = alarmToEdit {
+            var updated              = existing
+            updated.label            = label
+            updated.hour             = hour
+            updated.minute           = minute
+            updated.repeatDays       = repeatDays
+            updated.difficulty       = difficulty
+            updated.problemCount     = problemCount
+            updated.songPersistentID = songPersistentID
+            updated.songTitle        = songTitle
+            updated.volume           = volume
+            updated.snoozeDuration   = snoozeDuration
+            updated.keepRinging      = keepRinging
             scheduler.cancel(existing)
-            alarmStore.update(existing)
-            scheduler.schedule(existing)
+            alarmStore.update(updated)
+            if updated.isEnabled { scheduler.schedule(updated) }
         } else {
             let alarm = Alarm(
-                label:      label,
-                hour:       components.hour   ?? 8,
-                minute:     components.minute ?? 0,
-                repeatDays: repeatDays
+                label:            label,
+                hour:             hour,
+                minute:           minute,
+                repeatDays:       repeatDays,
+                difficulty:       difficulty,
+                problemCount:     problemCount,
+                songPersistentID: songPersistentID,
+                songTitle:        songTitle,
+                volume:           volume,
+                snoozeDuration:   snoozeDuration,
+                keepRinging:      keepRinging
             )
             alarmStore.add(alarm)
             scheduler.schedule(alarm)
         }
         dismiss()
+    }
+}
+
+// MARK: - MediaPickerRepresentable
+
+/// Wraps MPMediaPickerController so it can be presented as a SwiftUI sheet.
+/// Calls `onPick` with the selected MPMediaItem (or nil if cancelled).
+struct MediaPickerRepresentable: UIViewControllerRepresentable {
+    let onPick: (MPMediaItem?) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(onPick: onPick) }
+
+    func makeUIViewController(context: Context) -> MPMediaPickerController {
+        let picker = MPMediaPickerController(mediaTypes: .music)
+        picker.allowsPickingMultipleItems = false
+        picker.showsCloudItems            = false
+        picker.prompt                     = "Choose an alarm sound"
+        picker.delegate                   = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: MPMediaPickerController, context: Context) {}
+
+    class Coordinator: NSObject, MPMediaPickerControllerDelegate {
+        let onPick: (MPMediaItem?) -> Void
+        init(onPick: @escaping (MPMediaItem?) -> Void) { self.onPick = onPick }
+
+        func mediaPicker(
+            _ mediaPicker: MPMediaPickerController,
+            didPickMediaItems mediaItemCollection: MPMediaItemCollection
+        ) {
+            onPick(mediaItemCollection.items.first)
+            mediaPicker.dismiss(animated: true)
+        }
+
+        func mediaPickerDidCancel(_ mediaPicker: MPMediaPickerController) {
+            onPick(nil)
+            mediaPicker.dismiss(animated: true)
+        }
     }
 }
 
@@ -116,17 +370,23 @@ struct DayToggleButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.caption)
+                .font(.system(.caption, design: Theme.fontDesign))
                 .fontWeight(isSelected ? .semibold : .regular)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-                .background(isSelected ? Color.accentColor : Color(.systemGray5))
-                .foregroundColor(isSelected ? .white : .primary)
-                .clipShape(Circle())
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(isSelected ? Theme.chalkYellow : Theme.board)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(
+                            isSelected ? Theme.chalkYellow : Theme.chalk.opacity(0.3),
+                            lineWidth: 1.5
+                        )
+                )
+                .foregroundColor(isSelected ? Theme.boardDark : Theme.chalkFaded)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityValue(isSelected ? "Selected" : "Not selected")
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
