@@ -20,6 +20,8 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Alarmed by Math uses your music library so you can set a song as your alarm sound.</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Alarmed by Math needs notifications to ring your alarms.</string>
 	<key>UIApplicationSceneManifest</key>
