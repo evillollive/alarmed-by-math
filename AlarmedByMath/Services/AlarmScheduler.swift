@@ -227,7 +227,8 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         songPersistentID: String? = nil,
         volume:           Float   = 1.0,
         snoozeDuration:   Int     = 5,
-        keepRinging:      Bool    = false
+        keepRinging:      Bool    = false,
+        preview:          Bool    = false
     ) {
         activeAlarmID        = alarmID
         activeSongID         = songPersistentID
@@ -236,8 +237,11 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         activeKeepRinging    = keepRinging
         isRinging            = true
 
-        if useAlarmKit {
-            // AlarmKit owns the sound on iOS 26; don't double up with in-app audio.
+        if useAlarmKit && !preview {
+            // AlarmKit owns the sound on iOS 26; don't double up with in-app
+            // audio. A preview (the Settings "Test Alarm") is the exception:
+            // no AlarmKit alarm is firing, so we must play in-app so the user
+            // actually hears something, even with the silent switch on.
             return
         }
         // Foreground ring: the queued chain is now redundant, cancel it so we

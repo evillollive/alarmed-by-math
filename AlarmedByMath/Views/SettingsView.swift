@@ -87,14 +87,14 @@ struct SettingsView: View {
         settingsCard {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader("Test Alarm")
-                Text("Triggers the ringing screen immediately so you can preview the sound and math challenge.")
+                Text("Triggers the ringing screen immediately so you can preview the sound and math challenge. Plays even if your phone is on silent.")
                     .font(.caption)
                     .foregroundColor(Theme.chalkFaded)
                 Button {
                     dismiss()
                     // Small delay so the sheet finishes dismissing before the full-screen cover appears
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        scheduler.startRinging(alarmID: "test")
+                        scheduler.startRinging(alarmID: "test", preview: true)
                     }
                 } label: {
                     HStack {
