@@ -119,14 +119,26 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         }
     }
 
-    /// Convenience used by `schedule(_:)`; schedules just this alarm's chain.
-    /// A full, budget-balanced rebuild happens on the next app launch.
+    /// Convenience used by `schedule(_:)`; schedules just this alarm's chain
+    /// against whatever notification budget remains after *other* alarms, so
+    /// adding/editing several alarms can't push the total past iOS's 64-request
+    /// cap (and can't drop this alarm entirely). A full, budget-balanced
+    /// rebuild happens on the next app launch.
     private func scheduleChained(_ alarm: Alarm) {
         guard alarm.isEnabled, let next = Self.nextFireDate(for: alarm) else {
             removeChained(alarm); return
         }
-        removeChained(alarm)
-        _ = scheduleChain(for: alarm, firstFire: next, budget: Self.chainBudget)
+        let prefix = alarm.id.uuidString
+        UNUserNotificationCenter.current().getPendingNotificationRequests { [weak self] pending in
+            guard let self else { return }
+            // This alarm's own chain is about to be replaced, so exclude it from
+            // the count; budget against what other alarms have already claimed.
+            let usedByOthers = pending.filter { !$0.identifier.hasPrefix(prefix) }.count
+            let remaining = max(0, Self.chainBudget - usedByOthers)
+            self.removeChained(alarm)
+            guard remaining > 0 else { return }
+            _ = self.scheduleChain(for: alarm, firstFire: next, budget: remaining)
+        }
     }
 
     /// Schedules the notification chain for one alarm and returns how many
@@ -249,6 +261,19 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     func presentMathIfPending() -> Bool {
         guard let id = AlarmGate.pendingMathAlarmID else { return false }
         AlarmGate.pendingMathAlarmID = nil
+        activeAlarmID   = id
+        autoPresentMath = true
+        isRinging       = true
+        return true
+    }
+
+    /// Forces the math challenge whenever an AlarmKit alarm is still alerting
+    /// while the app is frontmost, so the user can't reach the alarm list and
+    /// silence a ringing alarm without solving. Returns true if presented.
+    @discardableResult
+    func presentMathIfActiveRing() -> Bool {
+        guard #available(iOS 26.1, *) else { return false }
+        guard let id = AlarmKitScheduler.alertingOriginalID() else { return false }
         activeAlarmID   = id
         autoPresentMath = true
         isRinging       = true

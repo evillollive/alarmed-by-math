@@ -54,6 +54,20 @@ final class AlarmGateTests: XCTestCase {
         XCTAssertTrue(AlarmGate.reringIDs(id).isEmpty)
     }
 
+    func testReringIDReverseLookup() {
+        let id = freshID()
+        AlarmGate.addReringID(id, "ring-A")
+        AlarmGate.addReringID(id, "ring-B")
+        // A re-ring id resolves back to the alarm that spawned it.
+        XCTAssertEqual(AlarmGate.originalID(forRingingID: "ring-A"), id)
+        XCTAssertEqual(AlarmGate.originalID(forRingingID: "ring-B"), id)
+        // A primary id (no mapping) resolves to itself.
+        XCTAssertEqual(AlarmGate.originalID(forRingingID: id), id)
+        // Clearing removes the reverse mapping too.
+        AlarmGate.clearReringIDs(id)
+        XCTAssertEqual(AlarmGate.originalID(forRingingID: "ring-A"), "ring-A")
+    }
+
     func testPendingMathHandoff() {
         let id = freshID()
         AlarmGate.pendingMathAlarmID = id

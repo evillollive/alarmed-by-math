@@ -33,11 +33,33 @@ enum AlarmKitScheduler {
     /// the enabled ones. Safe to call repeatedly (e.g. on every app launch).
     static func scheduleAll(_ alarms: [Alarm]) async {
         guard await ensureAuthorized() else { return }
+        let alerting = alertingIDs()
         for alarm in alarms {
-            cancel(alarm.id.uuidString)
+            let oid = alarm.id.uuidString
+            // Never disturb an alarm that is actively ringing (or whose re-ring
+            // is ringing): canceling it would silence the alarm and wipe the
+            // math gate, letting the user escape without solving. These get
+            // (re)scheduled the next time the app is opened while idle.
+            if alerting.contains(oid) { continue }
+            if AlarmGate.reringIDs(oid).contains(where: alerting.contains) { continue }
+            cancel(oid)
             guard alarm.isEnabled else { continue }
             await schedulePrimary(alarm)
         }
+    }
+
+    /// UUID strings of every AlarmKit alarm currently in the alerting state.
+    private static func alertingIDs() -> Set<String> {
+        guard let current = try? AlarmManager.shared.alarms else { return [] }
+        return Set(current.filter { $0.state == .alerting }.map { $0.id.uuidString })
+    }
+
+    /// App-level alarm id of any alarm that is currently alerting (primary or
+    /// one of its re-rings), so the app can force the math gate when it comes
+    /// to the foreground while an alarm is still ringing.
+    static func alertingOriginalID() -> String? {
+        guard let id = alertingIDs().first else { return nil }
+        return AlarmGate.originalID(forRingingID: id)
     }
 
     static func schedule(_ alarm: Alarm) async {
@@ -206,8 +228,17 @@ struct StopMathAlarmIntent: LiveActivityIntent {
     }
 
     func perform() async throws -> some IntentResult {
+        let isPrimaryRing = (ringingAlarmID == originalAlarmID)
         if let uuid = UUID(uuidString: ringingAlarmID) {
             try? AlarmManager.shared.stop(id: uuid)
+        }
+        // AlarmKit reuses the primary id across every occurrence of a repeating
+        // alarm, so a fresh primary ring must start a new gate cycle: clear the
+        // previous occurrence's "solved" flag, re-ring counter, and re-ring ids.
+        // Without this, solving once would disable the math gate forever.
+        if isPrimaryRing {
+            AlarmGate.reset(originalAlarmID)
+            AlarmGate.clearReringIDs(originalAlarmID)
         }
         if !AlarmGate.isSolved(originalAlarmID) {
             let attempt = AlarmGate.incrementRerings(originalAlarmID)

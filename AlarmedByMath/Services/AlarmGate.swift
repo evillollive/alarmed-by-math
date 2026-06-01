@@ -20,6 +20,7 @@ enum AlarmGate {
     private static func ringIDsKey(_ id: String)  -> String { "gate_ringids_\(id)" }
     private static func reringKey(_ id: String)   -> String { "gate_rerings_\(id)" }
     private static func labelKey(_ id: String)    -> String { "gate_label_\(id)" }
+    private static func originKey(_ ringID: String) -> String { "gate_origin_\(ringID)" }
     private static let pendingMathKey = "gate_pending_math"
 
     // MARK: - Solved flag (occurrence scoped)
@@ -42,8 +43,8 @@ enum AlarmGate {
     /// Removes every stored key for an alarm id (used when an alarm is deleted
     /// or disabled, and to keep tests from leaking state).
     static func forget(_ originalID: String) {
+        clearReringIDs(originalID)
         defaults.removeObject(forKey: solvedKey(originalID))
-        defaults.removeObject(forKey: ringIDsKey(originalID))
         defaults.removeObject(forKey: reringKey(originalID))
         defaults.removeObject(forKey: labelKey(originalID))
     }
@@ -59,10 +60,18 @@ enum AlarmGate {
         var ids = reringIDs(originalID)
         ids.append(id)
         defaults.set(ids, forKey: ringIDsKey(originalID))
+        defaults.set(originalID, forKey: originKey(id))
     }
 
     static func clearReringIDs(_ originalID: String) {
+        for id in reringIDs(originalID) { defaults.removeObject(forKey: originKey(id)) }
         defaults.removeObject(forKey: ringIDsKey(originalID))
+    }
+
+    /// Resolves any AlarmKit ringing id back to the app-level alarm id. A
+    /// re-ring maps to the alarm that spawned it; a primary id maps to itself.
+    static func originalID(forRingingID id: String) -> String {
+        defaults.string(forKey: originKey(id)) ?? id
     }
 
     static func reringCount(_ originalID: String) -> Int {

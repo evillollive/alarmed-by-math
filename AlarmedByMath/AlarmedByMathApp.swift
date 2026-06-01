@@ -17,15 +17,20 @@ struct AlarmedByMathApp: App {
                 .onAppear {
                     scheduler.requestPermission { _ in }
                     scheduler.scheduleAlarms(alarmStore.alarms)
-                    scheduler.presentMathIfPending()
+                    if !scheduler.presentMathIfPending() {
+                        scheduler.presentMathIfActiveRing()
+                    }
                 }
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             // Refresh schedules (keeps the chained-notification budget current)
-            // and pick up any alarm whose "Solve to Dismiss" button was tapped.
+            // and pick up any alarm whose "Solve to Dismiss" button was tapped,
+            // or that is still ringing, so the math gate can't be skipped.
             scheduler.scheduleAlarms(alarmStore.alarms)
-            scheduler.presentMathIfPending()
+            if !scheduler.presentMathIfPending() {
+                scheduler.presentMathIfActiveRing()
+            }
         }
     }
 }
