@@ -3,9 +3,9 @@ import SwiftUI
 /// Presents a random math problem that the user must solve correctly to dismiss the alarm.
 ///
 /// Behavior:
-/// - The alarm is snoozed immediately when this view appears (sound stops; a re-ring
-///   notification is scheduled for 5 minutes later).
-/// - A correct answer cancels the snooze notification and fully dismisses the alarm.
+/// - The alarm is snoozed immediately when this view appears. The current ring is
+///   silenced and a re-ring is scheduled for the alarm's snooze duration later.
+/// - A correct answer cancels the snoozed re-ring and fully dismisses the alarm.
 /// - A wrong answer shakes the input field, generates a new problem, and lets the user try again.
 struct MathChallengeView: View {
     @EnvironmentObject var scheduler:  AlarmScheduler
@@ -22,7 +22,12 @@ struct MathChallengeView: View {
         return alarmStore.alarms.first(where: { $0.id == uuid })
     }
 
-    private var difficulty:   Difficulty { activeAlarm?.difficulty   ?? .medium }
+    private var difficulty: Difficulty {
+        Difficulty.effective(
+            activeAlarm?.difficulty ?? .medium,
+            whizUnlocked: settings.allowsWhizDifficulty
+        )
+    }
     private var problemCount: Int        { activeAlarm?.problemCount ?? 1 }
 
     @State private var problem        = MathProblem.generate() // replaced on appear
@@ -117,7 +122,7 @@ struct MathChallengeView: View {
 
             if hasSnoozed {
                 Label(
-                    "Alarm snoozed — solve to fully dismiss",
+                    "Alarm snoozed. Solve to fully dismiss",
                     systemImage: "moon.zzz.fill"
                 )
                 .font(.caption)
@@ -154,7 +159,7 @@ struct MathChallengeView: View {
                 StatsStore.shared.recordAlarmDismissed()
                 showSuccess = true
             } else {
-                // More problems to go — reset input and generate next
+                // More problems to go, reset input and generate next
                 userInput = ""
                 problem   = MathProblem.generate(difficulty: difficulty)
             }

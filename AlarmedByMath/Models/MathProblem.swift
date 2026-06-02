@@ -14,6 +14,13 @@ enum Difficulty: String, Codable, CaseIterable {
     }
 }
 
+extension Difficulty {
+    static func effective(_ selected: Difficulty, whizUnlocked: Bool) -> Difficulty {
+        guard selected == .whiz, !whizUnlocked else { return selected }
+        return .expert
+    }
+}
+
 struct MathProblem {
     let expression: String
     let answer: Int
@@ -42,7 +49,7 @@ struct MathProblem {
             default: return generateFraction()
             }
         case .whiz:
-            // Whiz tier coming soon — falls back to Expert in the meantime
+            // Whiz tier coming soon, falls back to Expert in the meantime
             return generate(difficulty: .expert)
         }
     }

@@ -20,6 +20,7 @@ enum AlarmGate {
     private static func ringIDsKey(_ id: String)  -> String { "gate_ringids_\(id)" }
     private static func reringKey(_ id: String)   -> String { "gate_rerings_\(id)" }
     private static func labelKey(_ id: String)    -> String { "gate_label_\(id)" }
+    private static func snoozeKey(_ id: String)   -> String { "gate_snooze_\(id)" }
     private static func originKey(_ ringID: String) -> String { "gate_origin_\(ringID)" }
     private static let pendingMathKey = "gate_pending_math"
 
@@ -48,6 +49,7 @@ enum AlarmGate {
         defaults.removeObject(forKey: reringKey(originalID))
         defaults.removeObject(forKey: labelKey(originalID))
         defaults.removeObject(forKey: soundKey(originalID))
+        defaults.removeObject(forKey: snoozeKey(originalID))
     }
 
     // MARK: - Active re-ring ids
@@ -106,6 +108,17 @@ enum AlarmGate {
 
     static func sound(_ originalID: String) -> String {
         defaults.string(forKey: soundKey(originalID)) ?? "alarm.caf"
+    }
+
+    // MARK: - Snooze duration
+
+    static func setSnoozeDuration(_ originalID: String, _ minutes: Int) {
+        defaults.set(max(1, minutes), forKey: snoozeKey(originalID))
+    }
+
+    static func snoozeDuration(_ originalID: String) -> Int {
+        let stored = defaults.integer(forKey: snoozeKey(originalID))
+        return max(1, stored == 0 ? 5 : stored)
     }
 
     // MARK: - Pending math hand-off

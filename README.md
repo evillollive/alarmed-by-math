@@ -34,7 +34,7 @@ The flow is intentionally simple so there's nothing between you and the alarm do
 
 A few design choices that make this more than just "alarm + quiz":
 
-- **Three difficulty levels.** Easy sticks to addition. Medium mixes in subtraction and multiplication. Hard throws bigger numbers at you. Pick the level that matches how stubborn your sleep habits are.
+- **Free difficulty ladder, plus Whiz purchase plumbing.** Easy through Expert are available in the free app. Whiz is wired as a StoreKit 2 unlock, and any locked Whiz alarm is safely normalized back to Expert until the entitlement is active.
 - **Repeating schedules.** Set alarms for specific days of the week or leave them as one-time events. The scheduling uses iOS local notifications, so alarms fire even when the app isn't in the foreground.
 - **Snooze safety net.** There's no snooze button, but if you try to cheat by closing the app, a follow-up notification catches you five minutes later. It's persistent by design.
 - **Full-screen ringing.** When the alarm fires, the whole screen takes over with a pulsing animation and the current time. It's meant to be unmissable.
@@ -42,6 +42,7 @@ A few design choices that make this more than just "alarm + quiz":
 ## What's under the hood
 
 - **Swift** + **SwiftUI** for the entire UI
+- **StoreKit 2** for Whiz purchase, restore, and entitlement refresh
 - **UserNotifications** for scheduling local alarms
 - **AVFoundation** for in-app alarm audio playback
 - **UserDefaults** (Codable) for persistence
@@ -75,10 +76,20 @@ AlarmedByMath/
 
 Alarmed by Math is built to be usable for everyone, not just people who can see the screen clearly at 6 AM:
 
-- **VoiceOver labels** on all custom controls (number pad, day toggles)
+- **VoiceOver labels** on custom controls, including theme rows and the new Whiz purchase and restore actions
 - **Announcements** for correct and incorrect answers so you don't have to squint at feedback
 - **Reduce Motion** support, because pulsing animations aren't for everybody
 - **Dynamic Type** with minimum scale factors so text stays readable at any size
+- **Contrast-aware settings cards** and full-row tap targets so the Whiz purchase flow stays understandable under low vision and shaky-morning conditions
+
+## Whiz setup
+
+The app now includes live StoreKit plumbing for the paid Whiz unlock.
+
+- **Product ID:** `com.alarmedbymath.app.whiz`
+- **Product type:** non-consumable
+- **In-app behavior:** purchase, restore, and entitlement refresh are wired in `SettingsStore`
+- **App Store Connect requirement:** create the product with the same ID before expecting live purchases in debug, TestFlight, or production
 
 ## License
 

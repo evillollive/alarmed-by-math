@@ -92,10 +92,16 @@ struct ContentView: View {
             .sheet(isPresented: $showingStats) {
                 StatsView()
                     .environmentObject(settings)
+                    .environmentObject(alarmStore)
             }
         }
         .navigationViewStyle(.stack)
-        .fullScreenCover(isPresented: $scheduler.isRinging) {
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { scheduler.isRinging },
+                set: { if !$0 { scheduler.dismiss() } }
+            )
+        ) {
             AlarmRingingView()
                 .environmentObject(alarmStore)
                 .environmentObject(scheduler)
@@ -154,15 +160,9 @@ struct AlarmRow: View {
                     Text(alarm.timeString)
                         .font(.system(size: 38, weight: .light, design: Theme.fontDesign))
                         .foregroundColor(alarm.isEnabled ? Theme.chalk : Theme.chalkFaded)
-                    HStack(spacing: 6) {
-                        if !alarm.label.isEmpty {
-                            Text(alarm.label)
-                                .foregroundColor(Theme.chalkFaded)
-                        }
-                        Text(alarm.repeatLabel)
-                            .foregroundColor(Theme.chalkFaded)
-                    }
-                    .font(.subheadline)
+                    Text(alarm.detailLabel)
+                        .font(.subheadline)
+                        .foregroundColor(Theme.chalkFaded)
                 }
             }
             .buttonStyle(.plain)

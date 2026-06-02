@@ -80,6 +80,11 @@ struct Alarm: Identifiable, Codable, Equatable {
     /// Label to show on the alarm, falling back to a generic title.
     var displayLabel: String { label.isEmpty ? "Alarm" : label }
 
+    /// Subtitle shown in the alarm list.
+    var detailLabel: String {
+        label.isEmpty ? repeatLabel : "\(label), \(repeatLabel)"
+    }
+
     var timeString: String {
         let h = hour % 12 == 0 ? 12 : hour % 12
         let period = hour < 12 ? "AM" : "PM"

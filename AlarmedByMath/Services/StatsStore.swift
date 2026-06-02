@@ -102,9 +102,9 @@ class StatsStore: ObservableObject {
             let lastDay = cal.startOfDay(for: last)
             let days    = cal.dateComponents([.day], from: lastDay, to: today).day ?? 0
             switch days {
-            case 0:  break                         // Same day — streak unchanged
-            case 1:  stats.currentStreak += 1      // Consecutive day — extend streak
-            default: stats.currentStreak = 1       // Gap — restart streak
+            case 0:  break                         // Same day, streak unchanged
+            case 1:  stats.currentStreak += 1      // Consecutive day, extend streak
+            default: stats.currentStreak = 1       // Gap, restart streak
             }
         } else {
             stats.currentStreak = 1                // First ever dismiss

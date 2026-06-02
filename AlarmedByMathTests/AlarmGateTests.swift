@@ -6,6 +6,7 @@ import XCTest
 final class AlarmGateTests: XCTestCase {
 
     private var ids: [String] = []
+    private let alarmsKey = "saved_alarms"
 
     private func freshID() -> String {
         let id = UUID().uuidString
@@ -17,8 +18,14 @@ final class AlarmGateTests: XCTestCase {
         // Clean up any keys we touched so we don't leak into other tests.
         for id in ids { AlarmGate.forget(id) }
         AlarmGate.pendingMathAlarmID = nil
+        UserDefaults.standard.removeObject(forKey: alarmsKey)
+        SettingsStore.shared.setWhizPlanFromEntitlement(.free)
         ids.removeAll()
         super.tearDown()
+    }
+
+    func testWhizProductIdentifierMatchesBundleNaming() {
+        XCTAssertEqual(SettingsStore.whizProductID, "com.alarmedbymath.app.whiz")
     }
 
     func testSolvedFlagDefaultsFalse() {
@@ -81,6 +88,22 @@ final class AlarmGateTests: XCTestCase {
         XCTAssertEqual(AlarmGate.label(id), "Alarm")  // default
         AlarmGate.setLabel(id, "Wake up")
         XCTAssertEqual(AlarmGate.label(id), "Wake up")
+    }
+
+    func testAlarmStoreDowngradesWhizDifficultyWhenLocked() {
+        SettingsStore.shared.setWhizPlanFromEntitlement(.free)
+        let store = AlarmStore()
+        store.add(Alarm(label: "Study", difficulty: .whiz))
+
+        XCTAssertEqual(store.alarms.last?.difficulty, .expert)
+    }
+
+    func testAlarmStoreKeepsWhizDifficultyWhenUnlocked() {
+        SettingsStore.shared.setWhizPlanFromEntitlement(.whiz)
+        let store = AlarmStore()
+        store.add(Alarm(label: "Olympiad", difficulty: .whiz))
+
+        XCTAssertEqual(store.alarms.last?.difficulty, .whiz)
     }
 }
 

@@ -4,6 +4,81 @@ import AVFoundation
 import AudioToolbox
 import MediaPlayer
 
+struct RingingAlarmContext: Equatable {
+    let alarmID: String
+    var songPersistentID: String?
+    var volume: Float
+    var snoozeDuration: Int
+    var keepRinging: Bool
+    var autoPresentMath: Bool
+    var preview: Bool
+
+    init(
+        alarmID: String,
+        songPersistentID: String? = nil,
+        volume: Float = 1.0,
+        snoozeDuration: Int = 5,
+        keepRinging: Bool = false,
+        autoPresentMath: Bool = false,
+        preview: Bool = false
+    ) {
+        self.alarmID = alarmID
+        self.songPersistentID = songPersistentID
+        self.volume = volume
+        self.snoozeDuration = snoozeDuration
+        self.keepRinging = keepRinging
+        self.autoPresentMath = autoPresentMath
+        self.preview = preview
+    }
+
+    func merged(with newer: RingingAlarmContext) -> RingingAlarmContext {
+        RingingAlarmContext(
+            alarmID: alarmID,
+            songPersistentID: newer.songPersistentID ?? songPersistentID,
+            volume: newer.volume,
+            snoozeDuration: newer.snoozeDuration,
+            keepRinging: newer.keepRinging,
+            autoPresentMath: autoPresentMath || newer.autoPresentMath,
+            preview: preview || newer.preview
+        )
+    }
+}
+
+struct RingingAlarmQueue: Equatable {
+    private(set) var active: RingingAlarmContext?
+    private(set) var queued: [RingingAlarmContext] = []
+
+    var activeAlarmID: String? { active?.alarmID }
+    var isRinging: Bool { active != nil }
+    var autoPresentMath: Bool { active?.autoPresentMath ?? false }
+
+    mutating func push(_ context: RingingAlarmContext) -> Bool {
+        if let active, active.alarmID == context.alarmID {
+            self.active = active.merged(with: context)
+            return true
+        }
+        if active == nil {
+            active = context
+            return true
+        }
+        if let index = queued.firstIndex(where: { $0.alarmID == context.alarmID }) {
+            queued[index] = queued[index].merged(with: context)
+        } else {
+            queued.append(context)
+        }
+        return false
+    }
+
+    mutating func popCurrent() -> RingingAlarmContext? {
+        guard !queued.isEmpty else {
+            active = nil
+            return nil
+        }
+        active = queued.removeFirst()
+        return active
+    }
+}
+
 /// Manages alarm scheduling, in-app audio playback, and the ringing state.
 ///
 /// Locked-screen behaviour depends on the OS:
@@ -18,11 +93,11 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
     // MARK: - Published state
 
-    @Published var activeAlarmID: String?
-    @Published var isRinging: Bool = false
+    @Published private(set) var activeAlarmID: String?
+    @Published private(set) var isRinging: Bool = false
     /// When true, the ringing UI should jump straight to the math challenge
     /// (used on iOS 26 when the app is opened from the alarm's secondary button).
-    @Published var autoPresentMath: Bool = false
+    @Published private(set) var autoPresentMath: Bool = false
 
     // MARK: - Constants
 
@@ -35,6 +110,12 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
     private var useAlarmKit: Bool {
         if #available(iOS 26.1, *) { return true } else { return false }
+    }
+
+    var supportsPerAlarmVolume: Bool { !useAlarmKit }
+    private var runtimeSupportsCustomSongs: Bool { false }
+    var supportsCustomSongs: Bool {
+        runtimeSupportsCustomSongs && SettingsStore.shared.allowsCustomSongs
     }
 
     // MARK: - Active alarm state (set when ringing starts)
@@ -50,6 +131,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     private var fallbackTimer: Timer?
     private var previewPlayer: AVAudioPlayer?
     private var previewStopTimer: Timer?
+    private var ringingQueue = RingingAlarmQueue()
 
     // MARK: - Init
 
@@ -228,12 +310,23 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         keepRinging:      Bool    = false,
         preview:          Bool    = false
     ) {
-        activeAlarmID        = alarmID
-        activeSongID         = songPersistentID
-        activeVolume         = volume
-        activeSnoozeDuration = snoozeDuration
-        activeKeepRinging    = keepRinging
-        isRinging            = true
+        let context = RingingAlarmContext(
+            alarmID: alarmID,
+            songPersistentID: songPersistentID,
+            volume: volume,
+            snoozeDuration: snoozeDuration,
+            keepRinging: keepRinging,
+            preview: preview
+        )
+        let becameActive = ringingQueue.push(context)
+        syncPublishedState()
+
+        guard becameActive else { return }
+
+        activeSongID         = context.songPersistentID
+        activeVolume         = context.volume
+        activeSnoozeDuration = context.snoozeDuration
+        activeKeepRinging    = context.keepRinging
 
         if useAlarmKit && !preview {
             // AlarmKit owns the sound on iOS 26; don't double up with in-app
@@ -263,9 +356,10 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     func presentMathIfPending() -> Bool {
         guard let id = AlarmGate.pendingMathAlarmID else { return false }
         AlarmGate.pendingMathAlarmID = nil
-        activeAlarmID   = id
-        autoPresentMath = true
-        isRinging       = true
+        let didActivate = enqueueForMathChallenge(alarmID: id)
+        if didActivate {
+            applyActiveContextState()
+        }
         return true
     }
 
@@ -275,21 +369,35 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     @discardableResult
     func presentMathIfActiveRing() -> Bool {
         guard #available(iOS 26.1, *) else { return false }
-        guard let id = AlarmKitScheduler.alertingOriginalID() else { return false }
-        activeAlarmID   = id
-        autoPresentMath = true
-        isRinging       = true
+        let ids = AlarmKitScheduler.alertingOriginalIDs()
+        guard !ids.isEmpty else { return false }
+
+        var activated = false
+        for id in ids {
+            if enqueueForMathChallenge(alarmID: id) {
+                activated = true
+            }
+        }
+        if activated {
+            applyActiveContextState()
+        }
         return true
     }
 
-    /// Stops the in-app sound and schedules a re-ring notification. Called as
-    /// soon as the user opens the math challenge view. No-op on iOS 26, where
-    /// AlarmKit keeps ringing and the gate enforces solving.
+    /// Snoozes the current alarm occurrence as soon as the user opens the math
+    /// challenge. On iOS 26, this silences the active AlarmKit ring and schedules
+    /// a delayed re-ring for the same alarm. On older systems, it swaps the in-app
+    /// sound for a local notification re-ring.
     func snooze() {
-        if useAlarmKit { return }
         guard let alarmID = activeAlarmID else { return }
-        if !activeKeepRinging { stopSound() }
         StatsStore.shared.recordSnooze()
+
+        if #available(iOS 26.1, *), useAlarmKit {
+            Task { await AlarmKitScheduler.snooze(alarmID, minutes: activeSnoozeDuration) }
+            return
+        }
+
+        if !activeKeepRinging { stopSound() }
 
         let content = UNMutableNotificationContent()
         content.title              = "Snoozed Alarm"
@@ -325,9 +433,48 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             UNUserNotificationCenter.current()
                 .removePendingNotificationRequests(withIdentifiers: ["\(alarmID)-snooze"])
         }
-        activeAlarmID   = nil
-        isRinging       = false
-        autoPresentMath = false
+
+        _ = ringingQueue.popCurrent()
+        syncPublishedState()
+        applyActiveContextState()
+    }
+
+    private func enqueueForMathChallenge(alarmID: String) -> Bool {
+        let context = RingingAlarmContext(
+            alarmID: alarmID,
+            snoozeDuration: AlarmGate.snoozeDuration(alarmID),
+            autoPresentMath: true
+        )
+        let didActivate = ringingQueue.push(context)
+        syncPublishedState()
+        return didActivate
+    }
+
+    private func syncPublishedState() {
+        activeAlarmID = ringingQueue.activeAlarmID
+        isRinging = ringingQueue.isRinging
+        autoPresentMath = ringingQueue.autoPresentMath
+    }
+
+    private func applyActiveContextState() {
+        guard let context = ringingQueue.active else {
+            activeSongID = nil
+            activeVolume = 1.0
+            activeSnoozeDuration = 5
+            activeKeepRinging = false
+            return
+        }
+
+        activeSongID = context.songPersistentID
+        activeVolume = context.volume
+        activeSnoozeDuration = context.snoozeDuration
+        activeKeepRinging = context.keepRinging
+
+        if useAlarmKit && !context.preview { return }
+        if let uuid = UUID(uuidString: context.alarmID) {
+            removeChainedByID(uuid)
+        }
+        playAlarmSound(songPersistentID: context.songPersistentID, volume: context.volume)
     }
 
     // MARK: - Audio (foreground only)

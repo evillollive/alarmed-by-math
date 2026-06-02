@@ -22,8 +22,9 @@ struct AddAlarmView: View {
     @State private var showingMusicPicker = false
 
     private let daySymbols = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    private var whizLocked: Bool { !settings.allowsWhizDifficulty }
 
-    // Designated init — pre-fills fields when editing an existing alarm
+    // Designated init, pre-fills fields when editing an existing alarm
     init(alarmToEdit: Alarm? = nil) {
         self.alarmToEdit = alarmToEdit
         if let alarm = alarmToEdit {
@@ -90,12 +91,26 @@ struct AddAlarmView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 sectionHeader("Difficulty")
                                 HStack(spacing: 6) {
-                                    ForEach(Difficulty.allCases.filter { $0 != .whiz }, id: \.self) { level in
+                                    ForEach(Difficulty.allCases, id: \.self) { level in
+                                        let isLockedWhiz = level == .whiz && whizLocked
                                         DayToggleButton(
-                                            title: level.label,
+                                            title: isLockedWhiz ? "\(level.label) 🔒" : level.label,
                                             isSelected: difficulty == level
-                                        ) { difficulty = level }
+                                        ) {
+                                            guard !isLockedWhiz else { return }
+                                            difficulty = level
+                                        }
                                     }
+                                }
+                                if whizLocked {
+                                    Text("Whiz is part of the paid tier. Unlock or restore it in Settings. Free alarms currently support up to Expert.")
+                                        .font(.caption)
+                                        .foregroundColor(Theme.chalkFaded)
+                                }
+                                if difficulty == .whiz && whizLocked {
+                                    Text("This alarm will be saved as Expert until Whiz is unlocked.")
+                                        .font(.caption)
+                                        .foregroundColor(Theme.chalkYellow)
                                 }
                             }
                         }
@@ -116,51 +131,75 @@ struct AddAlarmView: View {
                         }
 
                         // Alarm sound
-                        chalkCard {
-                            VStack(alignment: .leading, spacing: 12) {
-                                sectionHeader("Alarm Sound")
-                                Button {
-                                    showingMusicPicker = true
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "music.note")
-                                            .foregroundColor(Theme.chalkYellow)
-                                        Text(songTitle ?? "Default Sound")
-                                            .font(.system(.body, design: Theme.fontDesign))
-                                            .foregroundColor(songTitle == nil ? Theme.chalkFaded : Theme.chalk)
-                                            .lineLimit(1)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(Theme.chalkFaded)
+                        if scheduler.supportsCustomSongs {
+                            chalkCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    sectionHeader("Alarm Sound")
+                                    Button {
+                                        showingMusicPicker = true
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "music.note")
+                                                .foregroundColor(Theme.chalkYellow)
+                                            Text(songTitle ?? "Default Sound")
+                                                .font(.system(.body, design: Theme.fontDesign))
+                                                .foregroundColor(songTitle == nil ? Theme.chalkFaded : Theme.chalk)
+                                                .lineLimit(1)
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption)
+                                                .foregroundColor(Theme.chalkFaded)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if songTitle != nil {
+                                        Button("Remove Song") {
+                                            songPersistentID = nil
+                                            songTitle        = nil
+                                        }
+                                        .font(.caption)
+                                        .foregroundColor(Theme.chalkRed)
                                     }
                                 }
-                                .buttonStyle(.plain)
-
-                                if songTitle != nil {
-                                    Button("Remove Song") {
-                                        songPersistentID = nil
-                                        songTitle        = nil
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(Theme.chalkRed)
+                            }
+                        } else {
+                            chalkCard {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    sectionHeader("Alarm Sound")
+                                    Text(settings.allowsCustomSongs
+                                         ? "Whiz is unlocked, but this iOS alarm path still uses the app sound from Settings for dependable scheduled alarms."
+                                         : "Custom songs are in the paid Whiz tier, and this iOS alarm path still uses the app sound from Settings for dependable scheduled alarms.")
+                                        .font(.caption)
+                                        .foregroundColor(Theme.chalkFaded)
                                 }
                             }
                         }
 
                         // Volume
-                        chalkCard {
-                            VStack(alignment: .leading, spacing: 12) {
-                                sectionHeader("Volume")
-                                HStack(spacing: 10) {
-                                    Image(systemName: "speaker.fill")
-                                        .foregroundColor(Theme.chalkFaded)
+                        if scheduler.supportsPerAlarmVolume {
+                            chalkCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    sectionHeader("Volume")
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "speaker.fill")
+                                            .foregroundColor(Theme.chalkFaded)
+                                            .font(.caption)
+                                        Slider(value: $volume, in: 0.1...1.0)
+                                            .tint(Theme.chalkYellow)
+                                        Image(systemName: "speaker.wave.3.fill")
+                                            .foregroundColor(Theme.chalkFaded)
+                                            .font(.caption)
+                                    }
+                                }
+                            }
+                        } else {
+                            chalkCard {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    sectionHeader("Volume")
+                                    Text("Scheduled alarms use the system alarm volume on this iOS path, so there isn't a reliable per-alarm volume control here.")
                                         .font(.caption)
-                                    Slider(value: $volume, in: 0.1...1.0)
-                                        .tint(Theme.chalkYellow)
-                                    Image(systemName: "speaker.wave.3.fill")
                                         .foregroundColor(Theme.chalkFaded)
-                                        .font(.caption)
                                 }
                             }
                         }
@@ -246,7 +285,7 @@ struct AddAlarmView: View {
                 guard let item else { return }
                 let artist = item.artist ?? ""
                 let title  = item.title  ?? "Unknown"
-                songTitle        = artist.isEmpty ? title : "\(artist) — \(title)"
+                songTitle        = artist.isEmpty ? title : "\(artist), \(title)"
                 songPersistentID = String(item.persistentID)
             }
             .ignoresSafeArea()
@@ -284,17 +323,25 @@ struct AddAlarmView: View {
         let hour       = components.hour   ?? 8
         let minute     = components.minute ?? 0
 
+        let effectiveSongPersistentID = scheduler.supportsCustomSongs ? songPersistentID : nil
+        let effectiveSongTitle = scheduler.supportsCustomSongs ? songTitle : nil
+        let effectiveVolume: Float = scheduler.supportsPerAlarmVolume ? volume : 1.0
+        let effectiveDifficulty = Difficulty.effective(
+            difficulty,
+            whizUnlocked: settings.allowsWhizDifficulty
+        )
+
         if let existing = alarmToEdit {
             var updated              = existing
             updated.label            = label
             updated.hour             = hour
             updated.minute           = minute
             updated.repeatDays       = repeatDays
-            updated.difficulty       = difficulty
+            updated.difficulty       = effectiveDifficulty
             updated.problemCount     = problemCount
-            updated.songPersistentID = songPersistentID
-            updated.songTitle        = songTitle
-            updated.volume           = volume
+            updated.songPersistentID = effectiveSongPersistentID
+            updated.songTitle        = effectiveSongTitle
+            updated.volume           = effectiveVolume
             updated.snoozeDuration   = snoozeDuration
             updated.keepRinging      = keepRinging
             scheduler.cancel(existing)
@@ -306,11 +353,11 @@ struct AddAlarmView: View {
                 hour:             hour,
                 minute:           minute,
                 repeatDays:       repeatDays,
-                difficulty:       difficulty,
+                difficulty:       effectiveDifficulty,
                 problemCount:     problemCount,
-                songPersistentID: songPersistentID,
-                songTitle:        songTitle,
-                volume:           volume,
+                songPersistentID: effectiveSongPersistentID,
+                songTitle:        effectiveSongTitle,
+                volume:           effectiveVolume,
                 snoozeDuration:   snoozeDuration,
                 keepRinging:      keepRinging
             )

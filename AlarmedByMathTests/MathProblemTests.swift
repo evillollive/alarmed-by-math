@@ -59,4 +59,18 @@ final class MathProblemTests: XCTestCase {
             XCTAssertLessThanOrEqual(problem.answer, 1998)
         }
     }
+
+    func testEffectiveDifficultyFallsBackWhenWhizLocked() {
+        XCTAssertEqual(
+            Difficulty.effective(.whiz, whizUnlocked: false),
+            .expert
+        )
+    }
+
+    func testEffectiveDifficultyPreservesWhizWhenUnlocked() {
+        XCTAssertEqual(
+            Difficulty.effective(.whiz, whizUnlocked: true),
+            .whiz
+        )
+    }
 }

@@ -3,8 +3,8 @@ import SwiftUI
 @main
 struct AlarmedByMathApp: App {
     @StateObject private var alarmStore = AlarmStore()
-    @StateObject private var scheduler  = AlarmScheduler()
-    @StateObject private var settings   = SettingsStore.shared
+    @StateObject private var scheduler = AlarmScheduler()
+    @StateObject private var settings = SettingsStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -15,18 +15,29 @@ struct AlarmedByMathApp: App {
                 .environmentObject(settings)
                 .colorScheme(settings.activeTheme.colorScheme)
                 .onAppear {
+                    Task {
+                        await settings.prepareStoreKitIfNeeded()
+                        await settings.refreshWhizEntitlements(showConfirmation: false)
+                    }
+                    alarmStore.applyEntitlements()
                     scheduler.requestPermission { _ in }
                     scheduler.scheduleAlarms(alarmStore.alarms)
                     if !scheduler.presentMathIfPending() {
                         scheduler.presentMathIfActiveRing()
                     }
                 }
+                .onReceive(settings.$whizPlan) { _ in
+                    alarmStore.applyEntitlements()
+                    scheduler.scheduleAlarms(alarmStore.alarms)
+                }
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
-            // Refresh schedules (keeps the chained-notification budget current)
-            // and pick up any alarm whose "Solve to Dismiss" button was tapped,
-            // or that is still ringing, so the math gate can't be skipped.
+            Task {
+                await settings.prepareStoreKitIfNeeded()
+                await settings.refreshWhizEntitlements(showConfirmation: false)
+            }
+            alarmStore.applyEntitlements()
             scheduler.scheduleAlarms(alarmStore.alarms)
             if !scheduler.presentMathIfPending() {
                 scheduler.presentMathIfActiveRing()

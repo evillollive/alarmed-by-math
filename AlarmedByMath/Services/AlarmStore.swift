@@ -11,13 +11,13 @@ class AlarmStore: ObservableObject {
     }
 
     func add(_ alarm: Alarm) {
-        alarms.append(alarm)
+        alarms.append(normalized(alarm))
         save()
     }
 
     func update(_ alarm: Alarm) {
         guard let index = alarms.firstIndex(where: { $0.id == alarm.id }) else { return }
-        alarms[index] = alarm
+        alarms[index] = normalized(alarm)
         save()
     }
 
@@ -103,6 +103,23 @@ class AlarmStore: ObservableObject {
             let data    = UserDefaults.standard.data(forKey: storageKey),
             let decoded = try? JSONDecoder().decode([Alarm].self, from: data)
         else { return }
-        alarms = decoded
+        alarms = decoded.map(normalized)
+        if alarms != decoded { save() }
+    }
+
+    func applyEntitlements() {
+        let migrated = alarms.map(normalized)
+        guard migrated != alarms else { return }
+        alarms = migrated
+        save()
+    }
+
+    private func normalized(_ alarm: Alarm) -> Alarm {
+        var adjusted = alarm
+        adjusted.difficulty = Difficulty.effective(
+            alarm.difficulty,
+            whizUnlocked: SettingsStore.shared.allowsWhizDifficulty
+        )
+        return adjusted
     }
 }

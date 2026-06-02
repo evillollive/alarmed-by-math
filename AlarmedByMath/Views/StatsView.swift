@@ -2,12 +2,19 @@ import SwiftUI
 
 struct StatsView: View {
     @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject var alarmStore: AlarmStore
     @Environment(\.dismiss) var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Refresh stats whenever the view appears.
     @ObservedObject private var statsStore = StatsStore.shared
 
     private var stats: AppStats { statsStore.stats }
+    private var visibleDifficulties: [Difficulty] {
+        Difficulty.allCases.filter {
+            settings.allowsWhizDifficulty || $0 != .whiz
+        }
+    }
 
     var body: some View {
         NavigationView {
@@ -34,6 +41,9 @@ struct StatsView: View {
                         summaryRow
                         accuracyCard
                         difficultyCard
+                        if let easterEggState {
+                            easterEggCard(easterEggState)
+                        }
                     }
                     .padding()
                 }
@@ -155,7 +165,7 @@ struct StatsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 sectionHeader("By Difficulty")
 
-                ForEach(Difficulty.allCases, id: \.self) { level in
+                ForEach(visibleDifficulties, id: \.self) { level in
                     DifficultyRow(difficulty: level, stats: stats)
                 }
             }
@@ -166,6 +176,46 @@ struct StatsView: View {
 
     private var correctTotal: Int {
         statsStore.stats.correctByDifficulty.values.reduce(0, +)
+    }
+
+    private var easterEggState: PythagorasEasterEggState? {
+        PythagorasEasterEggState(
+            alarmCount: alarmStore.alarms.count,
+            dismissedCount: stats.totalAlarmsCompleted
+        )
+    }
+
+    @ViewBuilder
+    private func easterEggCard(_ easterEgg: PythagorasEasterEggState) -> some View {
+        statsCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .center, spacing: 16) {
+                    PythagorasBadgeView(reduceMotion: reduceMotion)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionHeader("Little Theorem")
+                        Text(easterEgg.title)
+                            .font(.system(.title3, design: Theme.fontDesign))
+                            .fontWeight(.semibold)
+                            .foregroundColor(Theme.chalk)
+                        Text(easterEgg.message)
+                            .font(.subheadline)
+                            .foregroundColor(Theme.chalkFaded)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Divider()
+                    .background(Theme.chalk.opacity(0.15))
+
+                Text(easterEgg.footnote)
+                    .font(.caption)
+                    .foregroundColor(Theme.chalkBlue)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(easterEgg.accessibilityLabel)
+        }
     }
 
     private func accuracyColor(_ value: Double) -> Color {
@@ -268,7 +318,7 @@ private struct DifficultyRow: View {
                         .font(.caption)
                         .foregroundColor(Theme.chalkFaded)
                 } else {
-                    Text("—")
+                    Text("Not yet")
                         .font(.subheadline)
                         .foregroundColor(Theme.chalkFaded)
                 }
@@ -303,5 +353,90 @@ private struct AccuracyBar: View {
                     .frame(width: geo.size.width * CGFloat(min(max(value, 0), 1)))
             }
         }
+    }
+}
+
+struct PythagorasEasterEggState: Equatable {
+    let title: String
+    let message: String
+    let footnote: String
+
+    init?(alarmCount: Int, dismissedCount: Int) {
+        guard alarmCount >= 8 || dismissedCount >= 8 else { return nil }
+
+        if alarmCount >= 8 {
+            title = "Pythagoras Club"
+            message = "Eight alarms on the board unlock your tiny theorem sticker: a cozy little 3-4-5 triangle hiding in your stats like a secret proof."
+        } else {
+            title = "Proof of Wakefulness"
+            message = "Eight completed alarms unlock your tiny theorem sticker: a cozy little 3-4-5 triangle hiding in your stats like a secret proof."
+        }
+
+        footnote = "It's the classic Pythagorean triple, 3² + 4² = 5², basically a tiny Euclid-approved gold star for doing the math and getting up anyway."
+    }
+
+    var accessibilityLabel: String {
+        "\(title). \(message) \(footnote)"
+    }
+}
+
+private struct PythagorasBadgeView: View {
+    let reduceMotion: Bool
+
+    @State private var isFloating = false
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Theme.chalkYellow.opacity(0.10))
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Theme.chalkYellow.opacity(0.35), lineWidth: 1.5)
+
+            VStack(spacing: 8) {
+                ZStack {
+                    Path { path in
+                        path.move(to: CGPoint(x: 18, y: 58))
+                        path.addLine(to: CGPoint(x: 18, y: 18))
+                        path.addLine(to: CGPoint(x: 68, y: 58))
+                        path.closeSubpath()
+                    }
+                    .stroke(
+                        Theme.chalkYellow,
+                        style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
+                    )
+                    .frame(width: 86, height: 74)
+
+                    Circle()
+                        .fill(Theme.chalkBlue)
+                        .frame(width: 10, height: 10)
+                        .offset(x: -25, y: 20)
+                    Circle()
+                        .fill(Theme.chalkRed)
+                        .frame(width: 10, height: 10)
+                        .offset(x: -25, y: -20)
+                    Circle()
+                        .fill(Theme.chalk)
+                        .frame(width: 10, height: 10)
+                        .offset(x: 25, y: 20)
+                }
+
+                Text("3² + 4² = 5²")
+                    .font(.system(.caption2, design: Theme.fontDesign))
+                    .foregroundColor(Theme.chalk)
+            }
+            .padding(.vertical, 14)
+        }
+        .frame(width: 138, height: 122)
+        .offset(y: reduceMotion ? 0 : (isFloating ? -3 : 3))
+        .rotationEffect(.degrees(reduceMotion ? 0 : (isFloating ? -1.2 : 1.2)))
+        .onAppear {
+            guard !reduceMotion else { return }
+            isFloating = true
+        }
+        .animation(
+            reduceMotion ? nil : .easeInOut(duration: 2.2).repeatForever(autoreverses: true),
+            value: isFloating
+        )
+        .accessibilityHidden(true)
     }
 }
