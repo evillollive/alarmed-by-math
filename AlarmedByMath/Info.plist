@@ -20,6 +20,8 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Alarmed by Math schedules alarms that ring on your lock screen until you solve a math problem to dismiss them.</string>
 	<key>NSAppleMusicUsageDescription</key>

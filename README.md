@@ -56,24 +56,32 @@ A few design choices that make this more than just "alarm + quiz":
 ```
 AlarmedByMath/
 ├── AlarmedByMathApp.swift       # App entry point, lifecycle handling
+├── Theme.swift                  # Theme palettes and color lookups
 ├── Models/
 │   ├── Alarm.swift              # Alarm data model with validation
 │   └── MathProblem.swift        # Random math problem generator
 ├── Services/
+│   ├── AlarmStore.swift         # CRUD + persistence for alarms
 │   ├── AlarmScheduler.swift     # Notification scheduling, audio, ringing state
-│   └── AlarmStore.swift         # CRUD + persistence for alarms
+│   ├── AlarmGate.swift          # Solve-to-dismiss gate state
+│   ├── AlarmKitScheduler.swift  # AlarmKit locked-screen alarms (iOS 26.1+)
+│   ├── SettingsStore.swift      # Preferences + StoreKit 2 Whiz entitlement
+│   └── StatsStore.swift         # Usage stats and milestone tracking
 ├── Views/
 │   ├── ContentView.swift        # Main alarm list with edit/delete/toggle
 │   ├── AddAlarmView.swift       # Create & edit alarm form
 │   ├── AlarmRingingView.swift   # Full-screen ringing UI
-│   └── MathChallengeView.swift  # Math problem + custom number pad
+│   ├── MathChallengeView.swift  # Math problem + custom number pad
+│   ├── SettingsView.swift       # Themes, sound, Whiz, test alarm
+│   └── StatsView.swift          # Usage stats + hidden easter egg
+├── PrivacyInfo.xcprivacy        # App Store privacy manifest
 └── Assets.xcassets/
 ```
 
 ## Requirements
 
-- iOS 16+
-- Xcode 15+
+- iOS 17+
+- Xcode 16+ (the locked-screen AlarmKit path builds against the iOS 26 SDK and falls back to chained notifications on iOS 17–25)
 
 ## Accessibility
 
@@ -87,14 +95,34 @@ Alarmed by Math is built to be usable for everyone, not just people who can see 
 - **Contrast-aware settings cards** and full-row tap targets so the Whiz purchase flow stays understandable under low vision and shaky-morning conditions
 - **Permission state banner** on the main list when notifications are disabled, so setup problems are visible immediately
 
-## Whiz setup
+## Whiz (paid tier)
 
-The app now includes live StoreKit plumbing for the paid Whiz unlock.
+Whiz is the planned paid unlock. Its StoreKit 2 plumbing is built in and dormant: the
+purchase UI only appears once a live App Store product is loaded, so the app **ships
+free-only** until that product exists. Free covers every difficulty from Easy to Expert.
+
+The three paid Whiz features on the roadmap are:
+
+1. **Whiz-level math** with a scientific calculator and harder problems
+2. **Custom song picker** for alarm audio
+3. **Home-screen analog clock widget**
+
+StoreKit details:
 
 - **Product ID:** `com.alarmedbymath.app.whiz`
 - **Product type:** non-consumable
 - **In-app behavior:** purchase, restore, and entitlement refresh are wired in `SettingsStore`
-- **App Store Connect requirement:** create the product with the same ID before expecting live purchases in debug, TestFlight, or production
+- **App Store Connect requirement:** create the product with the same ID before the
+  purchase UI surfaces; until then the app behaves as a fully free app
+
+## Privacy
+
+Alarmed by Math collects nothing. There are no accounts, no servers, no analytics, and
+no network calls — all data (alarms, settings, stats) lives locally in `UserDefaults`.
+The bundled [`PrivacyInfo.xcprivacy`](AlarmedByMath/PrivacyInfo.xcprivacy) manifest
+declares no tracking, no collected data, and the required-reason `UserDefaults` API
+usage, and `ITSAppUsesNonExemptEncryption` is set so uploads skip the export-compliance
+prompt.
 
 ## License
 

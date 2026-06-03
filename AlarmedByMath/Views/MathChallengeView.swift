@@ -106,7 +106,7 @@ struct MathChallengeView: View {
         }
         .interactiveDismissDisabled(true)
         .onAppear(perform: snoozeIfNeeded)
-        .onChange(of: showSuccess) { solved in
+        .onChange(of: showSuccess) { _, solved in
             guard solved else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 scheduler.dismiss()
@@ -282,7 +282,7 @@ struct ShakeModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .offset(x: offsetX)
-            .onChange(of: active) { isActive in
+            .onChange(of: active) { _, isActive in
                 guard isActive else { return }
                 guard !reduceMotion else { return }
                 let steps: [(Double, CGFloat)] = [

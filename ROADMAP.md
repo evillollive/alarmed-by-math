@@ -151,3 +151,13 @@ fiddly and the main source of risk.
 - App icon redesign and a shorter home-screen label ("Alarmed").
 - App icon clock markers were lengthened so the clock reads more clearly at home-screen and Spotlight sizes.
 - Stats now hide a low-motion Pythagoras easter egg that unlocks after 8 saved alarms or 8 completed alarms, with unit-test coverage for the milestone logic.
+- App Store readiness pass: added a `PrivacyInfo.xcprivacy` manifest (no tracking, no
+  data collection, `UserDefaults` required-reason declared), set
+  `ITSAppUsesNonExemptEncryption = false` for friction-free uploads, and cleared the
+  remaining iOS 17 `onChange` deprecation warnings for a clean build.
+- Whiz now ships dormant: the purchase UI only appears once a live App Store product
+  loads, and the Settings copy no longer advertises unbuilt features, so the app ships
+  free-only until the paid tier is real.
+- Hardened the save path so scheduling always uses the persisted, normalized alarm from
+  the store (`AlarmStore.alarmForScheduling`), preventing already-expired one-time
+  alarms from being re-scheduled, with regression tests.

@@ -349,7 +349,7 @@ struct AddAlarmView: View {
             updated.keepRinging      = keepRinging
             scheduler.cancel(existing)
             alarmStore.update(updated)
-            if updated.isEnabled { scheduler.schedule(updated) }
+            schedulePersistedAlarm(id: updated.id)
         } else {
             let alarm = Alarm(
                 label:            label,
@@ -365,9 +365,16 @@ struct AddAlarmView: View {
                 keepRinging:      keepRinging
             )
             alarmStore.add(alarm)
-            scheduler.schedule(alarm)
+            schedulePersistedAlarm(id: alarm.id)
         }
         dismiss()
+    }
+
+    /// Schedules the alarm using the persisted, normalized record from the store
+    /// so scheduling never runs against a stale pre-save value.
+    private func schedulePersistedAlarm(id: UUID) {
+        guard let persisted = alarmStore.alarmForScheduling(id: id) else { return }
+        scheduler.schedule(persisted)
     }
 }
 

@@ -109,7 +109,7 @@ struct AlarmRingingView: View {
             pulsing = !reduceMotion
             if scheduler.autoPresentMath { showingMath = true }
         }
-        .onChange(of: scheduler.activeAlarmID) { _ in
+        .onChange(of: scheduler.activeAlarmID) {
             showingMath = scheduler.autoPresentMath
         }
         .fullScreenCover(isPresented: $showingMath) {
