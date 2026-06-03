@@ -33,6 +33,7 @@
 		C0000000000000000000B2 /* classic.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C2 /* classic.caf */; };
 		C0000000000000000000B3 /* bell.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C3 /* bell.caf */; };
 		C0000000000000000000B4 /* buzz.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C4 /* buzz.caf */; };
+		C0000000000000000000B5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C5 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +76,7 @@
 		C0000000000000000000C2 /* classic.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = classic.caf; sourceTree = "<group>"; };
 		C0000000000000000000C3 /* bell.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = bell.caf; sourceTree = "<group>"; };
 		C0000000000000000000C4 /* buzz.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = buzz.caf; sourceTree = "<group>"; };
+		C0000000000000000000C5 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,6 +130,7 @@
 				CC000000000000000000005C /* Services */,
 				CC000000000000000000006C /* Views */,
 				AA00000000000000000000DA /* Assets.xcassets */,
+				C0000000000000000000C5 /* PrivacyInfo.xcprivacy */,
 				AA00000000000000000000CA /* Info.plist */,
 			);
 			path = AlarmedByMath;
@@ -266,6 +269,7 @@
 				C0000000000000000000B2 /* classic.caf in Resources */,
 				C0000000000000000000B3 /* bell.caf in Resources */,
 				C0000000000000000000B4 /* buzz.caf in Resources */,
+				C0000000000000000000B5 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

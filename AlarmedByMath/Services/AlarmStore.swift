@@ -42,6 +42,29 @@ class AlarmStore: ObservableObject {
         update(updated)
     }
 
+    /// Returns the persisted, still-enabled alarm that should be scheduled after
+    /// a save cycle, or `nil` if it is no longer valid to schedule. This makes the
+    /// store the single source of truth for scheduling, including normalization
+    /// and one-time expiration.
+    func alarmForScheduling(id: UUID) -> Alarm? {
+        guard let alarm = alarms.first(where: { $0.id == id }), alarm.isEnabled else {
+            return nil
+        }
+        if alarm.repeatDays.isEmpty {
+            guard !alarm.hasFired else { return nil }
+            let now = nowProvider()
+            guard let scheduled = Calendar.current.date(
+                bySettingHour: alarm.hour,
+                minute: alarm.minute,
+                second: 0,
+                of: now
+            ), scheduled > now else {
+                return nil
+            }
+        }
+        return alarm
+    }
+
     // MARK: - Next alarm
 
     /// Returns the next date any enabled alarm will fire, or nil if none are enabled.
