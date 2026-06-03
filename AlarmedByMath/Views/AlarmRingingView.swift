@@ -6,6 +6,7 @@ struct AlarmRingingView: View {
     @EnvironmentObject var alarmStore: AlarmStore
     @EnvironmentObject var scheduler:  AlarmScheduler
     @EnvironmentObject var settings:   SettingsStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var showingMath = false
     @State private var pulsing     = false
@@ -45,17 +46,17 @@ struct AlarmRingingView: View {
                     Circle()
                         .fill(Theme.chalkRed.opacity(0.12))
                         .frame(width: 200, height: 200)
-                        .scaleEffect(pulsing ? 1.3 : 1.0)
+                        .scaleEffect(reduceMotion ? 1.0 : (pulsing ? 1.3 : 1.0))
                         .animation(
-                            .easeInOut(duration: 1).repeatForever(autoreverses: true),
+                            reduceMotion ? nil : .easeInOut(duration: 1).repeatForever(autoreverses: true),
                             value: pulsing
                         )
                     Circle()
                         .stroke(Theme.chalkRed.opacity(0.35), lineWidth: 2)
                         .frame(width: 200, height: 200)
-                        .scaleEffect(pulsing ? 1.3 : 1.0)
+                        .scaleEffect(reduceMotion ? 1.0 : (pulsing ? 1.3 : 1.0))
                         .animation(
-                            .easeInOut(duration: 1).repeatForever(autoreverses: true),
+                            reduceMotion ? nil : .easeInOut(duration: 1).repeatForever(autoreverses: true),
                             value: pulsing
                         )
                     Image(systemName: "alarm.fill")
@@ -99,10 +100,13 @@ struct AlarmRingingView: View {
                 }
                 .padding(.horizontal, 40)
                 .padding(.bottom, 60)
+                .accessibilityLabel("Solve to dismiss alarm")
+                .accessibilityHint("Opens the math challenge")
             }
         }
+        .interactiveDismissDisabled(scheduler.isRinging)
         .onAppear {
-            pulsing = true
+            pulsing = !reduceMotion
             if scheduler.autoPresentMath { showingMath = true }
         }
         .onChange(of: scheduler.activeAlarmID) { _ in

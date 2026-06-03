@@ -20,6 +20,8 @@ struct AlarmedByMathApp: App {
                         await settings.refreshWhizEntitlements(showConfirmation: false)
                     }
                     alarmStore.applyEntitlements()
+                    expirePastOneTimeAlarms()
+                    scheduler.refreshPermissionStatus()
                     scheduler.requestPermission { _ in }
                     scheduler.scheduleAlarms(alarmStore.alarms)
                     if !scheduler.presentMathIfPending() {
@@ -38,10 +40,30 @@ struct AlarmedByMathApp: App {
                 await settings.refreshWhizEntitlements(showConfirmation: false)
             }
             alarmStore.applyEntitlements()
+            expirePastOneTimeAlarms()
+            scheduler.refreshPermissionStatus()
             scheduler.scheduleAlarms(alarmStore.alarms)
             if !scheduler.presentMathIfPending() {
                 scheduler.presentMathIfActiveRing()
             }
         }
+    }
+
+    private func expirePastOneTimeAlarms() {
+        var excluded: Set<UUID> = []
+        if let activeID = scheduler.activeAlarmID, let uuid = UUID(uuidString: activeID) {
+            excluded.insert(uuid)
+        }
+        if let pendingID = AlarmGate.pendingMathAlarmID, let uuid = UUID(uuidString: pendingID) {
+            excluded.insert(uuid)
+        }
+        if #available(iOS 26.1, *) {
+            for id in AlarmKitScheduler.alertingOriginalIDs() {
+                if let uuid = UUID(uuidString: id) {
+                    excluded.insert(uuid)
+                }
+            }
+        }
+        alarmStore.expireOneTimeAlarms(excludingIDs: excluded)
     }
 }

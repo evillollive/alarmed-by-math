@@ -3,8 +3,8 @@ import SwiftUI
 /// Presents a random math problem that the user must solve correctly to dismiss the alarm.
 ///
 /// Behavior:
-/// - The alarm is snoozed immediately when this view appears. The current ring is
-///   silenced and a re-ring is scheduled for the alarm's snooze duration later.
+/// - The alarm follows the configured ring policy when this view appears:
+///   either auto-snooze with a re-ring, or keep ringing while solving.
 /// - A correct answer cancels the snoozed re-ring and fully dismisses the alarm.
 /// - A wrong answer shakes the input field, generates a new problem, and lets the user try again.
 struct MathChallengeView: View {
@@ -12,6 +12,7 @@ struct MathChallengeView: View {
     @EnvironmentObject var alarmStore: AlarmStore
     @EnvironmentObject var settings:   SettingsStore
     @Environment(\.dismiss) var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Active alarm looked up by ID.
     private var activeAlarm: Alarm? {
@@ -93,6 +94,8 @@ struct MathChallengeView: View {
                 .frame(height: 72)
                 .padding(.horizontal, 60)
                 .modifier(ShakeModifier(active: isWrong))
+                .accessibilityLabel("Answer")
+                .accessibilityValue(userInput.isEmpty ? "No answer entered" : userInput)
 
                 Spacer()
 
@@ -101,6 +104,7 @@ struct MathChallengeView: View {
                     .padding(.bottom, 24)
             }
         }
+        .interactiveDismissDisabled(true)
         .onAppear(perform: snoozeIfNeeded)
         .onChange(of: showSuccess) { solved in
             guard solved else { return }
@@ -235,6 +239,14 @@ struct NumberKey: View {
 
     var isSubmit: Bool { label == "✓" }
     var isDelete: Bool { label == "⌫" }
+    var accessibilityLabel: String {
+        switch label {
+        case "✓": return "Submit answer"
+        case "⌫": return "Delete"
+        case "+/-": return "Toggle negative sign"
+        default: return "Number \(label)"
+        }
+    }
 
     var body: some View {
         Button(action: action) {
@@ -256,6 +268,7 @@ struct NumberKey: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
     }
 }
 
@@ -263,6 +276,7 @@ struct NumberKey: View {
 
 struct ShakeModifier: ViewModifier {
     let active: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var offsetX: CGFloat = 0
 
     func body(content: Content) -> some View {
@@ -270,6 +284,7 @@ struct ShakeModifier: ViewModifier {
             .offset(x: offsetX)
             .onChange(of: active) { isActive in
                 guard isActive else { return }
+                guard !reduceMotion else { return }
                 let steps: [(Double, CGFloat)] = [
                     (0.00, 10), (0.10, -10), (0.20, 8), (0.30, 0),
                 ]

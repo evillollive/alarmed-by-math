@@ -110,13 +110,16 @@ final class AlarmGateTests: XCTestCase {
 final class AlarmFireDateTests: XCTestCase {
 
     func testNextFireDateIsInFutureForOneTimeAlarm() {
-        let alarm = Alarm(hour: 6, minute: 30, repeatDays: [])
+        let now = Date()
+        let future = Calendar.current.date(byAdding: .hour, value: 1, to: now) ?? now
+        let comps = Calendar.current.dateComponents([.hour, .minute], from: future)
+        let alarm = Alarm(hour: comps.hour ?? 8, minute: comps.minute ?? 0, repeatDays: [])
         let next = AlarmScheduler.nextFireDate(for: alarm)
         XCTAssertNotNil(next)
         XCTAssertGreaterThan(next!, Date())
-        let comps = Calendar.current.dateComponents([.hour, .minute], from: next!)
-        XCTAssertEqual(comps.hour, 6)
-        XCTAssertEqual(comps.minute, 30)
+        let nextComps = Calendar.current.dateComponents([.hour, .minute], from: next!)
+        XCTAssertEqual(nextComps.hour, alarm.hour)
+        XCTAssertEqual(nextComps.minute, alarm.minute)
     }
 
     func testNextFireDateMatchesARepeatWeekday() {

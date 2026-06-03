@@ -20,6 +20,8 @@ struct Alarm: Identifiable, Codable, Equatable {
     var snoozeDuration:    Int
     /// When true the alarm sound keeps playing during the math challenge.
     var keepRinging:       Bool
+    /// Tracks whether a one-time alarm has already fired and should no longer repeat.
+    var hasFired:          Bool
 
     init(
         id:               UUID       = UUID(),
@@ -34,7 +36,8 @@ struct Alarm: Identifiable, Codable, Equatable {
         songTitle:        String?    = nil,
         volume:           Float      = 1.0,
         snoozeDuration:   Int        = 5,
-        keepRinging:      Bool       = false
+        keepRinging:      Bool       = false,
+        hasFired:         Bool       = false
     ) {
         self.id               = id
         self.label            = label
@@ -49,13 +52,14 @@ struct Alarm: Identifiable, Codable, Equatable {
         self.volume           = volume
         self.snoozeDuration   = snoozeDuration
         self.keepRinging      = keepRinging
+        self.hasFired         = hasFired
     }
 
     // MARK: - Custom Codable (backward compatible)
 
     enum CodingKeys: String, CodingKey {
         case id, label, hour, minute, repeatDays, isEnabled, difficulty, problemCount
-        case songPersistentID, songTitle, volume, snoozeDuration, keepRinging
+        case songPersistentID, songTitle, volume, snoozeDuration, keepRinging, hasFired
     }
 
     init(from decoder: Decoder) throws {
@@ -73,6 +77,7 @@ struct Alarm: Identifiable, Codable, Equatable {
         volume           = try c.decodeIfPresent(Float.self,      forKey: .volume)          ?? 1.0
         snoozeDuration   = try c.decodeIfPresent(Int.self,        forKey: .snoozeDuration)  ?? 5
         keepRinging      = try c.decodeIfPresent(Bool.self,       forKey: .keepRinging)     ?? false
+        hasFired         = try c.decodeIfPresent(Bool.self,       forKey: .hasFired)        ?? false
     }
 
     // MARK: - Computed
@@ -93,8 +98,28 @@ struct Alarm: Identifiable, Codable, Equatable {
 
     var repeatLabel: String {
         if repeatDays.isEmpty { return "Once" }
-        if repeatDays.count == 7 { return "Every day" }
+        let validDays = repeatDays.filter { (1...7).contains($0) }
+        if validDays.count == 7 { return "Every day" }
         let symbols = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-        return repeatDays.sorted().map { symbols[$0 - 1] }.joined(separator: ", ")
+        let labels = validDays.sorted().map { symbols[$0 - 1] }
+        return labels.isEmpty ? "Once" : labels.joined(separator: ", ")
+    }
+
+    func normalized() -> Alarm {
+        var adjusted = self
+        adjusted.label = adjusted.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        if adjusted.label.count > 80 {
+            adjusted.label = String(adjusted.label.prefix(80))
+        }
+        adjusted.hour = min(23, max(0, adjusted.hour))
+        adjusted.minute = min(59, max(0, adjusted.minute))
+        adjusted.repeatDays = Set(adjusted.repeatDays.filter { (1...7).contains($0) })
+        adjusted.problemCount = min(10, max(1, adjusted.problemCount))
+        adjusted.volume = min(1.0, max(0.1, adjusted.volume))
+        adjusted.snoozeDuration = min(60, max(1, adjusted.snoozeDuration))
+        if !adjusted.repeatDays.isEmpty {
+            adjusted.hasFired = false
+        }
+        return adjusted
     }
 }

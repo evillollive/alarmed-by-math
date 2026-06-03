@@ -254,6 +254,9 @@ struct AddAlarmView: View {
                                                 repeatDays.insert(day)
                                             }
                                         }
+                                        .accessibilityLabel("\(daySymbols[day - 1]) repeat")
+                                        .accessibilityValue(repeatDays.contains(day) ? "Selected" : "Not selected")
+                                        .accessibilityHint("Double tap to toggle this weekday")
                                     }
                                 }
                             }

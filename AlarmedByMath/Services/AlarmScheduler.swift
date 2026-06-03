@@ -4,6 +4,12 @@ import AVFoundation
 import AudioToolbox
 import MediaPlayer
 
+enum NotificationPermissionStatus: Equatable {
+    case unknown
+    case granted
+    case denied
+}
+
 struct RingingAlarmContext: Equatable {
     let alarmID: String
     var songPersistentID: String?
@@ -98,10 +104,12 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     /// When true, the ringing UI should jump straight to the math challenge
     /// (used on iOS 26 when the app is opened from the alarm's secondary button).
     @Published private(set) var autoPresentMath: Bool = false
+    @Published private(set) var notificationPermissionStatus: NotificationPermissionStatus = .unknown
 
     // MARK: - Constants
 
     static let alarmCategory = "ALARM_CATEGORY"
+    static let solveActionID = "ALARM_SOLVE_ACTION"
 
     /// Chained-notification fallback tuning (iOS 17–25).
     private static let chainSpacing: TimeInterval = 30   // seconds between rings
@@ -137,7 +145,10 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
     override init() {
         super.init()
-        UNUserNotificationCenter.current().delegate = self
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+        registerNotificationCategories(center: center)
+        refreshPermissionStatus(center: center)
     }
 
     // MARK: - Permissions
@@ -145,9 +156,34 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     func requestPermission(completion: @escaping (Bool) -> Void) {
         UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-                DispatchQueue.main.async { completion(granted) }
+                DispatchQueue.main.async {
+                    self.notificationPermissionStatus = granted ? .granted : .denied
+                    completion(granted)
+                }
             }
         // AlarmKit has its own authorization, requested lazily when scheduling.
+    }
+
+    func refreshPermissionStatus(center: UNUserNotificationCenter = .current()) {
+        center.getNotificationSettings { settings in
+            let mapped = Self.permissionState(for: settings.authorizationStatus)
+            DispatchQueue.main.async {
+                self.notificationPermissionStatus = mapped
+            }
+        }
+    }
+
+    static func permissionState(for status: UNAuthorizationStatus) -> NotificationPermissionStatus {
+        switch status {
+        case .authorized, .provisional, .ephemeral:
+            return .granted
+        case .denied:
+            return .denied
+        case .notDetermined:
+            return .unknown
+        @unknown default:
+            return .unknown
+        }
     }
 
     // MARK: - Scheduling
@@ -291,7 +327,14 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         comps.second = 0
 
         if alarm.repeatDays.isEmpty {
-            return cal.nextDate(after: now.addingTimeInterval(-1), matching: comps, matchingPolicy: .nextTime)
+            if alarm.hasFired { return nil }
+            guard let scheduled = cal.date(
+                bySettingHour: alarm.hour,
+                minute: alarm.minute,
+                second: 0,
+                of: now
+            ) else { return nil }
+            return scheduled > now ? scheduled : nil
         }
         return alarm.repeatDays.compactMap { weekday -> Date? in
             var c = comps
@@ -308,6 +351,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         volume:           Float   = 1.0,
         snoozeDuration:   Int     = 5,
         keepRinging:      Bool    = false,
+        autoPresentMath:  Bool    = false,
         preview:          Bool    = false
     ) {
         let context = RingingAlarmContext(
@@ -316,6 +360,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             volume: volume,
             snoozeDuration: snoozeDuration,
             keepRinging: keepRinging,
+            autoPresentMath: autoPresentMath,
             preview: preview
         )
         let becameActive = ringingQueue.push(context)
@@ -384,12 +429,12 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         return true
     }
 
-    /// Snoozes the current alarm occurrence as soon as the user opens the math
-    /// challenge. On iOS 26, this silences the active AlarmKit ring and schedules
-    /// a delayed re-ring for the same alarm. On older systems, it swaps the in-app
-    /// sound for a local notification re-ring.
+    /// Applies the ring policy as soon as the user opens the math challenge.
+    /// If keep-ringing is enabled, no snooze is scheduled.
+    /// Otherwise, the active ring is replaced with a delayed re-ring.
     func snooze() {
         guard let alarmID = activeAlarmID else { return }
+        guard Self.shouldScheduleSnooze(keepRinging: activeKeepRinging) else { return }
         StatsStore.shared.recordSnooze()
 
         if #available(iOS 26.1, *), useAlarmKit {
@@ -610,11 +655,13 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        startRingingFromNotification(response.notification)
+        let autoPresentMath = response.actionIdentifier == Self.solveActionID
+            || response.actionIdentifier == UNNotificationDefaultActionIdentifier
+        startRingingFromNotification(response.notification, autoPresentMath: autoPresentMath)
         completionHandler()
     }
 
-    private func startRingingFromNotification(_ notification: UNNotification) {
+    private func startRingingFromNotification(_ notification: UNNotification, autoPresentMath: Bool = false) {
         let info        = notification.request.content.userInfo
         let alarmID     = info["alarmID"] as? String ?? notification.request.identifier
         let songID      = info["songPersistentID"] as? String
@@ -623,7 +670,8 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let keepRinging = info["keepRinging"] as? Bool ?? false
         DispatchQueue.main.async {
             self.startRinging(alarmID: alarmID, songPersistentID: songID,
-                              volume: volume, snoozeDuration: snoozeDur, keepRinging: keepRinging)
+                              volume: volume, snoozeDuration: snoozeDur, keepRinging: keepRinging,
+                              autoPresentMath: autoPresentMath)
         }
     }
 
@@ -633,5 +681,24 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         UNUserNotificationCenter.current().add(request) { error in
             if let error { print("Notification error: \(error)") }
         }
+    }
+
+    private func registerNotificationCategories(center: UNUserNotificationCenter) {
+        let solveAction = UNNotificationAction(
+            identifier: Self.solveActionID,
+            title: "Solve to Dismiss",
+            options: [.foreground]
+        )
+        let category = UNNotificationCategory(
+            identifier: Self.alarmCategory,
+            actions: [solveAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        center.setNotificationCategories([category])
+    }
+
+    static func shouldScheduleSnooze(keepRinging: Bool) -> Bool {
+        !keepRinging
     }
 }

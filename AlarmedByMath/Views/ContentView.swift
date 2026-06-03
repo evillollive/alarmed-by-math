@@ -13,11 +13,26 @@ struct ContentView: View {
     private let timer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 Theme.board.ignoresSafeArea()
 
                 VStack(spacing: 0) {
+                    if scheduler.notificationPermissionStatus == .denied {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                            Text("Notifications are off. Enable them in Settings so alarms can ring.")
+                                .font(.system(.caption, design: Theme.fontDesign))
+                                .multilineTextAlignment(.leading)
+                        }
+                        .foregroundColor(Theme.chalkRed)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.boardDark.opacity(0.7))
+                    }
+
                     // Next alarm banner
                     if let label = alarmStore.nextAlarmLabel {
                         HStack {
@@ -42,6 +57,7 @@ struct ContentView: View {
             }
             .navigationTitle("Alarms")
             .onReceive(timer) { now = $0 }
+            .onAppear { scheduler.refreshPermissionStatus() }
             .toolbarBackground(Theme.boardDark, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(settings.activeTheme.colorScheme == .light ? .light : .dark, for: .navigationBar)
@@ -95,7 +111,6 @@ struct ContentView: View {
                     .environmentObject(alarmStore)
             }
         }
-        .navigationViewStyle(.stack)
         .fullScreenCover(
             isPresented: Binding(
                 get: { scheduler.isRinging },
@@ -174,11 +189,8 @@ struct AlarmRow: View {
                 set: { _ in
                     let wasEnabled = alarm.isEnabled
                     alarmStore.toggle(alarm)
-                    if wasEnabled {
-                        scheduler.cancel(alarm)
-                    } else {
-                        scheduler.schedule(alarm)
-                    }
+                    guard let refreshed = alarmStore.alarms.first(where: { $0.id == alarm.id }) else { return }
+                    if wasEnabled { scheduler.cancel(refreshed) } else { scheduler.schedule(refreshed) }
                 }
             ))
             .tint(Theme.chalkYellow)

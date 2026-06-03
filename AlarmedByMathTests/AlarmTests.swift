@@ -212,45 +212,6 @@ final class ThemePaletteTests: XCTestCase {
         }
     }
 
-    final class AlarmStoreOrderingTests: XCTestCase {
-        private let storageKey = "saved_alarms"
-
-        override func setUp() {
-            super.setUp()
-            UserDefaults.standard.removeObject(forKey: storageKey)
-        }
-
-        override func tearDown() {
-            UserDefaults.standard.removeObject(forKey: storageKey)
-            super.tearDown()
-        }
-
-        func testAlarmsAreSortedByTimeWhenAdded() {
-            let store = AlarmStore()
-            store.add(Alarm(label: "Late", hour: 9, minute: 30))
-            store.add(Alarm(label: "Early", hour: 6, minute: 15))
-            store.add(Alarm(label: "Mid", hour: 8, minute: 0))
-
-            XCTAssertEqual(store.alarms.map(\.timeString), ["6:15 AM", "8:00 AM", "9:30 AM"])
-        }
-
-        func testAlarmsResortWhenTimeChanges() {
-            let store = AlarmStore()
-            let early = Alarm(label: "Early", hour: 6, minute: 0)
-            let late = Alarm(label: "Late", hour: 10, minute: 0)
-            store.add(early)
-            store.add(late)
-
-            var updatedLate = late
-            updatedLate.hour = 5
-            updatedLate.minute = 45
-            store.update(updatedLate)
-
-            XCTAssertEqual(store.alarms.map(\.timeString), ["5:45 AM", "6:00 AM"])
-            XCTAssertEqual(store.alarms.first?.id, late.id)
-        }
-    }
-
     func testCuteThemesAreAvailable() {
         XCTAssertTrue(AppTheme.allCases.contains(.bubblegum))
         XCTAssertTrue(AppTheme.allCases.contains(.bluebird))
@@ -259,5 +220,143 @@ final class ThemePaletteTests: XCTestCase {
     func testDarkAndHighContrastStayDistinct() {
         XCTAssertNotEqual(AppTheme.dark.colors.boardSwatch, AppTheme.highContrast.colors.boardSwatch)
         XCTAssertNotEqual(AppTheme.dark.colors.chalkYellowSwatch, AppTheme.highContrast.colors.chalkYellowSwatch)
+    }
+}
+
+final class AlarmStoreOrderingTests: XCTestCase {
+    private let storageKey = "saved_alarms"
+
+    override func setUp() {
+        super.setUp()
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: storageKey)
+        super.tearDown()
+    }
+
+    func testAlarmsAreSortedByTimeWhenAdded() {
+        let store = AlarmStore()
+        store.add(Alarm(label: "Late", hour: 9, minute: 30))
+        store.add(Alarm(label: "Early", hour: 6, minute: 15))
+        store.add(Alarm(label: "Mid", hour: 8, minute: 0))
+
+        XCTAssertEqual(store.alarms.map(\.timeString), ["6:15 AM", "8:00 AM", "9:30 AM"])
+    }
+
+    func testAlarmsResortWhenTimeChanges() {
+        let store = AlarmStore()
+        let early = Alarm(label: "Early", hour: 6, minute: 0)
+        let late = Alarm(label: "Late", hour: 10, minute: 0)
+        store.add(early)
+        store.add(late)
+
+        var updatedLate = late
+        updatedLate.hour = 5
+        updatedLate.minute = 45
+        store.update(updatedLate)
+
+        XCTAssertEqual(store.alarms.map(\.timeString), ["5:45 AM", "6:00 AM"])
+        XCTAssertEqual(store.alarms.first?.id, late.id)
+    }
+}
+
+final class AlarmValidationTests: XCTestCase {
+    func testNormalizationClampsInvalidValues() {
+        let alarm = Alarm(
+            label: String(repeating: "x", count: 120),
+            hour: -4,
+            minute: 88,
+            repeatDays: [0, 1, 8],
+            problemCount: 999,
+            volume: 9.0,
+            snoozeDuration: -5
+        ).normalized()
+
+        XCTAssertEqual(alarm.label.count, 80)
+        XCTAssertEqual(alarm.hour, 0)
+        XCTAssertEqual(alarm.minute, 59)
+        XCTAssertEqual(alarm.repeatDays, [1])
+        XCTAssertEqual(alarm.problemCount, 10)
+        XCTAssertEqual(alarm.volume, 1.0)
+        XCTAssertEqual(alarm.snoozeDuration, 1)
+    }
+
+    func testRepeatLabelIgnoresInvalidWeekdays() {
+        let alarm = Alarm(repeatDays: [1, 4, 10])
+        XCTAssertEqual(alarm.repeatLabel, "Sun, Wed")
+    }
+}
+
+final class AlarmOneTimeFireDateTests: XCTestCase {
+    func testOneTimePastAlarmDoesNotRescheduleTomorrow() {
+        let cal = Calendar.current
+        let now = Date()
+        let oneHourAgo = cal.date(byAdding: .hour, value: -1, to: now) ?? now
+        let comps = cal.dateComponents([.hour, .minute], from: oneHourAgo)
+        let alarm = Alarm(hour: comps.hour ?? 0, minute: comps.minute ?? 0, repeatDays: [])
+
+        XCTAssertNil(AlarmScheduler.nextFireDate(for: alarm))
+    }
+
+    func testOneTimeFiredAlarmHasNoNextDate() {
+        let alarm = Alarm(hour: 23, minute: 59, repeatDays: [], hasFired: true)
+        XCTAssertNil(AlarmScheduler.nextFireDate(for: alarm))
+    }
+}
+
+final class AlarmStoreExpirationTests: XCTestCase {
+    private let storageKey = "saved_alarms"
+
+    override func setUp() {
+        super.setUp()
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: storageKey)
+        super.tearDown()
+    }
+
+    func testOneTimePastAlarmIsExpiredAndDisabled() {
+        let cal = Calendar.current
+        let now = cal.date(from: DateComponents(year: 2026, month: 6, day: 3, hour: 9, minute: 0))!
+        let store = AlarmStore(nowProvider: { now })
+        store.add(Alarm(label: "Past", hour: 7, minute: 30, repeatDays: []))
+
+        XCTAssertEqual(store.alarms.count, 1)
+        XCTAssertTrue(store.alarms[0].hasFired)
+        XCTAssertFalse(store.alarms[0].isEnabled)
+    }
+
+    func testExcludedAlarmIsNotExpired() {
+        let cal = Calendar.current
+        let initialNow = cal.date(from: DateComponents(year: 2026, month: 6, day: 3, hour: 6, minute: 0))!
+        let expiryNow = cal.date(from: DateComponents(year: 2026, month: 6, day: 3, hour: 9, minute: 0))!
+        let store = AlarmStore(nowProvider: { initialNow })
+        let alarm = Alarm(label: "Active", hour: 7, minute: 0, repeatDays: [])
+        store.add(alarm)
+
+        store.expireOneTimeAlarms(reference: expiryNow, excludingIDs: [alarm.id])
+
+        guard let kept = store.alarms.first(where: { $0.id == alarm.id }) else {
+            return XCTFail("Expected alarm to exist")
+        }
+        XCTAssertFalse(kept.hasFired)
+        XCTAssertTrue(kept.isEnabled)
+    }
+}
+
+final class AlarmSchedulerPolicyTests: XCTestCase {
+    func testPermissionStateMapping() {
+        XCTAssertEqual(AlarmScheduler.permissionState(for: .notDetermined), .unknown)
+        XCTAssertEqual(AlarmScheduler.permissionState(for: .denied), .denied)
+        XCTAssertEqual(AlarmScheduler.permissionState(for: .authorized), .granted)
+    }
+
+    func testKeepRingingDisablesAutoSnoozeScheduling() {
+        XCTAssertFalse(AlarmScheduler.shouldScheduleSnooze(keepRinging: true))
+        XCTAssertTrue(AlarmScheduler.shouldScheduleSnooze(keepRinging: false))
     }
 }

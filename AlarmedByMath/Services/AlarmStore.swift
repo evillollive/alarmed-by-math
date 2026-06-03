@@ -5,21 +5,25 @@ class AlarmStore: ObservableObject {
     @Published var alarms: [Alarm] = []
 
     private let storageKey = "saved_alarms"
+    private let nowProvider: () -> Date
 
-    init() {
+    init(nowProvider: @escaping () -> Date = Date.init) {
+        self.nowProvider = nowProvider
         load()
     }
 
     func add(_ alarm: Alarm) {
         alarms.append(normalized(alarm))
         sortAlarms()
+        expireOneTimeAlarms(reference: nowProvider())
         save()
     }
 
     func update(_ alarm: Alarm) {
         guard let index = alarms.firstIndex(where: { $0.id == alarm.id }) else { return }
-        alarms[index] = normalized(alarm)
+        alarms[index] = normalized(alarm, previous: alarms[index])
         sortAlarms()
+        expireOneTimeAlarms(reference: nowProvider())
         save()
     }
 
@@ -32,6 +36,9 @@ class AlarmStore: ObservableObject {
     func toggle(_ alarm: Alarm) {
         var updated = alarm
         updated.isEnabled.toggle()
+        if updated.isEnabled, updated.repeatDays.isEmpty {
+            updated.hasFired = false
+        }
         update(updated)
     }
 
@@ -39,7 +46,7 @@ class AlarmStore: ObservableObject {
 
     /// Returns the next date any enabled alarm will fire, or nil if none are enabled.
     var nextAlarmDate: Date? {
-        let now = Date()
+        let now = nowProvider()
         let cal = Calendar.current
 
         return alarms
@@ -51,12 +58,14 @@ class AlarmStore: ObservableObject {
                 components.second     = 0
 
                 if alarm.repeatDays.isEmpty {
-                    // One-time: fire today if still in the future, otherwise tomorrow
-                    return cal.nextDate(
-                        after: now.addingTimeInterval(-1),
-                        matching: components,
-                        matchingPolicy: .nextTime
-                    )
+                    if alarm.hasFired { return nil }
+                    guard let today = cal.date(
+                        bySettingHour: alarm.hour,
+                        minute: alarm.minute,
+                        second: 0,
+                        of: now
+                    ) else { return nil }
+                    return today > now ? today : nil
                 } else {
                     // Repeating: find the nearest matching weekday
                     return alarm.repeatDays.compactMap { weekday -> Date? in
@@ -105,17 +114,49 @@ class AlarmStore: ObservableObject {
             let data    = UserDefaults.standard.data(forKey: storageKey),
             let decoded = try? JSONDecoder().decode([Alarm].self, from: data)
         else { return }
-        alarms = decoded.map(normalized)
+        alarms = decoded.map { normalized($0) }
         sortAlarms()
+        expireOneTimeAlarms(reference: nowProvider())
         if alarms != decoded { save() }
     }
 
     func applyEntitlements() {
-        let migrated = alarms.map(normalized)
-        guard migrated != alarms else { return }
+        let migrated = alarms.map { normalized($0) }
+        guard migrated != alarms else {
+            expireOneTimeAlarms(reference: nowProvider())
+            return
+        }
         alarms = migrated
         sortAlarms()
+        expireOneTimeAlarms(reference: nowProvider())
         save()
+    }
+
+    /// Marks one-time alarms as fired once their scheduled time has passed.
+    /// This prevents one-time alarms from auto-rescheduling to future days.
+    func expireOneTimeAlarms(reference now: Date = Date(), excludingIDs: Set<UUID> = []) {
+        var changed = false
+        let cal = Calendar.current
+        for index in alarms.indices {
+            var alarm = alarms[index]
+            guard alarm.isEnabled, alarm.repeatDays.isEmpty, !alarm.hasFired else { continue }
+            if excludingIDs.contains(alarm.id) { continue }
+            guard let scheduled = cal.date(
+                bySettingHour: alarm.hour,
+                minute: alarm.minute,
+                second: 0,
+                of: now
+            ) else { continue }
+            guard scheduled <= now else { continue }
+            alarm.hasFired = true
+            alarm.isEnabled = false
+            alarms[index] = alarm
+            changed = true
+        }
+        if changed {
+            sortAlarms()
+            save()
+        }
     }
 
     private func sortAlarms() {
@@ -128,12 +169,18 @@ class AlarmStore: ObservableObject {
         }
     }
 
-    private func normalized(_ alarm: Alarm) -> Alarm {
-        var adjusted = alarm
+    private func normalized(_ alarm: Alarm, previous: Alarm? = nil) -> Alarm {
+        var adjusted = alarm.normalized()
         adjusted.difficulty = Difficulty.effective(
-            alarm.difficulty,
+            adjusted.difficulty,
             whizUnlocked: SettingsStore.shared.allowsWhizDifficulty
         )
+        if let previous, previous.repeatDays.isEmpty, adjusted.repeatDays.isEmpty {
+            let timeChanged = previous.hour != adjusted.hour || previous.minute != adjusted.minute
+            if adjusted.isEnabled && timeChanged {
+                adjusted.hasFired = false
+            }
+        }
         return adjusted
     }
 }
