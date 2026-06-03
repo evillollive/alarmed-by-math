@@ -42,6 +42,15 @@ class AlarmStore: ObservableObject {
         update(updated)
     }
 
+    /// Returns the persisted alarm that should be scheduled after a save cycle.
+    /// Disabled or newly expired alarms return nil.
+    func alarmForScheduling(id: UUID) -> Alarm? {
+        guard let alarm = alarms.first(where: { $0.id == id }), alarm.isEnabled else {
+            return nil
+        }
+        return alarm
+    }
+
     // MARK: - Next alarm
 
     /// Returns the next date any enabled alarm will fire, or nil if none are enabled.
