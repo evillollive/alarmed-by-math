@@ -384,6 +384,15 @@ final class AlarmStoreExpirationTests: XCTestCase {
 
         XCTAssertNil(store.alarmForScheduling(id: alarm.id))
     }
+
+    func testAlarmForSchedulingSkipsStaleOneTimeAlarmEvenBeforeExpirationPass() {
+        let now = Calendar.current.date(from: DateComponents(year: 2026, month: 6, day: 3, hour: 9, minute: 0))!
+        let store = AlarmStore(nowProvider: { now })
+        let alarm = Alarm(label: "Stale", hour: 7, minute: 30, repeatDays: [])
+        store.alarms = [alarm]
+
+        XCTAssertNil(store.alarmForScheduling(id: alarm.id))
+    }
 }
 
 final class AlarmSchedulerPolicyTests: XCTestCase {

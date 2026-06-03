@@ -47,6 +47,18 @@ class AlarmStore: ObservableObject {
         guard let alarm = alarms.first(where: { $0.id == id }), alarm.isEnabled else {
             return nil
         }
+        if alarm.repeatDays.isEmpty {
+            guard !alarm.hasFired else { return nil }
+            let now = nowProvider()
+            guard let scheduled = Calendar.current.date(
+                bySettingHour: alarm.hour,
+                minute: alarm.minute,
+                second: 0,
+                of: now
+            ), scheduled > now else {
+                return nil
+            }
+        }
         return alarm
     }
 
