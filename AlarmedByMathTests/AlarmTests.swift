@@ -375,6 +375,15 @@ final class AlarmStoreExpirationTests: XCTestCase {
         XCTAssertEqual(persisted?.repeatDays, [2])
         XCTAssertTrue(persisted?.isEnabled == true)
     }
+
+    func testAlarmForSchedulingSkipsDisabledAlarm() {
+        let now = Calendar.current.date(from: DateComponents(year: 2026, month: 6, day: 3, hour: 6, minute: 0))!
+        let store = AlarmStore(nowProvider: { now })
+        let alarm = Alarm(label: "Off", hour: 8, minute: 15, isEnabled: false)
+        store.add(alarm)
+
+        XCTAssertNil(store.alarmForScheduling(id: alarm.id))
+    }
 }
 
 final class AlarmSchedulerPolicyTests: XCTestCase {
