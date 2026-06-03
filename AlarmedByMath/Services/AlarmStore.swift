@@ -12,12 +12,14 @@ class AlarmStore: ObservableObject {
 
     func add(_ alarm: Alarm) {
         alarms.append(normalized(alarm))
+        sortAlarms()
         save()
     }
 
     func update(_ alarm: Alarm) {
         guard let index = alarms.firstIndex(where: { $0.id == alarm.id }) else { return }
         alarms[index] = normalized(alarm)
+        sortAlarms()
         save()
     }
 
@@ -104,6 +106,7 @@ class AlarmStore: ObservableObject {
             let decoded = try? JSONDecoder().decode([Alarm].self, from: data)
         else { return }
         alarms = decoded.map(normalized)
+        sortAlarms()
         if alarms != decoded { save() }
     }
 
@@ -111,7 +114,18 @@ class AlarmStore: ObservableObject {
         let migrated = alarms.map(normalized)
         guard migrated != alarms else { return }
         alarms = migrated
+        sortAlarms()
         save()
+    }
+
+    private func sortAlarms() {
+        alarms.sort {
+            if $0.hour != $1.hour { return $0.hour < $1.hour }
+            if $0.minute != $1.minute { return $0.minute < $1.minute }
+            let labelOrder = $0.displayLabel.localizedCaseInsensitiveCompare($1.displayLabel)
+            if labelOrder != .orderedSame { return labelOrder == .orderedAscending }
+            return $0.id.uuidString < $1.id.uuidString
+        }
     }
 
     private func normalized(_ alarm: Alarm) -> Alarm {

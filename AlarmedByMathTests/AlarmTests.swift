@@ -212,6 +212,45 @@ final class ThemePaletteTests: XCTestCase {
         }
     }
 
+    final class AlarmStoreOrderingTests: XCTestCase {
+        private let storageKey = "saved_alarms"
+
+        override func setUp() {
+            super.setUp()
+            UserDefaults.standard.removeObject(forKey: storageKey)
+        }
+
+        override func tearDown() {
+            UserDefaults.standard.removeObject(forKey: storageKey)
+            super.tearDown()
+        }
+
+        func testAlarmsAreSortedByTimeWhenAdded() {
+            let store = AlarmStore()
+            store.add(Alarm(label: "Late", hour: 9, minute: 30))
+            store.add(Alarm(label: "Early", hour: 6, minute: 15))
+            store.add(Alarm(label: "Mid", hour: 8, minute: 0))
+
+            XCTAssertEqual(store.alarms.map(\.timeString), ["6:15 AM", "8:00 AM", "9:30 AM"])
+        }
+
+        func testAlarmsResortWhenTimeChanges() {
+            let store = AlarmStore()
+            let early = Alarm(label: "Early", hour: 6, minute: 0)
+            let late = Alarm(label: "Late", hour: 10, minute: 0)
+            store.add(early)
+            store.add(late)
+
+            var updatedLate = late
+            updatedLate.hour = 5
+            updatedLate.minute = 45
+            store.update(updatedLate)
+
+            XCTAssertEqual(store.alarms.map(\.timeString), ["5:45 AM", "6:00 AM"])
+            XCTAssertEqual(store.alarms.first?.id, late.id)
+        }
+    }
+
     func testCuteThemesAreAvailable() {
         XCTAssertTrue(AppTheme.allCases.contains(.bubblegum))
         XCTAssertTrue(AppTheme.allCases.contains(.bluebird))
