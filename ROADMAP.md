@@ -60,10 +60,13 @@ out what it needs in those areas so they're built in, not bolted on.
 ## Whiz (paid) version roadmap
 
 ### Whiz feature set
-- Scientific calculator and higher "whiz-level" math difficulty live in the paid
-  tier.
-- Add custom songs as alarms in Whiz, not in the free version.
-- Put the home-screen widget in Whiz, not in the free version.
+- **Whiz-level scientific math is built.** Selecting Whiz rotates the solve screen to
+  landscape and reveals a scientific-calculator-styled keypad (digits + decimal point).
+  Problems use scientific-style operations — square/cube roots, `log`/`ln`,
+  `sin`/`cos`/`tan` in degrees, π multiples, circle area, hypotenuse, and `eⁿ` — and
+  answers are accepted to two decimal places.
+- Add custom songs as alarms in Whiz, not in the free version. *(roadmap)*
+- Put the home-screen widget in Whiz, not in the free version. *(roadmap)*
 
 ### Whiz widget roadmap
 
@@ -158,6 +161,11 @@ fiddly and the main source of risk.
 - Whiz now ships dormant: the purchase UI only appears once a live App Store product
   loads, and the Settings copy no longer advertises unbuilt features, so the app ships
   free-only until the paid tier is real.
+- Whiz-level scientific math shipped: Whiz now generates scientific-style problems
+  (roots, logs, trig, π, `eⁿ`) with decimal answers checked to two places, presented in
+  a landscape scientific-calculator keypad. The challenge difficulty is captured once on
+  appear so a mid-solve entitlement refresh can't swap the keypad, and rotation is
+  best-effort so a failed rotation never blocks dismissal.
 - Hardened the save path so scheduling always uses the persisted, normalized alarm from
   the store (`AlarmStore.alarmForScheduling`), preventing already-expired one-time
   alarms from being re-scheduled, with regression tests.

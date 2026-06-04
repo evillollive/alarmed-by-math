@@ -1,7 +1,49 @@
 import SwiftUI
+import UIKit
+
+/// Controls which interface orientations the app allows at runtime.
+/// The app is portrait-only everywhere except the Whiz scientific challenge,
+/// which requests landscape. iPad keeps its full set of orientations.
+enum AppOrientation {
+    static var deviceDefault: UIInterfaceOrientationMask {
+        UIDevice.current.userInterfaceIdiom == .pad ? .all : .portrait
+    }
+
+    static var current: UIInterfaceOrientationMask = AppOrientation.deviceDefault
+
+    /// Lock supported orientations and best-effort rotate the active window scene.
+    /// Rotation is never required to solve a problem; if it fails the UI stays usable.
+    static func lock(_ mask: UIInterfaceOrientationMask, rotateTo target: UIInterfaceOrientationMask) {
+        current = mask
+        apply(target)
+    }
+
+    static func reset() {
+        current = deviceDefault
+        apply(deviceDefault)
+    }
+
+    private static func apply(_ target: UIInterfaceOrientationMask) {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        guard let scene = scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
+        else { return }
+        scene.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        DispatchQueue.main.async {
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: target)) { _ in }
+        }
+    }
+}
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        AppOrientation.current
+    }
+}
 
 @main
 struct AlarmedByMathApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var alarmStore = AlarmStore()
     @StateObject private var scheduler = AlarmScheduler()
     @StateObject private var settings = SettingsStore.shared
