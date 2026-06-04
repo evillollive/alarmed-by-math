@@ -292,12 +292,14 @@ final class AlarmValidationTests: XCTestCase {
 final class AlarmOneTimeFireDateTests: XCTestCase {
     func testOneTimePastAlarmDoesNotRescheduleTomorrow() {
         let cal = Calendar.current
-        let now = Date()
+        // Pin "now" so "one hour ago" stays within the same day; otherwise this
+        // assertion flakes between 00:00–00:59 when now−1h lands on yesterday.
+        let now = cal.date(from: DateComponents(year: 2026, month: 6, day: 3, hour: 9, minute: 0))!
         let oneHourAgo = cal.date(byAdding: .hour, value: -1, to: now) ?? now
         let comps = cal.dateComponents([.hour, .minute], from: oneHourAgo)
         let alarm = Alarm(hour: comps.hour ?? 0, minute: comps.minute ?? 0, repeatDays: [])
 
-        XCTAssertNil(AlarmScheduler.nextFireDate(for: alarm))
+        XCTAssertNil(AlarmScheduler.nextFireDate(for: alarm, now: now))
     }
 
     func testOneTimeFiredAlarmHasNoNextDate() {

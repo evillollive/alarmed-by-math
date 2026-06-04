@@ -318,8 +318,10 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
 
     /// Computes the next time an alarm will fire, mirroring `AlarmStore`.
-    static func nextFireDate(for alarm: Alarm) -> Date? {
-        let now = Date()
+    ///
+    /// `now` is injectable so the time-of-day-sensitive scheduling logic can be
+    /// tested deterministically; production callers use the default `Date()`.
+    static func nextFireDate(for alarm: Alarm, now: Date = Date()) -> Date? {
         let cal = Calendar.current
         var comps = DateComponents()
         comps.hour   = alarm.hour

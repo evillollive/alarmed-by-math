@@ -110,14 +110,17 @@ final class AlarmGateTests: XCTestCase {
 final class AlarmFireDateTests: XCTestCase {
 
     func testNextFireDateIsInFutureForOneTimeAlarm() {
-        let now = Date()
-        let future = Calendar.current.date(byAdding: .hour, value: 1, to: now) ?? now
-        let comps = Calendar.current.dateComponents([.hour, .minute], from: future)
+        let cal = Calendar.current
+        // Pin "now" to mid-morning so target ±1h stays within the same day,
+        // making the assertion deterministic at any real wall-clock time.
+        let now = cal.date(from: DateComponents(year: 2026, month: 6, day: 3, hour: 9, minute: 0))!
+        let future = cal.date(byAdding: .hour, value: 1, to: now) ?? now
+        let comps = cal.dateComponents([.hour, .minute], from: future)
         let alarm = Alarm(hour: comps.hour ?? 8, minute: comps.minute ?? 0, repeatDays: [])
-        let next = AlarmScheduler.nextFireDate(for: alarm)
+        let next = AlarmScheduler.nextFireDate(for: alarm, now: now)
         XCTAssertNotNil(next)
-        XCTAssertGreaterThan(next!, Date())
-        let nextComps = Calendar.current.dateComponents([.hour, .minute], from: next!)
+        XCTAssertGreaterThan(next!, now)
+        let nextComps = cal.dateComponents([.hour, .minute], from: next!)
         XCTAssertEqual(nextComps.hour, alarm.hour)
         XCTAssertEqual(nextComps.minute, alarm.minute)
     }
