@@ -35,7 +35,7 @@ The flow is intentionally simple so there's nothing between you and the alarm do
 
 A few design choices that make this more than just "alarm + quiz":
 
-- **Free difficulty ladder, plus Whiz purchase plumbing.** Easy through Expert are available in the free app. Whiz is wired as a StoreKit 2 unlock, and any locked Whiz alarm is safely normalized back to Expert until the entitlement is active.
+- **Free difficulty ladder, plus a real Whiz tier.** Easy through Expert are available in the free app. Whiz adds scientific-style problems — square/cube roots, logarithms, trig, and π — solved on a landscape scientific keypad, and is wired as a StoreKit 2 unlock. Any locked Whiz alarm is safely normalized back to Expert until the entitlement is active.
 - **Repeating schedules.** Set alarms for specific days of the week or leave them as one-time events. The scheduling uses iOS local notifications, so alarms fire even when the app isn't in the foreground.
 - **Safer one-time behavior.** One-time alarms are treated as one-shot events and won't auto-reschedule for tomorrow after they have fired.
 - **Snooze safety net.** There's no snooze button, but if you try to cheat by closing the app, a follow-up notification catches you five minutes later. It's persistent by design.
@@ -103,9 +103,13 @@ free-only** until that product exists. Free covers every difficulty from Easy to
 
 The three paid Whiz features on the roadmap are:
 
-1. **Whiz-level math** with a scientific calculator and harder problems
-2. **Custom song picker** for alarm audio
-3. **Home-screen analog clock widget**
+1. **Whiz-level scientific math** *(built)* — harder, scientific-style problems
+   (square/cube roots, `log`/`ln`, `sin`/`cos`/`tan` in degrees, π multiples, circle
+   area, hypotenuse, `eⁿ`). Selecting Whiz rotates the solve screen to landscape and
+   swaps the number pad for a scientific-calculator-styled keypad with a decimal point;
+   answers are accepted to two decimal places.
+2. **Custom song picker** for alarm audio *(roadmap)*
+3. **Home-screen analog clock widget** *(roadmap)*
 
 StoreKit details:
 

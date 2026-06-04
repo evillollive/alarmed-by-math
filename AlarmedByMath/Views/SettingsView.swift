@@ -97,7 +97,7 @@ struct SettingsView: View {
                 if whizStorefrontAvailable {
                     whizStorefront
                 } else {
-                    Text("Every difficulty from Easy to Expert is built into the free app. Whiz is an optional tier for even tougher math.")
+                    Text("Every difficulty from Easy to Expert is built into the free app. Whiz is an optional tier of scientific-style problems — roots, logs, trig, and π — solved on a landscape scientific keypad.")
                         .font(.caption)
                         .foregroundColor(Theme.chalkFaded)
                         .accessibilityLabel("Free alarms include every difficulty from Easy to Expert.")
@@ -118,7 +118,7 @@ struct SettingsView: View {
     private var whizStorefront: some View {
         Text(settings.isWhizUnlocked
              ? "Whiz is unlocked on this device, and the app will keep that purchase in sync with the App Store."
-             : "Free alarms go up to Expert. Whiz is the paid unlock that adds the tougher Whiz difficulty tier.")
+             : "Free alarms go up to Expert. Whiz is the paid unlock that adds scientific-style math — roots, logs, trig, and π — on a landscape scientific keypad.")
             .font(.caption)
             .foregroundColor(Theme.chalkFaded)
             .accessibilityLabel(settings.isWhizUnlocked

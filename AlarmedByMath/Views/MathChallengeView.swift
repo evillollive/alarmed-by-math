@@ -23,7 +23,8 @@ struct MathChallengeView: View {
         return alarmStore.alarms.first(where: { $0.id == uuid })
     }
 
-    private var difficulty: Difficulty {
+    /// Effective difficulty resolved from the active alarm and the Whiz entitlement.
+    private var effectiveDifficulty: Difficulty {
         Difficulty.effective(
             activeAlarm?.difficulty ?? .medium,
             whizUnlocked: settings.allowsWhizDifficulty
@@ -38,6 +39,10 @@ struct MathChallengeView: View {
     @State private var showSuccess    = false
     @State private var solvedCount    = 0
     @State private var solveStartTime: Date? = nil
+    /// Captured once when the challenge begins so a mid-solve entitlement refresh
+    /// can't swap the keypad or difficulty out from under the user.
+    @State private var challengeDifficulty: Difficulty = .medium
+    @State private var hasStarted     = false
 
     var body: some View {
         ZStack {
@@ -66,7 +71,7 @@ struct MathChallengeView: View {
 
                 // Math expression
                 VStack(spacing: 8) {
-                    Text(problemCount > 1 ? "Problem \(solvedCount + 1) of \(problemCount)" : "Solve for x")
+                    Text(subtitle)
                         .font(.system(.caption, design: Theme.fontDesign))
                         .foregroundColor(Theme.chalkFaded)
 
@@ -99,13 +104,19 @@ struct MathChallengeView: View {
 
                 Spacer()
 
-                // Number pad
-                NumberPad(input: $userInput, onSubmit: checkAnswer)
-                    .padding(.bottom, 24)
+                // Input pad: scientific keypad for Whiz, integer pad otherwise
+                if challengeDifficulty == .whiz {
+                    ScientificKeypad(input: $userInput, onSubmit: checkAnswer)
+                        .padding(.bottom, 24)
+                } else {
+                    NumberPad(input: $userInput, onSubmit: checkAnswer)
+                        .padding(.bottom, 24)
+                }
             }
         }
         .interactiveDismissDisabled(true)
-        .onAppear(perform: snoozeIfNeeded)
+        .onAppear(perform: beginChallenge)
+        .onDisappear(perform: AppOrientation.reset)
         .onChange(of: showSuccess) { _, solved in
             guard solved else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
@@ -139,21 +150,37 @@ struct MathChallengeView: View {
 
     // MARK: - Logic
 
+    private var subtitle: String {
+        if problemCount > 1 { return "Problem \(solvedCount + 1) of \(problemCount)" }
+        return challengeDifficulty == .whiz ? "Round to 2 decimals" : "Solve for x"
+    }
+
+    private func beginChallenge() {
+        if !hasStarted {
+            hasStarted = true
+            challengeDifficulty = effectiveDifficulty
+        }
+        if challengeDifficulty == .whiz {
+            AppOrientation.lock(.landscape, rotateTo: .landscapeRight)
+        }
+        snoozeIfNeeded()
+    }
+
     private func snoozeIfNeeded() {
         guard !hasSnoozed else { return }
         hasSnoozed     = true
         solveStartTime = Date()
-        problem        = MathProblem.generate(difficulty: difficulty)
+        problem        = MathProblem.generate(difficulty: challengeDifficulty)
         scheduler.snooze()
     }
 
     private func checkAnswer() {
-        guard let answer = Int(userInput) else {
+        guard let entered = parsedInput(userInput) else {
             triggerWrong()
             return
         }
-        if answer == problem.answer {
-            StatsStore.shared.recordAttempt(difficulty: difficulty, correct: true)
+        if matches(entered, problem.answer) {
+            StatsStore.shared.recordAttempt(difficulty: challengeDifficulty, correct: true)
             solvedCount += 1
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             if solvedCount >= problemCount {
@@ -165,12 +192,30 @@ struct MathChallengeView: View {
             } else {
                 // More problems to go, reset input and generate next
                 userInput = ""
-                problem   = MathProblem.generate(difficulty: difficulty)
+                problem   = MathProblem.generate(difficulty: challengeDifficulty)
             }
         } else {
-            StatsStore.shared.recordAttempt(difficulty: difficulty, correct: false)
+            StatsStore.shared.recordAttempt(difficulty: challengeDifficulty, correct: false)
             triggerWrong()
         }
+    }
+
+    /// Parse user input as a Double, tolerating a trailing decimal point and a lone sign.
+    private func parsedInput(_ raw: String) -> Double? {
+        var s = raw
+        if s.hasSuffix(".") { s.removeLast() }
+        if s.isEmpty || s == "-" { return nil }
+        return Double(s)
+    }
+
+    /// Two values match when they agree to two decimal places.
+    private func matches(_ a: Double, _ b: Double) -> Bool {
+        guard a.isFinite, b.isFinite else { return false }
+        return cents(a) == cents(b)
+    }
+
+    private func cents(_ value: Double) -> Int {
+        Int((value * 100).rounded(.toNearestOrAwayFromZero))
     }
 
     private func triggerWrong() {
@@ -179,7 +224,7 @@ struct MathChallengeView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             isWrong    = false
             userInput  = ""
-            problem    = MathProblem.generate(difficulty: difficulty)
+            problem    = MathProblem.generate(difficulty: challengeDifficulty)
         }
     }
 }
@@ -229,6 +274,86 @@ struct NumberPad: View {
             // Max 6 digits; don't count the leading minus toward that limit
             let digitCount = input.hasPrefix("-") ? input.count - 1 : input.count
             if digitCount < 6 { input += key }
+        }
+    }
+}
+
+// MARK: - ScientificKeypad (Whiz / landscape)
+
+/// A wider, scientific-calculator-styled keypad shown for the Whiz tier.
+/// It is an input pad only (digits, decimal point, sign) — the function glyph
+/// strip across the top is decorative, signalling "scientific" mode. Answers are
+/// checked to two decimal places, so a decimal point is the only extra key needed.
+struct ScientificKeypad: View {
+    @Binding var input: String
+    let onSubmit: () -> Void
+
+    private let legend = ["√", "∛", "x²", "π", "sin", "cos", "tan", "log", "ln", "e"]
+    private let rows: [[String]] = [
+        ["7", "8", "9"],
+        ["4", "5", "6"],
+        ["1", "2", "3"],
+        ["±", "0", "."],
+    ]
+
+    var body: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 16) {
+                ForEach(legend, id: \.self) { glyph in
+                    Text(glyph)
+                        .font(.system(size: 18, weight: .semibold, design: Theme.fontDesign))
+                        .foregroundColor(Theme.chalk.opacity(0.28))
+                }
+            }
+            .accessibilityHidden(true)
+
+            HStack(alignment: .top, spacing: 12) {
+                VStack(spacing: 10) {
+                    ForEach(rows, id: \.self) { row in
+                        HStack(spacing: 10) {
+                            ForEach(row, id: \.self) { key in
+                                NumberKey(label: key) { tap(key) }
+                            }
+                        }
+                    }
+                }
+                VStack(spacing: 10) {
+                    NumberKey(label: "⌫") { tap("⌫") }
+                    NumberKey(label: "✓") { tap("✓") }
+                }
+                .frame(width: 120)
+            }
+        }
+        .padding(.horizontal, 32)
+        .frame(maxWidth: 620)
+    }
+
+    private func tap(_ key: String) {
+        switch key {
+        case "⌫":
+            if !input.isEmpty { input.removeLast() }
+        case "✓":
+            onSubmit()
+        case "±":
+            if input.isEmpty { return }
+            if input.hasPrefix("-") {
+                input.removeFirst()
+            } else {
+                input = "-" + input
+            }
+        case ".":
+            if input.contains(".") { return }
+            input += (input.isEmpty || input == "-") ? "0." : "."
+        default:
+            // Allow up to 5 integer digits and 2 decimals (excluding any leading minus).
+            let body = input.hasPrefix("-") ? String(input.dropFirst()) : input
+            if let dot = body.firstIndex(of: ".") {
+                let decimals = body.distance(from: body.index(after: dot), to: body.endIndex)
+                if decimals >= 2 { return }
+            } else if body.count >= 5 {
+                return
+            }
+            input += key
         }
     }
 }
