@@ -14,7 +14,7 @@ private extension ProcessInfo {
 }
 
 /// Stores user preferences and acts as the single source of truth for
-/// active theme, alarm sound, snooze duration, and the Whiz entitlement.
+/// active theme, alarm sound, snooze duration, and the premium entitlement.
 ///
 /// `SettingsStore.shared` is used by `Theme` for color lookups so every
 /// view automatically reflects the active theme when it re-renders.
@@ -133,9 +133,9 @@ final class SettingsStore: ObservableObject {
         if showConfirmation {
             if unlocked {
                 storeErrorMessage = nil
-                storeStatusMessage = "Whiz is unlocked on this device."
+                storeStatusMessage = "Premium is unlocked on this device."
             } else {
-                storeStatusMessage = "No Whiz purchase was found for this Apple Account yet."
+                storeStatusMessage = "No premium purchase was found for this Apple Account yet."
             }
         }
     }
@@ -144,7 +144,7 @@ final class SettingsStore: ObservableObject {
     func purchaseWhiz() async {
         guard storeKitEnabled else { return }
         guard let product = whizProduct else {
-            storeErrorMessage = "Whiz isn't available to buy yet. Check that the App Store product is configured."
+            storeErrorMessage = "Premium isn't available to buy yet. Check that the App Store product is configured."
             return
         }
 
@@ -163,7 +163,7 @@ final class SettingsStore: ObservableObject {
                 await transaction.finish()
                 await refreshWhizEntitlements(showConfirmation: false)
                 if isWhizUnlocked {
-                    storeStatusMessage = "Whiz unlocked. Your tougher math is ready."
+                    storeStatusMessage = "Premium unlocked. Your tougher math is ready."
                 } else {
                     storeErrorMessage = "The purchase completed, but the unlock didn't refresh. Try Restore Purchases."
                 }
@@ -175,7 +175,7 @@ final class SettingsStore: ObservableObject {
                 storeErrorMessage = "The purchase didn't finish. Please try again."
             }
         } catch {
-            storeErrorMessage = "Whiz couldn't be purchased right now. Please try again."
+            storeErrorMessage = "Premium couldn't be purchased right now. Please try again."
         }
     }
 
@@ -208,12 +208,12 @@ final class SettingsStore: ObservableObject {
             whizPrice = whizProduct?.displayPrice
 
             if whizProduct == nil {
-                storeStatusMessage = "Whiz purchases are wired in the app, but the App Store product isn't live yet."
+                storeStatusMessage = "Premium purchases are wired in the app, but the App Store product isn't live yet."
             }
         } catch {
             whizProduct = nil
             whizPrice = nil
-            storeErrorMessage = "Whiz details couldn't be loaded from the App Store."
+            storeErrorMessage = "Premium details couldn't be loaded from the App Store."
         }
     }
 

@@ -9,7 +9,7 @@ enum Difficulty: String, Codable, CaseIterable {
         case .medium: return "Medium"
         case .hard:   return "Hard"
         case .expert: return "Expert"
-        case .whiz:   return "Whiz"
+        case .whiz:   return "Premium"
         }
     }
 }

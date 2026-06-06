@@ -14,7 +14,7 @@ struct SettingsView: View {
                     VStack(spacing: 20) {
                         themeSection
                         soundSection
-                        whizSection
+                        premiumSection
                         testAlarmSection
                     }
                     .padding()
@@ -82,110 +82,92 @@ struct SettingsView: View {
         }
     }
 
-    /// The Whiz purchase flow only surfaces once a live App Store product is
-    /// loaded (or the unlock is already owned). Until the product exists in
-    /// App Store Connect the app ships free-only and shows no purchase UI.
-    private var whizStorefrontAvailable: Bool {
-        settings.isWhizUnlocked || settings.hasWhizProductLoaded
-    }
-
-    private var whizSection: some View {
+    private var premiumSection: some View {
         settingsCard {
             VStack(alignment: .leading, spacing: 14) {
-                sectionHeader("Whiz")
+                sectionHeader("Premium")
+                Text(settings.isWhizUnlocked
+                     ? "Premium is unlocked on this device, and the app will keep that purchase in sync with the App Store."
+                     : "Free alarms go up to Expert. Premium is the paid unlock for tougher math and future paid extras.")
+                    .font(.caption)
+                    .foregroundColor(Theme.chalkFaded)
+                    .accessibilityLabel(settings.isWhizUnlocked
+                                        ? "Premium is unlocked on this device."
+                                        : "Premium is locked. Free alarms go up to Expert.")
 
-                if whizStorefrontAvailable {
-                    whizStorefront
-                } else {
-                    Text("Every difficulty from Easy to Expert is built into the free app. Whiz is an optional tier of scientific-style problems — roots, logs, trig, and π — solved on a landscape scientific keypad.")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("- Premium-level math difficulty")
+                    Text("- Custom songs when the scheduler path supports them")
+                    Text("- Home-screen widget roadmap")
+                }
+                .font(.caption)
+                .foregroundColor(Theme.chalk)
+                .accessibilityElement(children: .combine)
+
+                if let price = settings.whizPrice, !settings.isWhizUnlocked {
+                    Text("Unlock once for \(price).")
+                        .font(.caption)
+                        .foregroundColor(Theme.chalkYellow)
+                }
+
+                if settings.isLoadingWhizStore {
+                    ProgressView("Loading Premium purchase details…")
+                        .tint(Theme.chalkYellow)
+                        .foregroundColor(Theme.chalkFaded)
+                        .accessibilityLabel("Loading Premium purchase details")
+                }
+
+                VStack(spacing: 10) {
+                    if !settings.isWhizUnlocked {
+                        Button {
+                            Task { await settings.purchaseWhiz() }
+                        } label: {
+                            actionButtonLabel(
+                                title: settings.isPurchasingWhiz ? "Purchasing Premium…" : "Unlock Premium",
+                                systemImage: "sparkles",
+                                fill: Theme.chalkYellow,
+                                foreground: Theme.boardDark
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!settings.canPurchaseWhiz)
+                        .opacity(settings.canPurchaseWhiz ? 1 : 0.6)
+                        .accessibilityIdentifier("settings.unlock-premium")
+                        .accessibilityHint("Starts the App Store purchase for the premium unlock")
+                    }
+
+                    Button {
+                        Task { await settings.restorePurchases() }
+                    } label: {
+                        actionButtonLabel(
+                            title: settings.isRestoringPurchases ? "Restoring Purchases…" : "Restore Purchases",
+                            systemImage: "arrow.clockwise",
+                            fill: Theme.board,
+                            foreground: Theme.chalk
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(settings.isPurchasingWhiz || settings.isRestoringPurchases)
+                    .opacity(settings.isPurchasingWhiz || settings.isRestoringPurchases ? 0.6 : 1)
+                    .accessibilityIdentifier("settings.restore-premium")
+                    .accessibilityHint("Checks the App Store for a previous premium purchase")
+                }
+
+                if let status = settings.storeStatusMessage {
+                    Text(status)
                         .font(.caption)
                         .foregroundColor(Theme.chalkFaded)
-                        .accessibilityLabel("Free alarms include every difficulty from Easy to Expert.")
+                        .accessibilityLabel(status)
                 }
 
 #if DEBUG
-                Toggle("Debug unlock Whiz", isOn: Binding(
+                Toggle("Debug unlock Premium", isOn: Binding(
                     get: { settings.isWhizUnlocked },
                     set: { settings.setWhizUnlockedForDebug($0) }
                 ))
                 .tint(Theme.chalkYellow)
 #endif
             }
-        }
-    }
-
-    @ViewBuilder
-    private var whizStorefront: some View {
-        Text(settings.isWhizUnlocked
-             ? "Whiz is unlocked on this device, and the app will keep that purchase in sync with the App Store."
-             : "Free alarms go up to Expert. Whiz is the paid unlock that adds scientific-style math — roots, logs, trig, and π — on a landscape scientific keypad.")
-            .font(.caption)
-            .foregroundColor(Theme.chalkFaded)
-            .accessibilityLabel(settings.isWhizUnlocked
-                                ? "Whiz is unlocked on this device."
-                                : "Whiz is locked. Free alarms go up to Expert.")
-
-        if let price = settings.whizPrice, !settings.isWhizUnlocked {
-            Text("Unlock once for \(price).")
-                .font(.caption)
-                .foregroundColor(Theme.chalkYellow)
-        }
-
-        if settings.isLoadingWhizStore {
-            ProgressView("Loading Whiz purchase details…")
-                .tint(Theme.chalkYellow)
-                .foregroundColor(Theme.chalkFaded)
-                .accessibilityLabel("Loading Whiz purchase details")
-        }
-
-        VStack(spacing: 10) {
-            if !settings.isWhizUnlocked {
-                Button {
-                    Task { await settings.purchaseWhiz() }
-                } label: {
-                    actionButtonLabel(
-                        title: settings.isPurchasingWhiz ? "Purchasing Whiz…" : "Unlock Whiz",
-                        systemImage: "sparkles",
-                        fill: Theme.chalkYellow,
-                        foreground: Theme.boardDark
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(!settings.canPurchaseWhiz)
-                .opacity(settings.canPurchaseWhiz ? 1 : 0.6)
-                .accessibilityIdentifier("settings.unlock-whiz")
-                .accessibilityHint("Starts the App Store purchase for the Whiz unlock")
-            }
-
-            Button {
-                Task { await settings.restorePurchases() }
-            } label: {
-                actionButtonLabel(
-                    title: settings.isRestoringPurchases ? "Restoring Purchases…" : "Restore Purchases",
-                    systemImage: "arrow.clockwise",
-                    fill: Theme.board,
-                    foreground: Theme.chalk
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(settings.isPurchasingWhiz || settings.isRestoringPurchases)
-            .opacity(settings.isPurchasingWhiz || settings.isRestoringPurchases ? 0.6 : 1)
-            .accessibilityIdentifier("settings.restore-whiz")
-            .accessibilityHint("Checks the App Store for a previous Whiz purchase")
-        }
-
-        if let status = settings.storeStatusMessage {
-            Text(status)
-                .font(.caption)
-                .foregroundColor(Theme.chalkFaded)
-                .accessibilityLabel(status)
-        }
-
-        if let error = settings.storeErrorMessage {
-            Text(error)
-                .font(.caption)
-                .foregroundColor(Theme.chalkRed)
-                .accessibilityLabel(error)
         }
     }
 

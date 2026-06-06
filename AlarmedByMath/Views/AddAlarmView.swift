@@ -22,7 +22,7 @@ struct AddAlarmView: View {
     @State private var showingMusicPicker = false
 
     private let daySymbols = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-    private var whizLocked: Bool { !settings.allowsWhizDifficulty }
+    private var premiumLocked: Bool { !settings.allowsWhizDifficulty }
 
     // Designated init, pre-fills fields when editing an existing alarm
     init(alarmToEdit: Alarm? = nil) {
@@ -92,23 +92,23 @@ struct AddAlarmView: View {
                                 sectionHeader("Difficulty")
                                 HStack(spacing: 6) {
                                     ForEach(Difficulty.allCases, id: \.self) { level in
-                                        let isLockedWhiz = level == .whiz && whizLocked
+                                        let isLockedPremium = level == .whiz && premiumLocked
                                         DayToggleButton(
-                                            title: isLockedWhiz ? "\(level.label) 🔒" : level.label,
+                                            title: isLockedPremium ? "\(level.label) 🔒" : level.label,
                                             isSelected: difficulty == level
                                         ) {
-                                            guard !isLockedWhiz else { return }
+                                            guard !isLockedPremium else { return }
                                             difficulty = level
                                         }
                                     }
                                 }
-                                if whizLocked {
-                                    Text("Whiz is part of the paid tier. Unlock or restore it in Settings. Free alarms currently support up to Expert.")
+                                if premiumLocked {
+                                    Text("Premium is part of the paid tier. Unlock or restore it in Settings. Free alarms currently support up to Expert.")
                                         .font(.caption)
                                         .foregroundColor(Theme.chalkFaded)
                                 }
-                                if difficulty == .whiz && whizLocked {
-                                    Text("This alarm will be saved as Expert until Whiz is unlocked.")
+                                if difficulty == .whiz && premiumLocked {
+                                    Text("This alarm will be saved as Expert until Premium is unlocked.")
                                         .font(.caption)
                                         .foregroundColor(Theme.chalkYellow)
                                 }
@@ -168,8 +168,8 @@ struct AddAlarmView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     sectionHeader("Alarm Sound")
                                     Text(settings.allowsCustomSongs
-                                         ? "Whiz is unlocked, but this iOS alarm path still uses the app sound from Settings for dependable scheduled alarms."
-                                         : "Custom songs are in the paid Whiz tier, and this iOS alarm path still uses the app sound from Settings for dependable scheduled alarms.")
+                                         ? "Premium is unlocked, but this iOS alarm path still uses the app sound from Settings for dependable scheduled alarms."
+                                         : "Custom songs are in the paid Premium tier, and this iOS alarm path still uses the app sound from Settings for dependable scheduled alarms.")
                                         .font(.caption)
                                         .foregroundColor(Theme.chalkFaded)
                                 }

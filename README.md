@@ -35,7 +35,7 @@ The flow is intentionally simple so there's nothing between you and the alarm do
 
 A few design choices that make this more than just "alarm + quiz":
 
-- **Difficulty ladder.** Choose from Easy through Expert. Each step ramps up the math so you can tune exactly how awake you need to be before the alarm will let you go.
+- **Free difficulty ladder, plus Premium purchase plumbing.** Easy through Expert are available in the free app. Premium is wired as a StoreKit 2 unlock, and any locked Premium alarm is safely normalized back to Expert until the entitlement is active.
 - **Repeating schedules.** Set alarms for specific days of the week or leave them as one-time events. The scheduling uses iOS local notifications, so alarms fire even when the app isn't in the foreground.
 - **Safer one-time behavior.** One-time alarms are treated as one-shot events and won't auto-reschedule for tomorrow after they have fired.
 - **Snooze safety net.** There's no snooze button, but if you try to cheat by closing the app, a follow-up notification catches you five minutes later. It's persistent by design.
@@ -45,6 +45,7 @@ A few design choices that make this more than just "alarm + quiz":
 ## What's under the hood
 
 - **Swift** + **SwiftUI** for the entire UI
+- **StoreKit 2** for Premium purchase, restore, and entitlement refresh
 - **UserNotifications** for scheduling local alarms
 - **AVFoundation** for in-app alarm audio playback
 - **UserDefaults** (Codable) for persistence
@@ -86,12 +87,12 @@ AlarmedByMath/
 
 Alarmed by Math is built to be usable for everyone, not just people who can see the screen clearly at 6 AM:
 
-- **VoiceOver labels** on custom controls, including theme rows and settings actions
+- **VoiceOver labels** on custom controls, including theme rows and the new Premium purchase and restore actions
 - **VoiceOver labels on day toggles and number pad controls** so alarm setup and math input stay clear
 - **Announcements** for correct and incorrect answers so you don't have to squint at feedback
 - **Reduce Motion support** for ringing and challenge animations, because pulsing and shake effects aren't for everybody
 - **Dynamic Type** with minimum scale factors so text stays readable at any size
-- **Contrast-aware settings cards** and full-row tap targets so settings stay understandable under low vision and shaky-morning conditions
+- **Contrast-aware settings cards** and full-row tap targets so the Premium purchase flow stays understandable under low vision and shaky-morning conditions
 - **Permission state banner** on the main list when notifications are disabled, so setup problems are visible immediately
 
 ## Privacy
@@ -102,6 +103,15 @@ The bundled [`PrivacyInfo.xcprivacy`](AlarmedByMath/PrivacyInfo.xcprivacy) manif
 declares no tracking, no collected data, and the required-reason `UserDefaults` API
 usage, and `ITSAppUsesNonExemptEncryption` is set so uploads skip the export-compliance
 prompt.
+
+## Premium setup
+
+The app now includes live StoreKit plumbing for the paid Premium unlock.
+
+- **Product ID:** `com.alarmedbymath.app.whiz`
+- **Product type:** non-consumable
+- **In-app behavior:** purchase, restore, and entitlement refresh are wired in `SettingsStore`
+- **App Store Connect requirement:** create the product with the same ID before expecting live purchases in debug, TestFlight, or production
 
 ## License
 
