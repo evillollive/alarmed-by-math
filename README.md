@@ -35,7 +35,9 @@ The flow is intentionally simple so there's nothing between you and the alarm do
 
 A few design choices that make this more than just "alarm + quiz":
 
-- **Free difficulty ladder, plus Premium purchase plumbing.** Easy through Expert are available in the free app. Premium is wired as a StoreKit 2 unlock, and any locked Premium alarm is safely normalized back to Expert until the entitlement is active.
+- **Free difficulty ladder, plus a real Premium tier.** Easy through Expert are available in the free app. Premium is a one-time StoreKit 2 unlock, and any locked Premium alarm is safely normalized back to Expert until the entitlement is active. A dedicated paywall is the single upsell surface, and locked features (Whiz difficulty, the solve soundtrack, the widget) deep-link straight into it.
+- **Premium solve soundtrack.** Premium users can pick a song from their library to play while they solve the alarm's math. It plays in the foreground only: your phone still wakes you with the dependable bundled alarm sound, because iOS won't start library playback from the lock screen.
+- **Premium Home Screen widget.** A small or medium widget shows your next alarm and solve streak. The whole widget is Premium; the locked state is a functional, redacted preview that taps through to the paywall. The app shares a tiny derived snapshot with the widget through an App Group and reloads it on launch, scene changes, and alarm/entitlement/streak updates.
 - **Repeating schedules.** Set alarms for specific days of the week or leave them as one-time events. The scheduling uses iOS local notifications, so alarms fire even when the app isn't in the foreground.
 - **Safer one-time behavior.** One-time alarms are treated as one-shot events and won't auto-reschedule for tomorrow after they have fired.
 - **Snooze safety net.** There's no snooze button, but if you try to cheat by closing the app, a follow-up notification catches you five minutes later. It's persistent by design.
@@ -45,9 +47,10 @@ A few design choices that make this more than just "alarm + quiz":
 ## What's under the hood
 
 - **Swift** + **SwiftUI** for the entire UI
+- **WidgetKit** for the Premium Home Screen widget, with an **App Group** sharing a derived snapshot
 - **StoreKit 2** for Premium purchase, restore, and entitlement refresh
 - **UserNotifications** for scheduling local alarms
-- **AVFoundation** for in-app alarm audio playback
+- **AVFoundation** for in-app alarm audio playback and the Premium solve soundtrack
 - **UserDefaults** (Codable) for persistence
 - Zero external dependencies
 
@@ -67,6 +70,8 @@ AlarmedByMath/
 │   ├── AlarmKitScheduler.swift  # AlarmKit locked-screen alarms (iOS 26.1+)
 │   ├── SettingsStore.swift      # Preferences and app settings
 │   ├── PremiumPlugin.swift      # Runtime seam for the optional paid add-on
+│   ├── WidgetSharedStore.swift  # App Group snapshot shared with the widget
+│   ├── WidgetSync.swift         # Derives the snapshot and reloads timelines
 │   └── StatsStore.swift         # Usage stats and milestone tracking
 ├── Views/
 │   ├── ContentView.swift        # Main alarm list with edit/delete/toggle
@@ -74,10 +79,18 @@ AlarmedByMath/
 │   ├── AlarmRingingView.swift   # Full-screen ringing UI
 │   ├── MathChallengeView.swift  # Math problem + custom number pad
 │   ├── SettingsView.swift       # Themes, sound, test alarm
+│   ├── PaywallView.swift        # Premium upsell sheet + compliance links
 │   └── StatsView.swift          # Usage stats + hidden easter egg
 ├── Premium/                     # Synced folder for the private add-on (empty here)
+├── AlarmedByMath.entitlements   # App Group entitlement
 ├── PrivacyInfo.xcprivacy        # App Store privacy manifest
 └── Assets.xcassets/
+
+AlarmedByMathWidget/             # Premium Home Screen widget extension
+├── AlarmedByMathWidgetBundle.swift
+├── AlarmedByMathWidget.swift    # Timeline provider + locked/unlocked views
+├── AlarmedByMathWidget.entitlements
+└── Info.plist
 ```
 
 ## Requirements
@@ -101,10 +114,14 @@ Alarmed by Math is built to be usable for everyone, not just people who can see 
 
 Alarmed by Math collects nothing. There are no accounts, no servers, no analytics, and
 no network calls — all data (alarms, settings, stats) lives locally in `UserDefaults`.
-The bundled [`PrivacyInfo.xcprivacy`](AlarmedByMath/PrivacyInfo.xcprivacy) manifest
+The optional Premium solve soundtrack reads your music library only to let you pick and
+play a song, and the widget reads a small derived snapshot the app writes to a shared
+App Group; neither leaves your device. The bundled
+[`PrivacyInfo.xcprivacy`](AlarmedByMath/PrivacyInfo.xcprivacy) manifest
 declares no tracking, no collected data, and the required-reason `UserDefaults` API
 usage, and `ITSAppUsesNonExemptEncryption` is set so uploads skip the export-compliance
-prompt.
+prompt. The hosted [Privacy Policy](https://evillollive.github.io/alarmed-by-math/privacy.html)
+says the same in plain language.
 
 ## Open-source app, separate Premium add-on
 
@@ -120,12 +137,14 @@ Because there's a single Xcode project, **any change to the free app automatical
 
 ## Premium setup
 
-The app now includes live StoreKit plumbing for the paid Premium unlock.
+The app includes live StoreKit plumbing for the paid Premium unlock, and Premium now spans three features: Whiz scientific difficulty, the solve soundtrack, and the Home Screen widget.
 
 - **Product ID:** `com.alarmedbymath.app.whiz`
 - **Product type:** non-consumable
-- **In-app behavior:** purchase, restore, and entitlement refresh are wired in `SettingsStore`
-- **App Store Connect requirement:** create the product with the same ID before expecting live purchases in debug, TestFlight, or production
+- **In-app behavior:** purchase, restore, and entitlement refresh are wired in `SettingsStore`; a single `PaywallView` is the upsell surface and locked features deep-link to it via the `alarmedbymath://paywall` URL scheme
+- **Widget bundle ID:** `com.alarmedbymath.app.widget`
+- **App Group:** `group.com.alarmedbymath.app` (shared by the app and the widget)
+- **App Store Connect / portal requirements:** create the IAP product with the same ID, and register the App Group plus the widget bundle ID on both the app and extension identifiers before device builds, archives, or live purchases. Terms of Use (Apple's standard EULA) and the [Privacy Policy](https://evillollive.github.io/alarmed-by-math/privacy.html) are linked from the paywall and Settings.
 
 ## License
 
