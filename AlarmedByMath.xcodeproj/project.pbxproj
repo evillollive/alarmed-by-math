@@ -30,6 +30,7 @@
 		BB0000000000000000000700 /* AlarmKitScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000700 /* AlarmKitScheduler.swift */; };
 		BB0000000000000000000800 /* AlarmGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000800 /* AlarmGateTests.swift */; };
 		BB0000000000000000000900 /* PremiumPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000900 /* PremiumPlugin.swift */; };
+		BB0000000000000000001000 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000001000 /* PaywallView.swift */; };
 		C0000000000000000000B1 /* chime.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C1 /* chime.caf */; };
 		C0000000000000000000B2 /* classic.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C2 /* classic.caf */; };
 		C0000000000000000000B3 /* bell.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C3 /* bell.caf */; };
@@ -74,6 +75,7 @@
 		AA0000000000000000000700 /* AlarmKitScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmKitScheduler.swift; sourceTree = "<group>"; };
 		AA0000000000000000000800 /* AlarmGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmGateTests.swift; sourceTree = "<group>"; };
 		AA0000000000000000000900 /* PremiumPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumPlugin.swift; sourceTree = "<group>"; };
+		AA0000000000000000001000 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		C0000000000000000000C1 /* chime.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = chime.caf; sourceTree = "<group>"; };
 		C0000000000000000000C2 /* classic.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = classic.caf; sourceTree = "<group>"; };
 		C0000000000000000000C3 /* bell.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = bell.caf; sourceTree = "<group>"; };
@@ -175,6 +177,7 @@
 				AA00000000000000000000AA /* AlarmRingingView.swift */,
 				AA00000000000000000000BA /* MathChallengeView.swift */,
 				AA0000000000000000000300 /* SettingsView.swift */,
+				AA0000000000000000001000 /* PaywallView.swift */,
 				AA0000000000000000000500 /* StatsView.swift */,
 			);
 			path = Views;
@@ -318,6 +321,7 @@
 				BB0000000000000000000200 /* SettingsStore.swift in Sources */,
 				BB0000000000000000000900 /* PremiumPlugin.swift in Sources */,
 				BB0000000000000000000300 /* SettingsView.swift in Sources */,
+				BB0000000000000000001000 /* PaywallView.swift in Sources */,
 				BB0000000000000000000400 /* StatsStore.swift in Sources */,
 				BB0000000000000000000500 /* StatsView.swift in Sources */,
 			);

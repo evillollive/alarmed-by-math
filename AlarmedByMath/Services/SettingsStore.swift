@@ -108,11 +108,22 @@ final class SettingsStore: ObservableObject {
 
     @MainActor
     func prepareStoreKitIfNeeded() async {
-        guard storeKitEnabled, !hasPreparedStoreKit else { return }
-        hasPreparedStoreKit = true
-        startTransactionListenerIfNeeded()
-        await loadWhizProduct()
-        await refreshWhizEntitlements(showConfirmation: false)
+        guard storeKitEnabled else { return }
+
+        // First run wires up the transaction listener and entitlement refresh.
+        if !hasPreparedStoreKit {
+            hasPreparedStoreKit = true
+            startTransactionListenerIfNeeded()
+            await loadWhizProduct()
+            await refreshWhizEntitlements(showConfirmation: false)
+            return
+        }
+
+        // Later calls (e.g. reopening the paywall) retry a failed product load so
+        // a transient App Store hiccup doesn't leave Unlock disabled until restart.
+        if whizProduct == nil {
+            await loadWhizProduct()
+        }
     }
 
     @MainActor

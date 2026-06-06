@@ -159,6 +159,22 @@ struct SettingsView: View {
                         .accessibilityLabel(status)
                 }
 
+                if let error = settings.storeErrorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(Theme.chalkRed)
+                        .accessibilityLabel(error)
+                }
+
+                HStack(spacing: 16) {
+                    Link("Terms of Use", destination: PremiumLinks.termsOfUse)
+                    Link("Privacy Policy", destination: PremiumLinks.privacyPolicy)
+                    Spacer()
+                }
+                .font(.caption)
+                .tint(Theme.chalkYellow)
+                .foregroundColor(Theme.chalkYellow)
+
 #if DEBUG
                 Toggle("Debug unlock Premium", isOn: Binding(
                     get: { settings.isWhizUnlocked },

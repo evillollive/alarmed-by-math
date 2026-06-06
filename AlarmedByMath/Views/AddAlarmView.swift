@@ -21,6 +21,7 @@ struct AddAlarmView: View {
     @State private var keepRinging:       Bool
     @State private var showingMusicPicker = false
     @State private var songWarning:       String?
+    @State private var showingPaywall     = false
 
     private let daySymbols = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     private var premiumLocked: Bool { !settings.allowsWhizDifficulty }
@@ -98,15 +99,32 @@ struct AddAlarmView: View {
                                             title: isLockedPremium ? "\(level.label) 🔒" : level.label,
                                             isSelected: difficulty == level
                                         ) {
-                                            guard !isLockedPremium else { return }
+                                            guard !isLockedPremium else {
+                                                paywallContext = "Whiz scientific problems are a Premium feature."
+                                                showingPaywall = true
+                                                return
+                                            }
                                             difficulty = level
                                         }
+                                        .accessibilityLabel(
+                                            isLockedPremium
+                                            ? "\(level.label) difficulty, locked"
+                                            : "\(level.label) difficulty"
+                                        )
+                                        .accessibilityHint(
+                                            isLockedPremium
+                                            ? "Opens the Premium purchase screen"
+                                            : "Selects this difficulty"
+                                        )
                                     }
                                 }
                                 if premiumLocked {
-                                    Text("Premium is part of the paid tier. Unlock or restore it in Settings. Free alarms currently support up to Expert.")
+                                    Text("Premium is part of the paid tier. Free alarms currently support up to Expert.")
                                         .font(.caption)
                                         .foregroundColor(Theme.chalkFaded)
+                                    unlockPremiumButton(
+                                        context: "Whiz scientific problems are a Premium feature."
+                                    )
                                 }
                                 if difficulty == .whiz && premiumLocked {
                                     Text("This alarm will be saved as Expert until Premium is unlocked.")
@@ -184,6 +202,9 @@ struct AddAlarmView: View {
                                     Text("Unlock Premium to play your own song while you solve the alarm. Your phone always wakes you with the dependable alarm sound from Settings.")
                                         .font(.caption)
                                         .foregroundColor(Theme.chalkFaded)
+                                    unlockPremiumButton(
+                                        context: "Custom solve songs are a Premium feature."
+                                    )
                                 }
                             }
                         }
@@ -315,10 +336,38 @@ struct AddAlarmView: View {
             }
             .ignoresSafeArea()
         }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView(context: paywallContext)
+                .environmentObject(settings)
+        }
     }
 
     // MARK: - Helper views
 
+    @State private var paywallContext: String? = nil
+
+    @ViewBuilder
+    private func unlockPremiumButton(context: String) -> some View {
+        Button {
+            paywallContext = context
+            showingPaywall = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                Text("Unlock Premium")
+                    .fontWeight(.semibold)
+            }
+            .font(.caption)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 14)
+            .background(Theme.chalkYellow)
+            .foregroundColor(Theme.boardDark)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("addalarm.unlock-premium")
+        .accessibilityHint("Opens the Premium purchase screen")
+    }
     @ViewBuilder
     private func chalkCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading) {

@@ -154,3 +154,18 @@ final class AlarmFireDateTests: XCTestCase {
         XCTAssertTrue([2, 4].contains(weekday))
     }
 }
+
+final class PremiumLinksTests: XCTestCase {
+
+    // App Review requires functional Terms of Use and Privacy Policy links
+    // wherever an in-app purchase is offered. Guard against shipping a
+    // malformed or non-HTTPS URL by accident.
+    func testLegalLinksAreSecureURLs() {
+        for url in [PremiumLinks.termsOfUse, PremiumLinks.privacyPolicy] {
+            XCTAssertEqual(url.scheme, "https",
+                           "Legal link must be served over HTTPS: \(url)")
+            XCTAssertNotNil(url.host,
+                            "Legal link must have a host: \(url)")
+        }
+    }
+}
