@@ -117,7 +117,10 @@ struct MathChallengeView: View {
         }
         .interactiveDismissDisabled(true)
         .onAppear(perform: beginChallenge)
-        .onDisappear(perform: AppOrientation.reset)
+        .onDisappear {
+            AppOrientation.reset()
+            scheduler.stopSolveSoundtrack()
+        }
         .onChange(of: showSuccess) { _, solved in
             guard solved else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
@@ -160,6 +163,10 @@ struct MathChallengeView: View {
         if !hasStarted {
             hasStarted = true
             challengeDifficulty = effectiveDifficulty
+            scheduler.startSolveSoundtrack(
+                songPersistentID: activeAlarm?.songPersistentID,
+                volume: activeAlarm?.volume ?? 1.0
+            )
         }
         if challengeDifficulty == .whiz {
             AppOrientation.lock(.landscape, rotateTo: .landscapeRight)

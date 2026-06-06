@@ -20,6 +20,7 @@ struct AddAlarmView: View {
     @State private var snoozeDuration:    Int
     @State private var keepRinging:       Bool
     @State private var showingMusicPicker = false
+    @State private var songWarning:       String?
 
     private let daySymbols = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     private var premiumLocked: Bool { !settings.allowsWhizDifficulty }
@@ -130,11 +131,14 @@ struct AddAlarmView: View {
                             }
                         }
 
-                        // Alarm sound
+                        // Solve-screen song (Premium)
                         if scheduler.supportsCustomSongs {
                             chalkCard {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    sectionHeader("Alarm Sound")
+                                    sectionHeader("Solve Soundtrack")
+                                    Text("Pick a song to play while you solve this alarm's math after you open it. Your phone still wakes you with the alarm sound from Settings.")
+                                        .font(.caption)
+                                        .foregroundColor(Theme.chalkFaded)
                                     Button {
                                         showingMusicPicker = true
                                     } label: {
@@ -152,11 +156,21 @@ struct AddAlarmView: View {
                                         }
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityLabel("Solve soundtrack: \(songTitle ?? "default sound")")
+                                    .accessibilityHint("Choose a song from your library to play while solving this alarm")
+
+                                    if let songWarning {
+                                        Text(songWarning)
+                                            .font(.caption)
+                                            .foregroundColor(Theme.chalkRed)
+                                            .accessibilityLabel("Song unavailable: \(songWarning)")
+                                    }
 
                                     if songTitle != nil {
                                         Button("Remove Song") {
                                             songPersistentID = nil
                                             songTitle        = nil
+                                            songWarning      = nil
                                         }
                                         .font(.caption)
                                         .foregroundColor(Theme.chalkRed)
@@ -166,10 +180,8 @@ struct AddAlarmView: View {
                         } else {
                             chalkCard {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    sectionHeader("Alarm Sound")
-                                    Text(settings.allowsCustomSongs
-                                         ? "Premium is unlocked, but this iOS alarm path still uses the app sound from Settings for dependable scheduled alarms."
-                                         : "Custom songs are in the paid Premium tier, and this iOS alarm path still uses the app sound from Settings for dependable scheduled alarms.")
+                                    sectionHeader("Solve Soundtrack")
+                                    Text("Unlock Premium to play your own song while you solve the alarm. Your phone always wakes you with the dependable alarm sound from Settings.")
                                         .font(.caption)
                                         .foregroundColor(Theme.chalkFaded)
                                 }
@@ -286,10 +298,20 @@ struct AddAlarmView: View {
         .sheet(isPresented: $showingMusicPicker) {
             MediaPickerRepresentable { item in
                 guard let item else { return }
+                // Apple Music / iCloud tracks that aren't downloaded have no
+                // assetURL and can't be played by AVAudioPlayer, so reject them
+                // up front instead of silently falling back at alarm time.
+                guard item.assetURL != nil else {
+                    songPersistentID = nil
+                    songTitle        = nil
+                    songWarning      = "That track can't be used. Apple Music or iCloud songs need to be downloaded to your device first. Pick a downloaded song."
+                    return
+                }
                 let artist = item.artist ?? ""
                 let title  = item.title  ?? "Unknown"
                 songTitle        = artist.isEmpty ? title : "\(artist), \(title)"
                 songPersistentID = String(item.persistentID)
+                songWarning      = nil
             }
             .ignoresSafeArea()
         }
@@ -326,8 +348,8 @@ struct AddAlarmView: View {
         let hour       = components.hour   ?? 8
         let minute     = components.minute ?? 0
 
-        let effectiveSongPersistentID = scheduler.supportsCustomSongs ? songPersistentID : nil
-        let effectiveSongTitle = scheduler.supportsCustomSongs ? songTitle : nil
+        let effectiveSongPersistentID = scheduler.resolvedSongID(songPersistentID)
+        let effectiveSongTitle = effectiveSongPersistentID == nil ? nil : songTitle
         let effectiveVolume: Float = scheduler.supportsPerAlarmVolume ? volume : 1.0
         let effectiveDifficulty = Difficulty.effective(
             difficulty,

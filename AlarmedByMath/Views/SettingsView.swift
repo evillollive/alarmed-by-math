@@ -88,7 +88,7 @@ struct SettingsView: View {
                 sectionHeader("Premium")
                 Text(settings.isWhizUnlocked
                      ? "Premium is unlocked on this device, and the app will keep that purchase in sync with the App Store."
-                     : "Free alarms go up to Expert. Premium is the paid unlock for tougher math and future paid extras.")
+                     : "Free alarms go up to Expert. Premium unlocks Whiz scientific problems and a custom song to play while you solve your alarm.")
                     .font(.caption)
                     .foregroundColor(Theme.chalkFaded)
                     .accessibilityLabel(settings.isWhizUnlocked
@@ -96,9 +96,8 @@ struct SettingsView: View {
                                         : "Premium is locked. Free alarms go up to Expert.")
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("- Premium-level math difficulty")
-                    Text("- Custom songs when the scheduler path supports them")
-                    Text("- Home-screen widget roadmap")
+                    Text("- Whiz scientific math difficulty")
+                    Text("- A custom song while you solve the alarm")
                 }
                 .font(.caption)
                 .foregroundColor(Theme.chalk)

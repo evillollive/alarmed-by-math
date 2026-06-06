@@ -121,9 +121,25 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
 
     var supportsPerAlarmVolume: Bool { !useAlarmKit }
-    private var runtimeSupportsCustomSongs: Bool { false }
+
+    /// iOS can't start music-library playback while the device is locked, so a
+    /// custom song can't be the locked-screen wake sound. It plays in the
+    /// foreground "solve the math" ringing screen once the alarm is opened,
+    /// which the app always runs. That foreground path is available on every
+    /// iOS version, so this is unconditionally `true`.
+    private var runtimeSupportsCustomSongs: Bool { true }
+
+    /// Whether a per-alarm custom solve-screen song can be chosen. Gated on the
+    /// premium entitlement; the playback itself ships in the free binary.
     var supportsCustomSongs: Bool {
         runtimeSupportsCustomSongs && SettingsStore.shared.allowsCustomSongs
+    }
+
+    /// The song id that will actually be persisted/played for an alarm: the
+    /// requested id when custom songs are available, otherwise `nil` so the
+    /// alarm cleanly falls back to the bundled sound.
+    func resolvedSongID(_ requested: String?) -> String? {
+        supportsCustomSongs ? requested : nil
     }
 
     // MARK: - Active alarm state (set when ringing starts)
@@ -136,6 +152,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     // MARK: - Private
 
     private var audioPlayer: AVAudioPlayer?
+    private var soundtrackPlayer: AVAudioPlayer?
     private var fallbackTimer: Timer?
     private var previewPlayer: AVAudioPlayer?
     private var previewStopTimer: Timer?
@@ -387,7 +404,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         if let uuid = UUID(uuidString: alarmID) {
             removeChainedByID(uuid)
         }
-        playAlarmSound(songPersistentID: songPersistentID, volume: volume)
+        playAlarmSound(volume: volume)
     }
 
     private func removeChainedByID(_ id: UUID) {
@@ -521,7 +538,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         if let uuid = UUID(uuidString: context.alarmID) {
             removeChainedByID(uuid)
         }
-        playAlarmSound(songPersistentID: context.songPersistentID, volume: context.volume)
+        playAlarmSound(volume: context.volume)
     }
 
     // MARK: - Audio (foreground only)
@@ -565,33 +582,17 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         }
     }
 
-    private func playAlarmSound(songPersistentID: String? = nil, volume: Float = 1.0) {
+    /// Plays the wake/alert sound. This is always the bundled sound chosen in
+    /// Settings, on every iOS version. A custom song is never the wake sound
+    /// (iOS can't start library playback while locked); it plays only as the
+    /// in-app solve soundtrack via `startSolveSoundtrack`.
+    private func playAlarmSound(volume: Float = 1.0) {
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playback, mode: .default, options: [.duckOthers])
             try AVAudioSession.sharedInstance().setActive(true, options: [])
         } catch {
             print("Audio session setup failed: \(error)")
-        }
-
-        if let idString = songPersistentID,
-           let persistentID = UInt64(idString) {
-            let query = MPMediaQuery.songs()
-            query.addFilterPredicate(MPMediaPropertyPredicate(
-                value: NSNumber(value: persistentID),
-                forProperty: MPMediaItemPropertyPersistentID
-            ))
-            if let item = query.items?.first, let assetURL = item.assetURL {
-                do {
-                    audioPlayer                = try AVAudioPlayer(contentsOf: assetURL)
-                    audioPlayer?.numberOfLoops = -1
-                    audioPlayer?.volume        = volume
-                    audioPlayer?.play()
-                    return
-                } catch {
-                    // Fall through to bundled sound below.
-                }
-            }
         }
 
         let selected = SettingsStore.shared.alarmSound
@@ -637,6 +638,55 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         fallbackTimer = nil
         audioPlayer?.stop()
         audioPlayer = nil
+        soundtrackPlayer?.stop()
+        soundtrackPlayer = nil
+        try? AVAudioSession.sharedInstance()
+            .setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    // MARK: - Solve soundtrack (Premium)
+
+    /// Plays the alarm's custom song as the foreground "solve" soundtrack, looping
+    /// until `stopSolveSoundtrack()`. No-op unless custom songs are available
+    /// (premium) and the chosen track is a playable on-device asset, so DRM /
+    /// not-downloaded songs simply leave the solve screen quiet rather than
+    /// hijacking the wake alarm. Replaces any in-app alert audio so the two don't
+    /// overlap once the user is solving.
+    func startSolveSoundtrack(songPersistentID: String?, volume: Float = 1.0) {
+        guard supportsCustomSongs,
+              let idString = songPersistentID,
+              let persistentID = UInt64(idString) else { return }
+
+        let query = MPMediaQuery.songs()
+        query.addFilterPredicate(MPMediaPropertyPredicate(
+            value: NSNumber(value: persistentID),
+            forProperty: MPMediaItemPropertyPersistentID
+        ))
+        guard let item = query.items?.first,
+              let assetURL = item.assetURL,
+              let player = try? AVAudioPlayer(contentsOf: assetURL) else { return }
+
+        // Only now that we have a playable song do we silence the alert audio,
+        // so a failed lookup never leaves the user with no sound at all.
+        stopSound()
+        do {
+            try AVAudioSession.sharedInstance().setCategory(
+                .playback, mode: .default, options: [.duckOthers])
+            try AVAudioSession.sharedInstance().setActive(true, options: [])
+        } catch {
+            print("Soundtrack audio session setup failed: \(error)")
+        }
+        player.numberOfLoops = -1
+        player.volume = volume
+        player.play()
+        soundtrackPlayer = player
+    }
+
+    /// Stops the solve soundtrack if it's playing. Safe to call when nothing is.
+    func stopSolveSoundtrack() {
+        guard soundtrackPlayer != nil else { return }
+        soundtrackPlayer?.stop()
+        soundtrackPlayer = nil
         try? AVAudioSession.sharedInstance()
             .setActive(false, options: .notifyOthersOnDeactivation)
     }

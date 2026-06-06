@@ -110,6 +110,22 @@ final class AlarmGateTests: XCTestCase {
 
         XCTAssertEqual(store.alarms.last?.difficulty, .expert)
     }
+
+    func testCustomSongsResolvedOnlyWhenPremium() {
+        let scheduler = AlarmScheduler()
+
+        SettingsStore.shared.setWhizPlanFromEntitlement(.free)
+        XCTAssertFalse(scheduler.supportsCustomSongs)
+        XCTAssertNil(scheduler.resolvedSongID("12345"),
+                     "Free users must not get a custom song persisted")
+
+        SettingsStore.shared.setWhizPlanFromEntitlement(.whiz)
+        XCTAssertTrue(scheduler.supportsCustomSongs)
+        XCTAssertEqual(scheduler.resolvedSongID("12345"), "12345",
+                       "Premium users keep their chosen song")
+        XCTAssertNil(scheduler.resolvedSongID(nil),
+                     "A nil selection stays nil for premium users")
+    }
 }
 
 final class AlarmFireDateTests: XCTestCase {
