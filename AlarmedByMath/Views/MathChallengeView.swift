@@ -104,9 +104,10 @@ struct MathChallengeView: View {
 
                 Spacer()
 
-                // Input pad: scientific keypad for Whiz, integer pad otherwise
-                if challengeDifficulty == .whiz {
-                    ScientificKeypad(input: $userInput, onSubmit: checkAnswer)
+                // Input pad: scientific keypad for the Premium tier, integer pad otherwise.
+                if challengeDifficulty == .whiz,
+                   let scientificKeypad = PremiumPlugin.whiz?.keypad(input: $userInput, onSubmit: checkAnswer) {
+                    scientificKeypad
                         .padding(.bottom, 24)
                 } else {
                     NumberPad(input: $userInput, onSubmit: checkAnswer)
@@ -278,85 +279,7 @@ struct NumberPad: View {
     }
 }
 
-// MARK: - ScientificKeypad (Whiz / landscape)
-
-/// A wider, scientific-calculator-styled keypad shown for the Whiz tier.
-/// It is an input pad only (digits, decimal point, sign) — the function glyph
-/// strip across the top is decorative, signalling "scientific" mode. Answers are
-/// checked to two decimal places, so a decimal point is the only extra key needed.
-struct ScientificKeypad: View {
-    @Binding var input: String
-    let onSubmit: () -> Void
-
-    private let legend = ["√", "∛", "x²", "π", "sin", "cos", "tan", "log", "ln", "e"]
-    private let rows: [[String]] = [
-        ["7", "8", "9"],
-        ["4", "5", "6"],
-        ["1", "2", "3"],
-        ["±", "0", "."],
-    ]
-
-    var body: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: 16) {
-                ForEach(legend, id: \.self) { glyph in
-                    Text(glyph)
-                        .font(.system(size: 18, weight: .semibold, design: Theme.fontDesign))
-                        .foregroundColor(Theme.chalk.opacity(0.28))
-                }
-            }
-            .accessibilityHidden(true)
-
-            HStack(alignment: .top, spacing: 12) {
-                VStack(spacing: 10) {
-                    ForEach(rows, id: \.self) { row in
-                        HStack(spacing: 10) {
-                            ForEach(row, id: \.self) { key in
-                                NumberKey(label: key) { tap(key) }
-                            }
-                        }
-                    }
-                }
-                VStack(spacing: 10) {
-                    NumberKey(label: "⌫") { tap("⌫") }
-                    NumberKey(label: "✓") { tap("✓") }
-                }
-                .frame(width: 120)
-            }
-        }
-        .padding(.horizontal, 32)
-        .frame(maxWidth: 620)
-    }
-
-    private func tap(_ key: String) {
-        switch key {
-        case "⌫":
-            if !input.isEmpty { input.removeLast() }
-        case "✓":
-            onSubmit()
-        case "±":
-            if input.isEmpty { return }
-            if input.hasPrefix("-") {
-                input.removeFirst()
-            } else {
-                input = "-" + input
-            }
-        case ".":
-            if input.contains(".") { return }
-            input += (input.isEmpty || input == "-") ? "0." : "."
-        default:
-            // Allow up to 5 integer digits and 2 decimals (excluding any leading minus).
-            let body = input.hasPrefix("-") ? String(input.dropFirst()) : input
-            if let dot = body.firstIndex(of: ".") {
-                let decimals = body.distance(from: body.index(after: dot), to: body.endIndex)
-                if decimals >= 2 { return }
-            } else if body.count >= 5 {
-                return
-            }
-            input += key
-        }
-    }
-}
+// MARK: - NumberKey
 
 struct NumberKey: View {
     let label:  String

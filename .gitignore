@@ -26,3 +26,9 @@ xcuserdata/
 # OS
 .DS_Store
 Thumbs.db
+
+# Premium add-on (canonical home: private repo alarmed-by-math-premium).
+# The synchronized folders themselves are tracked (.gitkeep/README) so the
+# Xcode build always finds the roots, but the premium sources are not.
+AlarmedByMath/Premium/*.swift
+AlarmedByMathTests/Premium/*.swift

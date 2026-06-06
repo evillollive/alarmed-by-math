@@ -51,7 +51,7 @@ final class SettingsStore: ObservableObject {
     @Published private(set) var storeErrorMessage: String?
 
     var isWhizUnlocked: Bool { whizPlan == .whiz }
-    var allowsWhizDifficulty: Bool { isWhizUnlocked }
+    var allowsWhizDifficulty: Bool { isWhizUnlocked && PremiumPlugin.isAvailable }
     var allowsCustomSongs: Bool { isWhizUnlocked }
     var allowsWidgetFeatures: Bool { isWhizUnlocked }
     var hasWhizProductLoaded: Bool { whizProduct != nil }

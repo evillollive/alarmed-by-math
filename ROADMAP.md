@@ -132,6 +132,8 @@ fiddly and the main source of risk.
 - Locked-screen ringing, the AlarmKit re-ring loop, and the force-math-on-
   foreground behavior can't be verified in CI or the simulator. They need
   on-device testing on iOS 26.1+ before each release.
+- The `v1.2.0` tag is pushed, but the GitHub Release page still needs to be
+  published once a GitHub token is available in-session.
 
 ## Recently shipped
 - Reliable locked-screen alarm via AlarmKit (iOS 26.1+) with a chained-

@@ -20,6 +20,7 @@ final class AlarmGateTests: XCTestCase {
         AlarmGate.pendingMathAlarmID = nil
         UserDefaults.standard.removeObject(forKey: alarmsKey)
         SettingsStore.shared.setWhizPlanFromEntitlement(.free)
+        PremiumPlugin.resetForTesting()
         ids.removeAll()
         super.tearDown()
     }
@@ -98,12 +99,16 @@ final class AlarmGateTests: XCTestCase {
         XCTAssertEqual(store.alarms.last?.difficulty, .expert)
     }
 
-    func testAlarmStoreKeepsWhizDifficultyWhenUnlocked() {
+    func testAlarmStoreDowngradesWhizWhenPremiumUnavailable() {
+        // Even with a Premium entitlement, a free build (no premium add-on
+        // registered) must downgrade Whiz alarms so the open-source app never
+        // surfaces paid content.
+        PremiumPlugin.resetForTesting()
         SettingsStore.shared.setWhizPlanFromEntitlement(.whiz)
         let store = AlarmStore()
         store.add(Alarm(label: "Olympiad", difficulty: .whiz))
 
-        XCTAssertEqual(store.alarms.last?.difficulty, .whiz)
+        XCTAssertEqual(store.alarms.last?.difficulty, .expert)
     }
 }
 

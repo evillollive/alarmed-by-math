@@ -44,10 +44,20 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct AlarmedByMathApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var alarmStore = AlarmStore()
-    @StateObject private var scheduler = AlarmScheduler()
-    @StateObject private var settings = SettingsStore.shared
+    @StateObject private var alarmStore: AlarmStore
+    @StateObject private var scheduler: AlarmScheduler
+    @StateObject private var settings: SettingsStore
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        // Install the premium add-on (if compiled in) before any store reads an
+        // entitlement, so a paid user's saved Premium alarms are not downgraded
+        // at load time.
+        PremiumPlugin.installIfAvailable()
+        _alarmStore = StateObject(wrappedValue: AlarmStore())
+        _scheduler = StateObject(wrappedValue: AlarmScheduler())
+        _settings = StateObject(wrappedValue: SettingsStore.shared)
+    }
 
     var body: some Scene {
         WindowGroup {

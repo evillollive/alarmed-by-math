@@ -66,6 +66,7 @@ AlarmedByMath/
 │   ├── AlarmGate.swift          # Solve-to-dismiss gate state
 │   ├── AlarmKitScheduler.swift  # AlarmKit locked-screen alarms (iOS 26.1+)
 │   ├── SettingsStore.swift      # Preferences and app settings
+│   ├── PremiumPlugin.swift      # Runtime seam for the optional paid add-on
 │   └── StatsStore.swift         # Usage stats and milestone tracking
 ├── Views/
 │   ├── ContentView.swift        # Main alarm list with edit/delete/toggle
@@ -74,6 +75,7 @@ AlarmedByMath/
 │   ├── MathChallengeView.swift  # Math problem + custom number pad
 │   ├── SettingsView.swift       # Themes, sound, test alarm
 │   └── StatsView.swift          # Usage stats + hidden easter egg
+├── Premium/                     # Synced folder for the private add-on (empty here)
 ├── PrivacyInfo.xcprivacy        # App Store privacy manifest
 └── Assets.xcassets/
 ```
@@ -103,6 +105,18 @@ The bundled [`PrivacyInfo.xcprivacy`](AlarmedByMath/PrivacyInfo.xcprivacy) manif
 declares no tracking, no collected data, and the required-reason `UserDefaults` API
 usage, and `ITSAppUsesNonExemptEncryption` is set so uploads skip the export-compliance
 prompt.
+
+## Open-source app, separate Premium add-on
+
+This repository is the **complete, free app**. It builds and runs on its own with the full free difficulty ladder (Easy through Expert) and all the alarm machinery. The paid **Premium** ("Whiz") tier, scientific generators and the scientific keypad, lives in a separate **private** repo so it isn't distributed with the open-source code.
+
+It works through a small runtime seam:
+
+- `Services/PremiumPlugin.swift` is a registry the free code consults. There are no build flags or `#if` branches at the call sites.
+- `AlarmedByMath/Premium/` and `AlarmedByMathTests/Premium/` are file-system-synchronized Xcode folders. They're tracked (so the build roots always exist) but their `*.swift` contents are gitignored.
+- When the private add-on's sources are checked out into those folders, Xcode compiles them into the same app module and they self-register at launch via `@objc(ABMPremiumRegistrar)`. When absent, every Premium path falls back to free behavior, so a Premium alarm is normalized to Expert and the standard keypad is shown.
+
+Because there's a single Xcode project, **any change to the free app automatically applies to the Premium build**, there's no fork to keep in sync. Maintainers with access populate the `Premium/` folders from the private repo's `sync.sh`; everyone else gets a fully working free app.
 
 ## Premium setup
 
