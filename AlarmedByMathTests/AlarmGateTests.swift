@@ -169,3 +169,46 @@ final class PremiumLinksTests: XCTestCase {
         }
     }
 }
+
+final class WidgetSharedStoreTests: XCTestCase {
+
+    // The snapshot crosses the app/extension boundary as JSON, so encoding must
+    // round-trip every field the widget renders.
+    func testSnapshotCodableRoundTrip() throws {
+        let original = WidgetSharedStore.Snapshot(
+            isPremiumUnlocked: true,
+            nextAlarmDate: Date(timeIntervalSince1970: 1_700_000_000),
+            nextAlarmLabel: "Morning run",
+            currentStreak: 7
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(WidgetSharedStore.Snapshot.self, from: data)
+        XCTAssertEqual(decoded, original)
+    }
+
+    func testSaveThenLoadReturnsSameSnapshot() {
+        let saved = WidgetSharedStore.Snapshot(
+            isPremiumUnlocked: true,
+            nextAlarmDate: Date(timeIntervalSince1970: 1_700_000_500),
+            nextAlarmLabel: "Standup",
+            currentStreak: 3
+        )
+        defer { WidgetSharedStore.save(.placeholder) }
+
+        WidgetSharedStore.save(saved)
+        XCTAssertEqual(WidgetSharedStore.load(), saved)
+    }
+
+    func testPlaceholderIsLockedWithNoAlarm() {
+        let placeholder = WidgetSharedStore.Snapshot.placeholder
+        XCTAssertFalse(placeholder.isPremiumUnlocked,
+                       "Locked is the safe default so a free user never sees paid content")
+        XCTAssertNil(placeholder.nextAlarmDate)
+        XCTAssertEqual(placeholder.currentStreak, 0)
+    }
+
+    func testPaywallDeepLinkURLIsStable() {
+        // The app's .onOpenURL handler matches on this exact URL.
+        XCTAssertEqual(WidgetSharedStore.paywallURL.absoluteString, "alarmedbymath://paywall")
+    }
+}

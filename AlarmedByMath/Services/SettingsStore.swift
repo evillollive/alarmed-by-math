@@ -50,6 +50,10 @@ final class SettingsStore: ObservableObject {
     @Published private(set) var storeStatusMessage: String?
     @Published private(set) var storeErrorMessage: String?
 
+    /// Drives the paywall sheet from anywhere (e.g. the locked widget's deep
+    /// link). Settable so a deep link can request the upsell.
+    @Published var isShowingPaywall = false
+
     var isWhizUnlocked: Bool { whizPlan == .whiz }
     var allowsWhizDifficulty: Bool { isWhizUnlocked && PremiumPlugin.isAvailable }
     var allowsCustomSongs: Bool { isWhizUnlocked }

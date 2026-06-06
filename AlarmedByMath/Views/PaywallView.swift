@@ -12,7 +12,8 @@ struct PaywallView: View {
 
     private let features: [(symbol: String, text: String)] = [
         ("function", "Whiz scientific problems: roots, logs, trig, and more"),
-        ("music.note", "Play a song from your library while you solve the alarm")
+        ("music.note", "Play a song from your library while you solve the alarm"),
+        ("square.grid.2x2", "A Home Screen widget with your next alarm and solve streak")
     ]
 
     var body: some View {

@@ -31,6 +31,12 @@
 		BB0000000000000000000800 /* AlarmGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000800 /* AlarmGateTests.swift */; };
 		BB0000000000000000000900 /* PremiumPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000900 /* PremiumPlugin.swift */; };
 		BB0000000000000000001000 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000001000 /* PaywallView.swift */; };
+		BB0000000000000000001100 /* WidgetSharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000001100 /* WidgetSharedStore.swift */; };
+		BB0000000000000000001200 /* WidgetSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000001200 /* WidgetSync.swift */; };
+		BB0000000000000000002011 /* WidgetSharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000001100 /* WidgetSharedStore.swift */; };
+		BB0000000000000000002012 /* AlarmedByMathWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000002010 /* AlarmedByMathWidgetBundle.swift */; };
+		BB0000000000000000002013 /* AlarmedByMathWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000002020 /* AlarmedByMathWidget.swift */; };
+		BB0000000000000000002001 /* AlarmedByMathWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AA0000000000000000002000 /* AlarmedByMathWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C0000000000000000000B1 /* chime.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C1 /* chime.caf */; };
 		C0000000000000000000B2 /* classic.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C2 /* classic.caf */; };
 		C0000000000000000000B3 /* bell.caf in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000C3 /* bell.caf */; };
@@ -46,7 +52,28 @@
 			remoteGlobalIDString = EE000000000000000000001E;
 			remoteInfo = AlarmedByMath;
 		};
+		BEEF00000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 00000000000000000000000F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EE000000000000000000003E;
+			remoteInfo = AlarmedByMathWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DD0000000000000000002040 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BB0000000000000000002001 /* AlarmedByMathWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A1B2C3D4E5F60001 /* alarm.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = alarm.wav; sourceTree = "<group>"; };
@@ -76,6 +103,14 @@
 		AA0000000000000000000800 /* AlarmGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmGateTests.swift; sourceTree = "<group>"; };
 		AA0000000000000000000900 /* PremiumPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumPlugin.swift; sourceTree = "<group>"; };
 		AA0000000000000000001000 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		AA0000000000000000001100 /* WidgetSharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSharedStore.swift; sourceTree = "<group>"; };
+		AA0000000000000000001200 /* WidgetSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSync.swift; sourceTree = "<group>"; };
+		AA0000000000000000002000 /* AlarmedByMathWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AlarmedByMathWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000002010 /* AlarmedByMathWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmedByMathWidgetBundle.swift; sourceTree = "<group>"; };
+		AA0000000000000000002020 /* AlarmedByMathWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmedByMathWidget.swift; sourceTree = "<group>"; };
+		AA0000000000000000002030 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA0000000000000000002040 /* AlarmedByMathWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlarmedByMathWidget.entitlements; sourceTree = "<group>"; };
+		AA0000000000000000002050 /* AlarmedByMath.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlarmedByMath.entitlements; sourceTree = "<group>"; };
 		C0000000000000000000C1 /* chime.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = chime.caf; sourceTree = "<group>"; };
 		C0000000000000000000C2 /* classic.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = classic.caf; sourceTree = "<group>"; };
 		C0000000000000000000C3 /* bell.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = bell.caf; sourceTree = "<group>"; };
@@ -103,6 +138,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DD0000000000000000002030 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -111,6 +153,7 @@
 			children = (
 				CC000000000000000000003C /* AlarmedByMath */,
 				CC000000000000000000007C /* AlarmedByMathTests */,
+				CC000000000000000000008C /* AlarmedByMathWidget */,
 				CC000000000000000000002C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -120,6 +163,7 @@
 			children = (
 				AA000000000000000000001A /* AlarmedByMath.app */,
 				AA000000000000000000002A /* AlarmedByMathTests.xctest */,
+				AA0000000000000000002000 /* AlarmedByMathWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -141,6 +185,7 @@
 				FA000000000000000000000A /* Premium */,
 				AA00000000000000000000DA /* Assets.xcassets */,
 				C0000000000000000000C5 /* PrivacyInfo.xcprivacy */,
+				AA0000000000000000002050 /* AlarmedByMath.entitlements */,
 				AA00000000000000000000CA /* Info.plist */,
 			);
 			path = AlarmedByMath;
@@ -164,6 +209,8 @@
 				AA0000000000000000000700 /* AlarmKitScheduler.swift */,
 				AA0000000000000000000200 /* SettingsStore.swift */,
 				AA0000000000000000000900 /* PremiumPlugin.swift */,
+				AA0000000000000000001100 /* WidgetSharedStore.swift */,
+				AA0000000000000000001200 /* WidgetSync.swift */,
 				AA0000000000000000000400 /* StatsStore.swift */,
 			);
 			path = Services;
@@ -194,6 +241,17 @@
 			path = AlarmedByMathTests;
 			sourceTree = "<group>";
 		};
+		CC000000000000000000008C /* AlarmedByMathWidget */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000002010 /* AlarmedByMathWidgetBundle.swift */,
+				AA0000000000000000002020 /* AlarmedByMathWidget.swift */,
+				AA0000000000000000002040 /* AlarmedByMathWidget.entitlements */,
+				AA0000000000000000002030 /* Info.plist */,
+			);
+			path = AlarmedByMathWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -204,10 +262,12 @@
 				DD000000000000000000001D /* Sources */,
 				DD000000000000000000002D /* Resources */,
 				DD000000000000000000003D /* Frameworks */,
+				DD0000000000000000002040 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				DEAD00000000000000000002 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				FA000000000000000000000A /* Premium */,
@@ -238,6 +298,23 @@
 			productReference = AA000000000000000000002A /* AlarmedByMathTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		EE000000000000000000003E /* AlarmedByMathWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FF000000000000000000004F /* Build configuration list for PBXNativeTarget "AlarmedByMathWidgetExtension" */;
+			buildPhases = (
+				DD0000000000000000002010 /* Sources */,
+				DD0000000000000000002020 /* Resources */,
+				DD0000000000000000002030 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AlarmedByMathWidgetExtension;
+			productName = AlarmedByMathWidgetExtension;
+			productReference = AA0000000000000000002000 /* AlarmedByMathWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -254,6 +331,11 @@
 					EE000000000000000000002E = {
 						CreatedOnToolsVersion = 15.0;
 						TestTargetID = EE000000000000000000001E;
+					};
+					EE000000000000000000003E = {
+						CreatedOnToolsVersion = 16.0;
+						DevelopmentTeam = QU3YSD9P66;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -272,6 +354,7 @@
 			targets = (
 				EE000000000000000000001E /* AlarmedByMath */,
 				EE000000000000000000002E /* AlarmedByMathTests */,
+				EE000000000000000000003E /* AlarmedByMathWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -293,6 +376,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		DD000000000000000000005D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DD0000000000000000002020 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -322,6 +412,8 @@
 				BB0000000000000000000900 /* PremiumPlugin.swift in Sources */,
 				BB0000000000000000000300 /* SettingsView.swift in Sources */,
 				BB0000000000000000001000 /* PaywallView.swift in Sources */,
+				BB0000000000000000001100 /* WidgetSharedStore.swift in Sources */,
+				BB0000000000000000001200 /* WidgetSync.swift in Sources */,
 				BB0000000000000000000400 /* StatsStore.swift in Sources */,
 				BB0000000000000000000500 /* StatsView.swift in Sources */,
 			);
@@ -337,6 +429,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DD0000000000000000002010 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB0000000000000000002012 /* AlarmedByMathWidgetBundle.swift in Sources */,
+				BB0000000000000000002013 /* AlarmedByMathWidget.swift in Sources */,
+				BB0000000000000000002011 /* WidgetSharedStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -344,6 +446,11 @@
 			isa = PBXTargetDependency;
 			target = EE000000000000000000001E /* AlarmedByMath */;
 			targetProxy = BEEF00000000000000000001 /* PBXContainerItemProxy */;
+		};
+		DEAD00000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EE000000000000000000003E /* AlarmedByMathWidgetExtension */;
+			targetProxy = BEEF00000000000000000002 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -466,6 +573,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AlarmedByMath/AlarmedByMath.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = QU3YSD9P66;
@@ -490,6 +598,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AlarmedByMath/AlarmedByMath.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = QU3YSD9P66;
@@ -547,6 +656,58 @@
 			};
 			name = Release;
 		};
+		F00000000000000000000C20 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = AlarmedByMathWidget/AlarmedByMathWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = QU3YSD9P66;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlarmedByMathWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alarmedbymath.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F00000000000000000000D20 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = AlarmedByMathWidget/AlarmedByMathWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = QU3YSD9P66;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlarmedByMathWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alarmedbymath.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -573,6 +734,15 @@
 			buildConfigurations = (
 				F0000000000000000000000E /* Debug */,
 				F000000000000000000000F0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FF000000000000000000004F /* Build configuration list for PBXNativeTarget "AlarmedByMathWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00000000000000000000C20 /* Debug */,
+				F00000000000000000000D20 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

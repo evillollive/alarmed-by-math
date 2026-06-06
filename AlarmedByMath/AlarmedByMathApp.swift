@@ -83,6 +83,18 @@ struct AlarmedByMathApp: App {
                 .onReceive(settings.$whizPlan) { _ in
                     alarmStore.applyEntitlements()
                     scheduler.scheduleAlarms(alarmStore.alarms)
+                    WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
+                }
+                .onReceive(alarmStore.$alarms) { _ in
+                    WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
+                }
+                .onReceive(StatsStore.shared.$stats) { _ in
+                    WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
+                }
+                .onOpenURL { url in
+                    if url == WidgetSharedStore.paywallURL {
+                        settings.isShowingPaywall = true
+                    }
                 }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -95,6 +107,7 @@ struct AlarmedByMathApp: App {
             expirePastOneTimeAlarms()
             scheduler.refreshPermissionStatus()
             scheduler.scheduleAlarms(alarmStore.alarms)
+            WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
             if !scheduler.presentMathIfPending() {
                 scheduler.presentMathIfActiveRing()
             }

@@ -110,6 +110,11 @@ struct ContentView: View {
                     .environmentObject(settings)
                     .environmentObject(alarmStore)
             }
+            // Premium upsell (also opened by the locked widget's deep link)
+            .sheet(isPresented: $settings.isShowingPaywall) {
+                PaywallView(context: "Unlock the Home Screen widget and the rest of Premium.")
+                    .environmentObject(settings)
+            }
         }
         .fullScreenCover(
             isPresented: Binding(
