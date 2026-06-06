@@ -91,6 +91,12 @@ struct AlarmedByMathApp: App {
                 .onReceive(StatsStore.shared.$stats) { _ in
                     WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
                 }
+                .onReceive(settings.$activeTheme) { _ in
+                    WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
+                }
+                .onReceive(settings.widgetConfigChanged) { _ in
+                    WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
+                }
                 .onOpenURL { url in
                     if url == WidgetSharedStore.paywallURL {
                         settings.isShowingPaywall = true

@@ -37,7 +37,7 @@ A few design choices that make this more than just "alarm + quiz":
 
 - **Free difficulty ladder, plus a real Premium tier.** Easy through Expert are available in the free app. Premium is a one-time StoreKit 2 unlock, and any locked Premium alarm is safely normalized back to Expert until the entitlement is active. A dedicated paywall is the single upsell surface, and locked features (Whiz difficulty, the solve soundtrack, the widget) deep-link straight into it.
 - **Premium solve soundtrack.** Premium users can pick a song from their library to play while they solve the alarm's math. It plays in the foreground only: your phone still wakes you with the dependable bundled alarm sound, because iOS won't start library playback from the lock screen.
-- **Premium Home Screen widget.** A small or medium widget shows your next alarm and solve streak. The whole widget is Premium; the locked state is a functional, redacted preview that taps through to the paywall. The app shares a tiny derived snapshot with the widget through an App Group and reloads it on launch, scene changes, and alarm/entitlement/streak updates.
+- **Premium Home Screen widget with a live, themed clock.** A small or medium widget shows a live current-time clock that mirrors your chosen in-app theme (colors and font), plus your next alarm and solve streak. Premium users can customize it from Settings: a **digital or analog** clock, **small/medium/large** text, an optional **date** line (weekday, short, or full), how many **upcoming alarms** the medium widget lists (1–3), and whether to **show the streak**. The clock shows for everyone; the alarm and streak details are Premium, and the locked state is a functional, redacted preview that taps through to the paywall. The app shares a tiny derived snapshot (theme palette, layout config, and a small buffer of upcoming alarms) with the widget through an App Group and reloads it on launch, scene changes, and alarm/entitlement/streak/theme/widget-setting updates.
 - **Repeating schedules.** Set alarms for specific days of the week or leave them as one-time events. The scheduling uses iOS local notifications, so alarms fire even when the app isn't in the foreground.
 - **Safer one-time behavior.** One-time alarms are treated as one-shot events and won't auto-reschedule for tomorrow after they have fired.
 - **Snooze safety net.** There's no snooze button, but if you try to cheat by closing the app, a follow-up notification catches you five minutes later. It's persistent by design.
@@ -88,7 +88,7 @@ AlarmedByMath/
 
 AlarmedByMathWidget/             # Premium Home Screen widget extension
 ├── AlarmedByMathWidgetBundle.swift
-├── AlarmedByMathWidget.swift    # Timeline provider + locked/unlocked views
+├── AlarmedByMathWidget.swift    # Timeline provider, themed live clock, digital/analog layouts
 ├── AlarmedByMathWidget.entitlements
 └── Info.plist
 ```

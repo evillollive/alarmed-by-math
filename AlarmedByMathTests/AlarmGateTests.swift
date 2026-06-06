@@ -1,4 +1,5 @@
 import XCTest
+import Combine
 @testable import AlarmedByMath
 
 /// Tests for the math-gate state store and the alarm fire-date helper that
@@ -177,21 +178,51 @@ final class WidgetSharedStoreTests: XCTestCase {
     func testSnapshotCodableRoundTrip() throws {
         let original = WidgetSharedStore.Snapshot(
             isPremiumUnlocked: true,
-            nextAlarmDate: Date(timeIntervalSince1970: 1_700_000_000),
-            nextAlarmLabel: "Morning run",
-            currentStreak: 7
+            upcomingAlarms: [
+                WidgetSharedStore.UpcomingAlarm(date: Date(timeIntervalSince1970: 1_700_000_000),
+                                                label: "Morning run"),
+                WidgetSharedStore.UpcomingAlarm(date: Date(timeIntervalSince1970: 1_700_003_600),
+                                                label: "Standup")
+            ],
+            currentStreak: 7,
+            theme: WidgetSharedStore.ThemePalette(
+                board:       WidgetSharedStore.ThemeRGB(r: 0.20, g: 0.08, b: 0.18),
+                boardDark:   WidgetSharedStore.ThemeRGB(r: 0.12, g: 0.04, b: 0.11),
+                chalk:       WidgetSharedStore.ThemeRGB(r: 1.00, g: 0.95, b: 0.99),
+                chalkFaded:  WidgetSharedStore.ThemeRGB(r: 0.82, g: 0.69, b: 0.79),
+                chalkYellow: WidgetSharedStore.ThemeRGB(r: 1.00, g: 0.79, b: 0.40),
+                fontDesign:  "serif"
+            ),
+            config: WidgetSharedStore.WidgetConfig(
+                clockStyle: "analog",
+                textSize: "large",
+                dateStyle: "full",
+                upcomingCount: 3,
+                showStreak: false
+            )
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(WidgetSharedStore.Snapshot.self, from: data)
         XCTAssertEqual(decoded, original)
+        XCTAssertEqual(decoded.theme.fontDesign, "serif",
+                       "Theme palette must survive the app/extension JSON boundary")
+        XCTAssertEqual(decoded.config.clockStyle, "analog",
+                       "Widget layout config must survive the app/extension JSON boundary")
+        XCTAssertEqual(decoded.upcomingAlarms.count, 2)
+        XCTAssertEqual(decoded.nextAlarm?.label, "Morning run",
+                       "nextAlarm convenience should return the soonest entry")
     }
 
     func testSaveThenLoadReturnsSameSnapshot() {
         let saved = WidgetSharedStore.Snapshot(
             isPremiumUnlocked: true,
-            nextAlarmDate: Date(timeIntervalSince1970: 1_700_000_500),
-            nextAlarmLabel: "Standup",
-            currentStreak: 3
+            upcomingAlarms: [
+                WidgetSharedStore.UpcomingAlarm(date: Date(timeIntervalSince1970: 1_700_000_500),
+                                                label: "Standup")
+            ],
+            currentStreak: 3,
+            theme: .placeholder,
+            config: .placeholder
         )
         defer { WidgetSharedStore.save(.placeholder) }
 
@@ -203,12 +234,54 @@ final class WidgetSharedStoreTests: XCTestCase {
         let placeholder = WidgetSharedStore.Snapshot.placeholder
         XCTAssertFalse(placeholder.isPremiumUnlocked,
                        "Locked is the safe default so a free user never sees paid content")
-        XCTAssertNil(placeholder.nextAlarmDate)
+        XCTAssertTrue(placeholder.upcomingAlarms.isEmpty)
+        XCTAssertNil(placeholder.nextAlarm)
         XCTAssertEqual(placeholder.currentStreak, 0)
+    }
+
+    func testPlaceholderConfigHasSensibleDefaults() {
+        let config = WidgetSharedStore.WidgetConfig.placeholder
+        XCTAssertEqual(config.clockStyle, "digital")
+        XCTAssertEqual(config.textSize, "medium")
+        XCTAssertEqual(config.dateStyle, "weekday")
+        XCTAssertEqual(config.upcomingCount, 1)
+        XCTAssertTrue(config.showStreak)
     }
 
     func testPaywallDeepLinkURLIsStable() {
         // The app's .onOpenURL handler matches on this exact URL.
         XCTAssertEqual(WidgetSharedStore.paywallURL.absoluteString, "alarmedbymath://paywall")
+    }
+}
+
+final class WidgetSettingsTests: XCTestCase {
+
+    // The Stepper is bounded, but a stored or programmatic value must never let
+    // the widget request more (or fewer) alarms than it can render, and the
+    // clamped value must be persisted (re-assigning inside didSet is a trap).
+    func testUpcomingCountClampsToSupportedRange() {
+        let settings = SettingsStore(storeKitEnabled: false)
+
+        settings.widgetUpcomingCount = 99
+        XCTAssertEqual(settings.widgetUpcomingCount,
+                       SettingsStore.widgetUpcomingCountRange.upperBound)
+        XCTAssertEqual(SettingsStore(storeKitEnabled: false).widgetUpcomingCount,
+                       SettingsStore.widgetUpcomingCountRange.upperBound,
+                       "Clamped value must persist so a reload doesn't restore the bad value")
+
+        settings.widgetUpcomingCount = 0
+        XCTAssertEqual(settings.widgetUpcomingCount,
+                       SettingsStore.widgetUpcomingCountRange.lowerBound)
+    }
+
+    func testWidgetConfigChangePublishesForSnapshotRefresh() {
+        let settings = SettingsStore(storeKitEnabled: false)
+        let expectation = expectation(description: "widget config change publishes")
+        let cancellable = settings.widgetConfigChanged.sink { expectation.fulfill() }
+
+        settings.widgetClockStyle = settings.widgetClockStyle == .analog ? .digital : .analog
+
+        wait(for: [expectation], timeout: 1)
+        cancellable.cancel()
     }
 }

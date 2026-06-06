@@ -7,6 +7,54 @@ enum WhizPlan: String, Codable {
     case whiz
 }
 
+// MARK: - Widget layout preferences
+
+/// How the premium widget renders its clock. Mirrored into the App Group
+/// snapshot (as raw strings) so the widget extension can honor the choice.
+enum WidgetClockStyle: String, CaseIterable, Codable {
+    case digital
+    case analog
+
+    var label: String {
+        switch self {
+        case .digital: return "Digital"
+        case .analog:  return "Analog"
+        }
+    }
+}
+
+/// Relative size of the widget's clock and detail text.
+enum WidgetTextSize: String, CaseIterable, Codable {
+    case small
+    case medium
+    case large
+
+    var label: String {
+        switch self {
+        case .small:  return "Small"
+        case .medium: return "Medium"
+        case .large:  return "Large"
+        }
+    }
+}
+
+/// Whether and how the widget shows the date alongside the clock.
+enum WidgetDateStyle: String, CaseIterable, Codable {
+    case off
+    case weekday
+    case short
+    case full
+
+    var label: String {
+        switch self {
+        case .off:     return "Off"
+        case .weekday: return "Weekday"
+        case .short:   return "Short"
+        case .full:    return "Full"
+        }
+    }
+}
+
 private extension ProcessInfo {
     var isRunningUnitTests: Bool {
         environment["XCTestConfigurationFilePath"] != nil
@@ -43,6 +91,59 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(whizPlan.rawValue, forKey: Keys.whizPlan) }
     }
 
+    // MARK: - Widget layout preferences (Premium)
+
+    /// Bounds for the "upcoming alarms" list the widget can show.
+    static let widgetUpcomingCountRange = 1...3
+
+    /// Fires whenever a widget layout preference changes so the app can re-push
+    /// the App Group snapshot and reload the widget timelines.
+    let widgetConfigChanged = PassthroughSubject<Void, Never>()
+
+    @Published var widgetClockStyle: WidgetClockStyle {
+        didSet {
+            UserDefaults.standard.set(widgetClockStyle.rawValue, forKey: Keys.widgetClockStyle)
+            widgetConfigChanged.send()
+        }
+    }
+
+    @Published var widgetTextSize: WidgetTextSize {
+        didSet {
+            UserDefaults.standard.set(widgetTextSize.rawValue, forKey: Keys.widgetTextSize)
+            widgetConfigChanged.send()
+        }
+    }
+
+    @Published var widgetDateStyle: WidgetDateStyle {
+        didSet {
+            UserDefaults.standard.set(widgetDateStyle.rawValue, forKey: Keys.widgetDateStyle)
+            widgetConfigChanged.send()
+        }
+    }
+
+    /// Clamped to `widgetUpcomingCountRange` so a bad stored value can't escape.
+    @Published var widgetUpcomingCount: Int {
+        didSet {
+            let clamped = min(max(widgetUpcomingCount, Self.widgetUpcomingCountRange.lowerBound),
+                              Self.widgetUpcomingCountRange.upperBound)
+            // Re-assigning inside didSet does not re-trigger the observer, so we
+            // persist and publish the clamped value here rather than relying on
+            // a second pass.
+            if clamped != widgetUpcomingCount {
+                widgetUpcomingCount = clamped
+            }
+            UserDefaults.standard.set(clamped, forKey: Keys.widgetUpcomingCount)
+            widgetConfigChanged.send()
+        }
+    }
+
+    @Published var widgetShowStreak: Bool {
+        didSet {
+            UserDefaults.standard.set(widgetShowStreak, forKey: Keys.widgetShowStreak)
+            widgetConfigChanged.send()
+        }
+    }
+
     @Published private(set) var whizPrice: String?
     @Published private(set) var isLoadingWhizStore = false
     @Published private(set) var isPurchasingWhiz = false
@@ -75,6 +176,11 @@ final class SettingsStore: ObservableObject {
         static let sound = "settings_sound"
         static let snooze = "settings_snooze"
         static let whizPlan = "settings_whiz_plan"
+        static let widgetClockStyle = "settings_widget_clock_style"
+        static let widgetTextSize = "settings_widget_text_size"
+        static let widgetDateStyle = "settings_widget_date_style"
+        static let widgetUpcomingCount = "settings_widget_upcoming_count"
+        static let widgetShowStreak = "settings_widget_show_streak"
     }
 
     // MARK: - Init
@@ -93,6 +199,22 @@ final class SettingsStore: ObservableObject {
 
         let planRaw = UserDefaults.standard.string(forKey: Keys.whizPlan) ?? ""
         whizPlan = WhizPlan(rawValue: planRaw) ?? .free
+
+        let clockRaw = UserDefaults.standard.string(forKey: Keys.widgetClockStyle) ?? ""
+        widgetClockStyle = WidgetClockStyle(rawValue: clockRaw) ?? .digital
+
+        let sizeRaw = UserDefaults.standard.string(forKey: Keys.widgetTextSize) ?? ""
+        widgetTextSize = WidgetTextSize(rawValue: sizeRaw) ?? .medium
+
+        let dateRaw = UserDefaults.standard.string(forKey: Keys.widgetDateStyle) ?? ""
+        widgetDateStyle = WidgetDateStyle(rawValue: dateRaw) ?? .weekday
+
+        let countStored = UserDefaults.standard.integer(forKey: Keys.widgetUpcomingCount)
+        widgetUpcomingCount = Self.widgetUpcomingCountRange.contains(countStored)
+            ? countStored
+            : Self.widgetUpcomingCountRange.lowerBound
+
+        widgetShowStreak = UserDefaults.standard.object(forKey: Keys.widgetShowStreak) as? Bool ?? true
     }
 
     deinit {

@@ -15,6 +15,9 @@ struct SettingsView: View {
                         themeSection
                         soundSection
                         premiumSection
+                        if settings.isWhizUnlocked {
+                            widgetSection
+                        }
                         testAlarmSection
                     }
                     .padding()
@@ -183,6 +186,84 @@ struct SettingsView: View {
                 ))
                 .tint(Theme.chalkYellow)
 #endif
+            }
+        }
+    }
+
+    private var widgetSection: some View {
+        settingsCard {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionHeader("Widget")
+                Text("Customize the Home Screen widget. Changes apply the next time the widget refreshes.")
+                    .font(.caption)
+                    .foregroundColor(Theme.chalkFaded)
+
+                widgetOptionRow("Clock") {
+                    ForEach(WidgetClockStyle.allCases, id: \.self) { style in
+                        DayToggleButton(
+                            title: style.label,
+                            isSelected: settings.widgetClockStyle == style
+                        ) {
+                            settings.widgetClockStyle = style
+                        }
+                    }
+                }
+
+                widgetOptionRow("Text size") {
+                    ForEach(WidgetTextSize.allCases, id: \.self) { size in
+                        DayToggleButton(
+                            title: size.label,
+                            isSelected: settings.widgetTextSize == size
+                        ) {
+                            settings.widgetTextSize = size
+                        }
+                    }
+                }
+
+                widgetOptionRow("Date") {
+                    ForEach(WidgetDateStyle.allCases, id: \.self) { style in
+                        DayToggleButton(
+                            title: style.label,
+                            isSelected: settings.widgetDateStyle == style
+                        ) {
+                            settings.widgetDateStyle = style
+                        }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Stepper(value: $settings.widgetUpcomingCount,
+                            in: SettingsStore.widgetUpcomingCountRange) {
+                        Text("Upcoming alarms: \(settings.widgetUpcomingCount)")
+                            .font(.caption)
+                            .foregroundColor(Theme.chalk)
+                    }
+                    .tint(Theme.chalkYellow)
+                    Text("How many alarms the medium widget lists. The small widget always shows the next one.")
+                        .font(.caption2)
+                        .foregroundColor(Theme.chalkFaded)
+                }
+
+                Toggle(isOn: $settings.widgetShowStreak) {
+                    Text("Show solve streak")
+                        .font(.caption)
+                        .foregroundColor(Theme.chalk)
+                }
+                .tint(Theme.chalkYellow)
+            }
+        }
+    }
+
+    private func widgetOptionRow<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(Theme.chalkFaded)
+            HStack(spacing: 8) {
+                content()
             }
         }
     }
