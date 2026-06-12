@@ -125,26 +125,11 @@ says the same in plain language.
 
 ## Open-source app, separate Premium add-on
 
-This repository is the **complete, free app**. It builds and runs on its own with the full free difficulty ladder (Easy through Expert) and all the alarm machinery. The paid **Premium** ("Whiz") tier, scientific generators and the scientific keypad, lives in a separate **private** repo so it isn't distributed with the open-source code.
+This repository is the complete free app. It builds and runs on its own with Easy through Expert and the full alarm flow.
 
-It works through a small runtime seam:
+Premium code lives in a separate private companion repo. The public app includes runtime hooks so premium functionality can be added in private builds, while public builds keep free-safe behavior.
 
-- `Services/PremiumPlugin.swift` is a registry the free code consults. There are no build flags or `#if` branches at the call sites.
-- `AlarmedByMath/Premium/` and `AlarmedByMathTests/Premium/` are file-system-synchronized Xcode folders. They're tracked (so the build roots always exist) but their `*.swift` contents are gitignored.
-- When the private add-on's sources are checked out into those folders, Xcode compiles them into the same app module and they self-register at launch via `@objc(ABMPremiumRegistrar)`. When absent, every Premium path falls back to free behavior, so a Premium alarm is normalized to Expert and the standard keypad is shown.
-
-Because there's a single Xcode project, **any change to the free app automatically applies to the Premium build**, there's no fork to keep in sync. Maintainers with access populate the `Premium/` folders from the private repo's `sync.sh`; everyone else gets a fully working free app.
-
-## Premium setup
-
-The app includes live StoreKit plumbing for the paid Premium unlock, and Premium now spans three features: Whiz scientific difficulty, the solve soundtrack, and the Home Screen widget.
-
-- **Product ID:** `com.alarmedbymath.app.whiz`
-- **Product type:** non-consumable
-- **In-app behavior:** purchase, restore, and entitlement refresh are wired in `SettingsStore`; a single `PaywallView` is the upsell surface and locked features deep-link to it via the `alarmedbymath://paywall` URL scheme
-- **Widget bundle ID:** `com.alarmedbymath.app.widget`
-- **App Group:** `group.com.alarmedbymath.app` (shared by the app and the widget)
-- **App Store Connect / portal requirements:** create the IAP product with the same ID, and register the App Group plus the widget bundle ID on both the app and extension identifiers before device builds, archives, or live purchases. Terms of Use (Apple's standard EULA) and the [Privacy Policy](https://evillollive.github.io/alarmed-by-math/privacy.html) are linked from the paywall and Settings.
+Operational and commercial premium details are intentionally documented only in the private premium repository.
 
 ## License
 
