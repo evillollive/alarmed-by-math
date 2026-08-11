@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="t d">
+  <title id="t">Alarmed by Math demo preview</title>
+  <desc id="d">Three phone screens: an alarm list, a full-screen ringing alarm, and a math challenge you must solve to dismiss it.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#294C33"/>
+      <stop offset="1" stop-color="#16301F"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#23503A"/>
+      <stop offset="1" stop-color="#1A3B2A"/>
+    </linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#000000" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#bg)"/>
+  <circle cx="1060" cy="120" r="200" fill="#FCE361" opacity="0.10"/>
+  <circle cx="120" cy="640" r="180" fill="#9ED1FA" opacity="0.08"/>
+
+  <!-- header -->
+  <g font-family="Arial, Helvetica, sans-serif" transform="translate(70 58)">
+    <g transform="translate(-2 -4) scale(0.76)">
+      <g fill="#FCE361">
+        <ellipse cx="18" cy="13" rx="8" ry="8.5" transform="rotate(-14 18 13)"/>
+        <ellipse cx="46" cy="13" rx="8" ry="8.5" transform="rotate(14 46 13)"/>
+        <rect x="29" y="4" width="6" height="8" rx="3"/>
+        <circle cx="32" cy="37" r="21"/>
+        <rect x="12" y="54" width="8" height="7" rx="2" transform="rotate(28 16 57)"/>
+        <rect x="44" y="54" width="8" height="7" rx="2" transform="rotate(-28 48 57)"/>
+      </g>
+      <g fill="#23503A">
+        <rect x="29" y="26" width="6" height="22" rx="3"/>
+        <rect x="21" y="34" width="22" height="6" rx="3"/>
+      </g>
+    </g>
+    <text x="62" y="20" fill="#F5F5EB" font-size="34" font-weight="800">Alarmed by Math</text>
+    <text x="62" y="46" fill="#B8C7B8" font-size="18">Solve to wake. No snooze, no shortcuts.</text>
+  </g>
+
+  <!-- ===================== PHONE 1: alarm list ===================== -->
+  <g transform="translate(70 132)" filter="url(#sh)" font-family="Arial, Helvetica, sans-serif">
+    <rect width="300" height="540" rx="42" fill="#0E2117"/>
+    <rect x="12" y="14" width="276" height="512" rx="30" fill="url(#screen)"/>
+    <!-- status bar -->
+    <text x="34" y="46" fill="#CFE0CF" font-size="13" font-weight="700">9:41</text>
+    <!-- title row -->
+    <text x="34" y="86" fill="#F5F5EB" font-size="26" font-weight="800">Alarms</text>
+    <circle cx="258" cy="78" r="16" fill="#FCE361"/>
+    <g fill="#23503A"><rect x="255" y="70" width="6" height="16" rx="3"/><rect x="250" y="75" width="16" height="6" rx="3"/></g>
+    <!-- row 1 -->
+    <rect x="24" y="108" width="252" height="88" rx="16" fill="#1A3B2A"/>
+    <text x="40" y="150" fill="#F5F5EB" font-size="32" font-weight="800">6:30<tspan font-size="15" fill="#B8C7B8"> AM</tspan></text>
+    <text x="40" y="176" fill="#9ED1FA" font-size="14">Weekdays · Wake up</text>
+    <rect x="216" y="132" width="46" height="26" rx="13" fill="#FCE361"/><circle cx="249" cy="145" r="10" fill="#23503A"/>
+    <!-- row 2 -->
+    <rect x="24" y="208" width="252" height="88" rx="16" fill="#1A3B2A"/>
+    <text x="40" y="250" fill="#F5F5EB" font-size="32" font-weight="800">7:15<tspan font-size="15" fill="#B8C7B8"> AM</tspan></text>
+    <text x="40" y="276" fill="#9ED1FA" font-size="14">Weekends · Gym</text>
+    <rect x="216" y="232" width="46" height="26" rx="13" fill="#FCE361"/><circle cx="249" cy="245" r="10" fill="#23503A"/>
+    <!-- row 3 (off) -->
+    <rect x="24" y="308" width="252" height="88" rx="16" fill="#163425"/>
+    <text x="40" y="350" fill="#8FA593" font-size="32" font-weight="800">9:00<tspan font-size="15" fill="#6E8474"> AM</tspan></text>
+    <text x="40" y="376" fill="#6E8474" font-size="14">One-time</text>
+    <rect x="216" y="332" width="46" height="26" rx="13" fill="#2C5741"/><circle cx="229" cy="345" r="10" fill="#8FA593"/>
+    <!-- streak footer -->
+    <rect x="24" y="424" width="252" height="72" rx="16" fill="#1A3B2A"/>
+    <path d="M52 448 q10 12 0 24 q-14 -4 -8 -18 q2 8 8 -6 z" fill="#F5948F"/>
+    <text x="74" y="456" fill="#F5F5EB" font-size="18" font-weight="800">5-day streak</text>
+    <text x="74" y="478" fill="#B8C7B8" font-size="13">You always beat the math</text>
+  </g>
+
+  <!-- ===================== PHONE 2: ringing ===================== -->
+  <g transform="translate(450 132)" filter="url(#sh)" font-family="Arial, Helvetica, sans-serif">
+    <rect width="300" height="540" rx="42" fill="#0E2117"/>
+    <rect x="12" y="14" width="276" height="512" rx="30" fill="#1A3B2A"/>
+    <!-- pulsing rings -->
+    <circle cx="150" cy="200" r="120" fill="none" stroke="#FCE361" stroke-width="2" opacity="0.18"/>
+    <circle cx="150" cy="200" r="90" fill="none" stroke="#FCE361" stroke-width="2" opacity="0.30"/>
+    <circle cx="150" cy="200" r="60" fill="#23503A" stroke="#FCE361" stroke-width="2" opacity="0.9"/>
+    <!-- bell -->
+    <g fill="#FCE361" transform="translate(150 200)">
+      <path d="M0 -26 C 18 -26 24 -12 24 2 L 28 12 L -28 12 L -24 2 C -24 -12 -18 -26 0 -26 Z"/>
+      <circle cx="0" cy="20" r="6"/>
+    </g>
+    <!-- time -->
+    <text x="150" y="330" fill="#F5F5EB" font-size="72" font-weight="800" text-anchor="middle">6:30</text>
+    <text x="150" y="362" fill="#B8C7B8" font-size="16" text-anchor="middle">Wednesday, Aug 12</text>
+    <text x="150" y="404" fill="#FCE361" font-size="20" font-weight="800" text-anchor="middle">WAKE UP</text>
+    <!-- dismiss button -->
+    <rect x="40" y="446" width="220" height="60" rx="30" fill="#FCE361"/>
+    <text x="150" y="484" fill="#1A3B2A" font-size="20" font-weight="800" text-anchor="middle">Solve to dismiss</text>
+  </g>
+
+  <!-- ===================== PHONE 3: math challenge ===================== -->
+  <g transform="translate(830 132)" filter="url(#sh)" font-family="Arial, Helvetica, sans-serif">
+    <rect width="300" height="540" rx="42" fill="#0E2117"/>
+    <rect x="12" y="14" width="276" height="512" rx="30" fill="url(#screen)"/>
+    <text x="150" y="58" fill="#B8C7B8" font-size="14" text-anchor="middle">Solve to dismiss</text>
+    <!-- problem -->
+    <text x="150" y="128" fill="#F5F5EB" font-size="46" font-weight="800" text-anchor="middle">7 &#215; 8 = <tspan fill="#FCE361">?</tspan></text>
+    <!-- answer field -->
+    <rect x="52" y="150" width="196" height="52" rx="12" fill="#1A3B2A" stroke="#FCE361" stroke-width="2"/>
+    <text x="150" y="187" fill="#F5F5EB" font-size="26" font-weight="800" text-anchor="middle">56</text>
+    <!-- number pad -->
+    <g fill="#1A3B2A">
+      <rect x="40" y="232" width="66" height="52" rx="12"/><rect x="117" y="232" width="66" height="52" rx="12"/><rect x="194" y="232" width="66" height="52" rx="12"/>
+      <rect x="40" y="296" width="66" height="52" rx="12"/><rect x="117" y="296" width="66" height="52" rx="12"/><rect x="194" y="296" width="66" height="52" rx="12"/>
+      <rect x="40" y="360" width="66" height="52" rx="12"/><rect x="117" y="360" width="66" height="52" rx="12"/><rect x="194" y="360" width="66" height="52" rx="12"/>
+      <rect x="40" y="424" width="66" height="52" rx="12"/><rect x="117" y="424" width="66" height="52" rx="12"/>
+    </g>
+    <rect x="194" y="424" width="66" height="52" rx="12" fill="#FCE361"/>
+    <g fill="#F5F5EB" font-size="22" font-weight="700" text-anchor="middle">
+      <text x="73" y="266">1</text><text x="150" y="266">2</text><text x="227" y="266">3</text>
+      <text x="73" y="330">4</text><text x="150" y="330">5</text><text x="227" y="330">6</text>
+      <text x="73" y="394">7</text><text x="150" y="394">8</text><text x="227" y="394">9</text>
+      <text x="150" y="458">0</text>
+    </g>
+    <text x="73" y="458" fill="#B8C7B8" font-size="20" text-anchor="middle">&#9003;</text>
+    <path d="M212 450 l8 8 l16 -18" fill="none" stroke="#23503A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

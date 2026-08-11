@@ -1,14 +1,49 @@
-# Alarmed by Math 🔔🧮
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+    <img src="docs/assets/logo.svg" alt="Alarmed by Math" width="360">
+  </picture>
+</p>
 
-**An alarm clock that won't let you go back to sleep until you prove you're awake.**
+<p align="center">
+  <b>An alarm clock that won't let you go back to sleep until you prove you're awake.</b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/evillollive/alarmed-by-math/actions/workflows/release.yml"><img src="https://github.com/evillollive/alarmed-by-math/actions/workflows/release.yml/badge.svg" alt="Release"></a>
+  <img src="https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white" alt="Swift 5">
+  <img src="https://img.shields.io/badge/SwiftUI-007AFF?logo=swift&logoColor=white" alt="SwiftUI">
+  <img src="https://img.shields.io/badge/iOS-17%2B-000000?logo=apple&logoColor=white" alt="iOS 17+">
+  <img src="https://img.shields.io/badge/dependencies-none-2ea44f" alt="No dependencies">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/evillollive/alarmed-by-math" alt="License: AGPL v3"></a>
+  <a href="https://evillollive.github.io/alarmed-by-math/privacy.html"><img src="https://img.shields.io/badge/privacy-no%20tracking-8A2BE2" alt="Privacy: no tracking"></a>
+</p>
+
+# Alarmed by Math
 
 Alarmed by Math is a small, focused iOS alarm app built with Swift and SwiftUI. The twist: when it goes off, you can't just swat the snooze button. You've got to solve a math problem first. Get it right and the alarm stops. Get it wrong and it resets with a new one. It's simple, a little annoying on purpose, and surprisingly effective at getting you out of bed.
 
-![Swift](https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white)
-![SwiftUI](https://img.shields.io/badge/SwiftUI-4-007AFF?logo=swift&logoColor=white)
-![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)
+<p align="center">
+  <img src="docs/assets/demo-preview.svg" alt="Three phone screens: an alarm list, a full-screen ringing alarm, and a math challenge you must solve to dismiss it" width="900">
+</p>
 
-## Quick Start
+> Curious where this is headed? See the [**Roadmap**](ROADMAP.md).
+
+## Contents
+
+- [Quick start](#quick-start)
+- [How it actually works](#how-it-actually-works)
+- [Free vs Premium](#free-vs-premium)
+- [The clever bits](#the-clever-bits)
+- [What's under the hood](#whats-under-the-hood)
+- [Project structure](#project-structure)
+- [Requirements](#requirements)
+- [Accessibility](#accessibility)
+- [Privacy](#privacy)
+- [Open-source app, separate Premium add-on](#open-source-app-separate-premium-add-on)
+- [License](#license)
+
+## Quick start
 
 1. Clone the repo:
    ```bash
@@ -31,6 +66,24 @@ The flow is intentionally simple so there's nothing between you and the alarm do
 5. **Walked away?** If you background the app, a follow-up notification re-rings after 5 minutes. You're not getting out of this one.
 6. **One-time alarms expire cleanly.** After a one-time alarm fires, it is marked fired and disabled so it doesn't silently roll into future days.
 
+## Free vs Premium
+
+This repository is the **complete free app** — it builds and runs on its own with the full alarm flow. Premium is an optional one-time StoreKit 2 unlock whose code lives in a separate private companion repo.
+
+| | Free | Premium |
+|---|:---:|:---:|
+| Solve-to-dismiss alarm flow | ✅ | ✅ |
+| Difficulty: Easy → Expert | ✅ | ✅ |
+| Repeating & one-time schedules | ✅ | ✅ |
+| Themes & full accessibility | ✅ | ✅ |
+| Live themed clock in the widget | ✅ | ✅ |
+| **Whiz** difficulty | — | ✅ |
+| Solve soundtrack from your library | — | ✅ |
+| Widget alarms + solve streak | — | ✅ |
+| Widget customization (digital/analog, size, date) | — | ✅ |
+
+Locked Premium features present a functional, redacted preview that deep-links to a single paywall, and any locked Premium alarm is safely normalized back to Expert until the entitlement is active.
+
 ## The clever bits
 
 A few design choices that make this more than just "alarm + quiz":
@@ -46,13 +99,16 @@ A few design choices that make this more than just "alarm + quiz":
 
 ## What's under the hood
 
-- **Swift** + **SwiftUI** for the entire UI
-- **WidgetKit** for the Premium Home Screen widget, with an **App Group** sharing a derived snapshot
-- **StoreKit 2** for Premium purchase, restore, and entitlement refresh
-- **UserNotifications** for scheduling local alarms
-- **AVFoundation** for in-app alarm audio playback and the Premium solve soundtrack
-- **UserDefaults** (Codable) for persistence
-- Zero external dependencies
+| Technology | Used for |
+|---|---|
+| **Swift** + **SwiftUI** | The entire UI |
+| **WidgetKit** + **App Group** | Premium Home Screen widget, sharing a derived snapshot |
+| **StoreKit 2** | Premium purchase, restore, and entitlement refresh |
+| **UserNotifications** | Scheduling local alarms |
+| **AVFoundation** | In-app alarm audio and the Premium solve soundtrack |
+| **UserDefaults** (Codable) | Persistence |
+
+Zero external dependencies — no pods, no packages.
 
 ## Project structure
 
