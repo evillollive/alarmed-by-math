@@ -1,10 +1,12 @@
 # Roadmap
 
 Updated October 1, 2026. A short, prioritized plan, not a release commitment.
-Local implementation has started. Publishing and hosted automation remain
-deferred while Actions minutes are unavailable.
+The modernization update is merged in [#12](https://github.com/evillollive/alarmed-by-math/pull/12)
+and included in the **1.7.0 source release, build 6**. Source publication is not
+App Store readiness: physical-device and distribution qualification remain open.
+See [CHANGELOG.md](CHANGELOG.md) for release details and upgrade notes.
 
-## Local checkpoint: drafted, not release-qualified
+## 1.7.0 source checkpoint: merged, not device-qualified
 
 - Added backend-specific permission guidance, visible scheduling errors and
   retry controls, including notification-capacity warnings.
@@ -39,11 +41,11 @@ deferred while Actions minutes are unavailable.
 - Added regression tests. Direct palette measurements give 7.16:1 or better
   for the new chalkboard text/accent colors against its two backgrounds.
   This is not a full accessibility or device qualification.
-- **Local qualification:** the app and widget build with Xcode 27. Focused
+- **Local development evidence:** the app and widget build with Xcode 27. Focused
   practice, math, and alarm-policy checks passed on iOS 26.5 and 27.0, as did
   native practice and ringing-to-challenge flows. The practice flow also passed
   at the largest accessibility text size on iOS 27. These are scoped local
-  results, not a release qualification or proof of locked-screen wake behavior.
+  results, not distribution qualification or proof of locked-screen wake behavior.
 - **Still next:** skip-next scheduling, remaining theme/widget polish,
   final App Store screenshots, and real-device alarm lifecycle coverage.
 
@@ -68,7 +70,7 @@ need separate verification.
   coverage. Building now requires the iOS 27 SDK; deployment still supports iOS 17.
 - **Make alarm readiness visible:** distinguish AlarmKit authorization from
   notification permission, show scheduling failures, and explain how to recover.
-  This guidance is implemented locally; retain real-device coverage before release.
+  This guidance is included in 1.7.0; retain real-device coverage before distribution.
 - **Protect the core behavior:** cover locked/background operation, system Stop,
   snooze/re-ring, overlapping alarms, restart/reopen, daylight-saving changes,
   and timezone changes. Clearly distinguish bundled wake sounds from
@@ -93,7 +95,7 @@ cannot qualify locked-screen alarm behavior.
   use right triangles at 65% scale and the central triangle uses 80% scale.
   Icon, in-app mark, analog clock styling, and README logos now share geometry.
 - **Reusable art set:** default/dark/tinted PNG icons and SVG branding are
-  implemented locally, using the supported asset-catalog path and preserving
+  included in 1.7.0, using the supported asset-catalog path and preserving
   older-iOS compatibility. Optional layered Icon Composer treatments and
   additional milestone/badge art remain later polish, not completed work.
 - **Polish the actual app:** the shared three-size typography system is now
@@ -126,10 +128,10 @@ alongside compatibility work; it does not need Actions.
   not reach scheduling because AlarmKit authorization remained denied. Keep
   this feature deferred pending a real-device probe; no skip behavior has been
   established, and no approximation is being shipped.
-- **Better challenge setup:** silent practice is implemented locally, separately
+- **Better challenge setup:** silent practice is included in 1.7.0, separately
   from Test Alarm. Difficulty and problem count stay within the practice session.
   Private-build Whiz keypad coverage and interruption by an actual scheduled
-  device alarm still belong to release qualification.
+  device alarm still belong to distribution qualification.
 - **Respect device preferences:** localized weekday ordering and system
   12/24-hour time throughout the app and widgets instead of hard-coded English
   labels and AM/PM formatting.
@@ -145,9 +147,9 @@ accessible controls, with focused local coverage.
 - Verify purchase/restore, entitlement changes, App Group provisioning, privacy
   declarations, age ratings, and accessibility claims. Prepare signed device
   builds and TestFlight feedback locally. Apple currently lists an April 2027
-  deadline for iOS/iPadOS 27 SDK submissions; recheck before release.
+  deadline for iOS/iPadOS 27 SDK submissions; recheck before App Store submission.
 
-## Sound V2: selected and integrated locally
+## Sound V2: included in 1.7.0
 
 The approved eight are **Chime, Daybreak, Glasshouse, Clockwork, Bell, Buzz,
 Roll Call, and Ratchet**. Glasshouse reverts to the grounded-opening reference
@@ -165,31 +167,33 @@ verifies approved PCM hashes and lossless conversion. The native sound-picker
 flow passed local migration, preview isolation, automatic stop, explicit stop,
 and persistence checks on iOS 26.5.
 
-**Remaining release gate:** actual phone-speaker, locked-screen, system-volume,
+**Remaining distribution gate:** actual phone-speaker, locked-screen, system-volume,
 and wake-reliability checks. Signal levels, a waveform, and simulator results
 cannot establish that a sound will wake someone. Older recordings remain bundled
 for previously registered schedules, but are not offered in the new picker.
-The work is local only and has not been published.
+The recordings are published as source assets; wake effectiveness is not yet
+qualified on a physical device.
 
-## Deferred work involving Actions
+## Hosted automation and deferred qualification
 
 | Work | What waits for approval and available minutes |
 |---|---|
 | Hosted iOS qualification | Add a scoped macOS build/test workflow for the app and widget, with targeted UI/snapshot coverage. There is no checked-in build/test workflow today. |
 | Efficient CI policy | Plan PR/default-branch coverage without duplicate push/PR builds, bound matrices and timeouts, cancel superseded runs, and limit artifact retention. Required checks must fail closed; enforcement changes need explicit approval. |
-| GitHub release automation | The existing `Release` workflow runs on `v*` tag pushes or manual dispatch. No release tags or dispatches in this planning task. |
-| Pages and hosted agents | Pages publishes from `main:/docs`; a merge can start a deployment. Defer those updates and any hosted Copilot agent/review work too. |
+| GitHub release automation | The existing `Release` workflow runs on `v*` tag pushes or manual dispatch and publishes source-release notes only. It does not build, sign, or test the app. |
+| Pages and hosted agents | Pages publishes from `main:/docs`; a merge can start a deployment. Account for it before publishing. Hosted Copilot agent/review work needs separate scope and budget approval. |
 
 Local coding, artwork, simulator checks, and device testing do not themselves
 require Actions. Manual signing/TestFlight uploads do not require Actions either,
 but do require Apple credentials and distribution authorization.
 
-**Budget status:** no hosted budget approved, no runs started by this task, and
-no task reservations. Publication remains pending. Before any future trigger,
-estimate every job and matrix leg, likely reruns and post-merge work, apply
-runner-specific billing rules, and obtain a per-task ceiling. Future billable
-usage and artifact/cache costs are not yet estimated; local results do not
-replace required hosted evidence.
+**Budget policy:** before any hosted trigger, estimate every job and matrix leg,
+likely reruns and post-merge work, apply runner-specific billing rules, and
+obtain a per-task ceiling. Record approval, consumption, and outstanding
+reservations in that task's handoff rather than treating an earlier approval
+as a standing allowance. Source-publication approval does not authorize a new
+hosted qualification workflow or waive device evidence. Billing, quota, and
+artifact/cache costs must be checked rather than assumed.
 
 ## Platform references
 

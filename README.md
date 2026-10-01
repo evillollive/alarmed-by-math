@@ -6,11 +6,11 @@
 </p>
 
 <p align="center">
-  <b>An alarm clock that won't let you go back to sleep until you prove you're awake.</b>
+  <b>An alarm clock that gives your brain a reason to wake up.</b>
 </p>
 
 <p align="center">
-  <a href="https://github.com/evillollive/alarmed-by-math/actions/workflows/release.yml"><img src="https://github.com/evillollive/alarmed-by-math/actions/workflows/release.yml/badge.svg" alt="Release"></a>
+  <a href="https://github.com/evillollive/alarmed-by-math/releases/latest"><img src="https://img.shields.io/github/v/release/evillollive/alarmed-by-math" alt="Latest source release"></a>
   <img src="https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white" alt="Swift 5">
   <img src="https://img.shields.io/badge/SwiftUI-007AFF?logo=swift&logoColor=white" alt="SwiftUI">
   <img src="https://img.shields.io/badge/iOS-17%2B-000000?logo=apple&logoColor=white" alt="iOS 17+">
@@ -21,7 +21,11 @@
 
 # Alarmed by Math
 
-Alarmed by Math is a small, focused iOS alarm app built with Swift and SwiftUI. The twist: when it goes off, you can't just swat the snooze button. You've got to solve a math problem first. Get it right and the alarm stops. Get it wrong and it resets with a new one. It's simple, a little annoying on purpose, and surprisingly effective at getting you out of bed.
+Alarmed by Math is a small, focused iOS alarm app built with Swift and SwiftUI.
+When an alarm goes off, open the app and solve a configurable math challenge to
+complete it. Choose whether audio keeps ringing while you solve or pauses with
+a scheduled re-ring. System controls and iOS restrictions still apply; the app
+does not provide an unbreakable math gate or guarantee that you will wake up.
 
 <p align="center">
   <img src="docs/assets/demo-preview.svg" alt="Three phone screens: an alarm list, a full-screen ringing alarm, and a math challenge you must solve to dismiss it" width="900">
@@ -32,6 +36,7 @@ Alarmed by Math is a small, focused iOS alarm app built with Swift and SwiftUI. 
 ## Contents
 
 - [Quick start](#quick-start)
+- [Release status](#release-status)
 - [How it actually works](#how-it-actually-works)
 - [Scheduling and clock changes](#scheduling-and-clock-changes)
 - [Free vs Premium](#free-vs-premium)
@@ -61,6 +66,29 @@ That's it. No dependencies, no pods, no package manager fuss.
 If access is denied or scheduling fails, the alarm list shows recovery guidance
 and a retry action. A saved alarm is not a guarantee that the system scheduled it.
 
+## Release status
+
+**[v1.7.0](https://github.com/evillollive/alarmed-by-math/releases/tag/v1.7.0),
+build 6** is a source-code release dated October 1, 2026. It includes the merged
+alarm-planning and audio updates, silent math practice, alarm duplication,
+Sound V2, and the refreshed clock artwork and typography.
+See the [changelog](CHANGELOG.md) for changes, migrations, and known limitations.
+
+This GitHub release contains source, not a signed app, TestFlight build, or
+App Store release. Building requires **Xcode 27 with the iOS 27 SDK**; the app
+still supports **iOS 17+**. Local development checks do not qualify physical
+wake reliability. Locked/background ringing, Focus and volume behavior, audio
+routes, native recurring DST delivery, and private Premium/signing checks
+remain on the [roadmap](ROADMAP.md). Skip-next is not included.
+
+The Release workflow publishes GitHub release notes only. There is currently
+no hosted app build/test workflow, and a successful Pages deployment is not an
+app test result. For future releases, update the app and widget version/build
+settings together, record changes in the changelog, validate locally, and merge
+through a pull request before tagging that exact commit. Hosted triggers need
+a separately approved runner-minute budget; a source release does not waive
+device or distribution qualification.
+
 ## How it actually works
 
 The flow is intentionally simple so there's nothing between you and the alarm doing its job:
@@ -69,9 +97,14 @@ The flow is intentionally simple so there's nothing between you and the alarm do
 2. **It goes off.** On iOS 26.1+, AlarmKit presents a system alarm, including on
    the Lock Screen. Older supported versions use notification sounds. Opening
    the app presents the ringing screen.
-3. **Solve to dismiss.** Tap the button to get a random math problem. The alarm keeps ringing until you answer correctly.
-4. **Wrong answer?** The problem resets and you try again. No shortcuts.
-5. **Walked away?** If you background the app, a follow-up notification re-rings after 5 minutes. You're not getting out of this one.
+3. **Solve to dismiss.** Open the challenge and complete the configured number
+   of problems. Keep-ringing mode retains audio; auto-snooze pauses it and
+   schedules a re-ring after the chosen delay, which defaults to 5 minutes.
+4. **Wrong answer?** Try a new problem. Completing the challenge dismisses the
+   active alarm and cancels its pending re-rings.
+5. **System controls still apply.** AlarmKit's Stop action attempts a bounded
+   series of re-rings while the challenge is unsolved. Delivery depends on
+   system permissions and scheduling; this is not an unlimited enforcement loop.
 6. **One-time alarms expire cleanly.** After a one-time alarm fires, it is marked fired and disabled so it doesn't silently roll into future days.
 
 ## Scheduling and clock changes
@@ -88,7 +121,7 @@ exact dates, including their intended day and first fall-back instant. Repeating
 alarms remain system-managed weekly local-time schedules: AlarmKit and repeating
 notification triggers do not expose explicit DST-policy switches. The app and
 widget agree on planned dates, but native recurring delivery at DST boundaries
-still requires a real-device check before release.
+still requires real-device qualification before distribution.
 
 **After travel or a manual clock change, open the app before relying on a
 one-time alarm.** Its submitted date is fixed until the app recalculates it in the
@@ -105,19 +138,19 @@ the upgrade does not guess a new future day for a missed alarm.
 
 ## Free vs Premium
 
-This repository is the **complete free app** — it builds and runs on its own with the full alarm flow. Premium is an optional one-time StoreKit 2 unlock whose code lives in a separate private companion repo.
+This repository is the **complete free app**: it builds and runs on its own with the full alarm flow. Premium is an optional one-time StoreKit 2 unlock whose code lives in a separate private companion repo.
 
 | | Free | Premium |
 |---|:---:|:---:|
 | Solve-to-dismiss alarm flow | ✅ | ✅ |
 | Difficulty: Easy → Expert | ✅ | ✅ |
 | Repeating & one-time schedules | ✅ | ✅ |
-| Themes & full accessibility | ✅ | ✅ |
+| Themes & accessibility support | ✅ | ✅ |
 | Live themed clock in the widget | ✅ | ✅ |
-| **Whiz** difficulty | — | ✅ |
-| Solve soundtrack from your library | — | ✅ |
-| Widget alarms + solve streak | — | ✅ |
-| Widget customization (digital/analog, size, date) | — | ✅ |
+| **Whiz** difficulty | No | ✅ |
+| Solve soundtrack from your library | No | ✅ |
+| Widget alarms + solve streak | No | ✅ |
+| Widget customization (digital/analog, size, date) | No | ✅ |
 
 Locked Premium features present a functional, redacted preview that deep-links to a single paywall, and any locked Premium alarm is safely normalized back to Expert until the entitlement is active.
 
@@ -155,9 +188,13 @@ A few design choices that make this more than just "alarm + quiz":
 - **Free difficulty ladder, plus a real Premium tier.** Easy through Expert are available in the free app. Premium is a one-time StoreKit 2 unlock, and any locked Premium alarm is safely normalized back to Expert until the entitlement is active. A dedicated paywall is the single upsell surface, and locked features (Whiz difficulty, the solve soundtrack, the widget) deep-link straight into it.
 - **Premium solve soundtrack.** Premium users can pick a song from their library to play while they solve the alarm's math. It plays in the foreground only: your phone still wakes you with the dependable bundled alarm sound, because iOS won't start library playback from the lock screen.
 - **Premium Home Screen widget with a live, themed clock.** A small or medium widget shows a live current-time clock that mirrors your chosen in-app theme (colors and font), plus your next alarm and solve streak. Premium users can customize it from Settings: a **digital or analog** clock, **small/medium/large** text, an optional **date** line (weekday, short, or full), how many **upcoming alarms** the medium widget lists (1–3), and whether to **show the streak**. The clock shows for everyone; the alarm and streak details are Premium, and the locked state is a functional, redacted preview that taps through to the paywall. The app shares a derived snapshot of its palette, layout configuration, and minimal schedule definitions through an App Group. Repeating forecasts advance from those definitions; one-time entries retain their last fixed planned date until an app refresh.
-- **Repeating schedules.** Set alarms for specific days of the week or leave them as one-time events. The scheduling uses iOS local notifications, so alarms fire even when the app isn't in the foreground.
+- **Repeating schedules.** Set alarms for specific days of the week or leave
+  them as one-time events. AlarmKit handles iOS 26.1+; older supported versions
+  use local notifications with more limited silent-mode and Focus behavior.
 - **Safer one-time behavior.** One-time alarms are treated as one-shot events and won't auto-reschedule for tomorrow after they have fired.
-- **Snooze safety net.** There's no snooze button, but if you try to cheat by closing the app, a follow-up notification catches you five minutes later. It's persistent by design.
+- **Configurable re-ring delay.** Auto-snooze schedules a follow-up when you
+  open the challenge, using the alarm's chosen delay rather than a fixed timer
+  triggered by closing the app.
 - **Configurable challenge ring policy.** You can keep audio ringing while solving, or use auto-snooze and re-ring behavior.
 - **Full-screen ringing.** When the alarm fires, the whole screen takes over with a pulsing animation and the current time. It's meant to be unmissable.
 
@@ -198,7 +235,7 @@ The original synthesis is reproducible with
 phrase against its approved PCM SHA-256 and verifies lossless CAF conversion.
 The generated files are included in the app target, so normal builds need no audio tools.
 Actual phone-speaker, locked-screen, and scheduled-alarm checks remain necessary
-before release. Music-library solve soundtracks remain a separate Premium feature.
+before distribution. Music-library solve soundtracks remain a separate Premium feature.
 
 ## Artwork
 
@@ -225,11 +262,12 @@ remain separate release work.
 | **Swift** + **SwiftUI** | The entire UI |
 | **WidgetKit** + **App Group** | Premium Home Screen widget, sharing a derived snapshot |
 | **StoreKit 2** | Premium purchase, restore, and entitlement refresh |
-| **UserNotifications** | Scheduling local alarms |
+| **AlarmKit** + **App Intents** | System alarms and solve/re-ring actions on iOS 26.1+ |
+| **UserNotifications** | Notification fallback on iOS 17 through iOS 26.0 |
 | **AVFoundation** | In-app alarm audio and the Premium solve soundtrack |
 | **UserDefaults** (Codable) | Persistence |
 
-Zero external dependencies — no pods, no packages.
+Zero external dependencies: no pods, no packages.
 
 ## Project structure
 
@@ -323,7 +361,7 @@ Alarmed by Math is built to be usable for everyone, not just people who can see 
 ## Privacy
 
 Alarmed by Math collects nothing. There are no accounts, no servers, no analytics, and
-no network calls — all data (alarms, settings, stats) lives locally in `UserDefaults`.
+no app-operated data backend. Alarm, setting, and statistics data lives locally in `UserDefaults`.
 The optional Premium solve soundtrack reads your music library only to let you pick and
 play a song, and the widget reads a small derived snapshot the app writes to a shared
 App Group; neither leaves your device. The bundled
