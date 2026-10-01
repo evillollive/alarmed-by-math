@@ -102,6 +102,8 @@ A few design choices that make this more than just "alarm + quiz":
   **Done** or Back to leave at any time. Correct answers and retries advance
   only when you choose to continue; Whiz remains gated by the existing Premium
   entitlement and add-on.
+  The whole Practice row is tappable, including the open space on wider iPad
+  layouts.
 - **Copy without surprises.** Swipe right on an alarm, or use its context menu
   or VoiceOver action, to duplicate it. Review the new alarm before saving;
   cancelling the draft leaves the original and its schedule untouched.
@@ -255,6 +257,10 @@ Run the `AlarmedByMath` scheme's unit tests on an installed simulator. The share
 `AlarmedByMathUI` scheme separately checks copy-alarm review/cancellation,
 sound preview/selection, silent practice, and the ringing-to-challenge flow,
 attaching native screenshots to the result bundle.
+It also covers rotated settings, sound selection, statistics, the Premium sheet,
+and practice. iPad layout checks include portrait, landscape, and the largest
+accessibility text size on the iPad mini simulator; phone portrait behavior is
+preserved.
 Use a dedicated simulator for UI tests because they create and delete sample
 alarms and play Test Alarm audio.
 

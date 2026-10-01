@@ -13,6 +13,9 @@ deferred while Actions minutes are unavailable.
 - Added silent practice with difficulty selection, 1-10 problems, explicit
   retry/next controls, and an exit at any time. It shares the real challenge's
   keypad and answer rules but does not schedule, silence, or record alarms.
+- Fixed the full-row Practice hit area on wide iPad layouts. The core editing,
+  sound, statistics, Premium-sheet, and practice surfaces have scoped iPad mini
+  portrait/landscape coverage, including maximum accessibility text.
 - Applied the selected refined chalkboard direction to the palette, alarm list,
   ringing screen, and math challenge, with scrollable layouts, answer feedback,
   and a repeated-submission guard. Added original
@@ -105,6 +108,12 @@ alongside compatibility work; it does not need Actions.
   app and widget. Automatic resumption must not depend on reopening the app.
   Confirm the system scheduling approach and timezone behavior before shipping;
   simply disabling the alarm and restoring it on the next launch is not sufficient.
+  The iOS 27 SDK exposes no recurrence start date or exception date. Apple's
+  `stop(id:)` documentation preserves repeating schedules but does not explicitly
+  establish skipping a future occurrence. A disposable simulator probe could
+  not reach scheduling because AlarmKit authorization remained denied. Keep
+  this feature deferred pending a real-device probe; no skip behavior has been
+  established, and no approximation is being shipped.
 - **Better challenge setup:** silent practice is implemented locally, separately
   from Test Alarm. Difficulty and problem count stay within the practice session.
   Private-build Whiz keypad coverage and interruption by an actual scheduled
@@ -175,4 +184,5 @@ replace required hosted evidence.
 - [Apple releases: stable versions versus betas](https://developer.apple.com/news/releases/)
 - [App Store submission requirements](https://developer.apple.com/app-store/submitting/)
 - [AlarmKit authorization, scheduling, and system behavior](https://developer.apple.com/videos/play/wwdc2025/230/)
+- [AlarmKit stop behavior](https://developer.apple.com/documentation/alarmkit/alarmmanager/stop(id:))
 - [Icon Composer and layered artwork](https://developer.apple.com/icon-composer/)

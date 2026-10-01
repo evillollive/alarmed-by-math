@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 final class AlarmFlowTests: XCTestCase {
     private let app = XCUIApplication()
@@ -212,6 +213,58 @@ final class AlarmFlowTests: XCTestCase {
         XCTAssertTrue(app.buttons["alarms.add"].waitForExistence(timeout: 5))
     }
 
+    func testRotatedSettingsStatsAndPaywallRemainUsable() {
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            let landscape = NSPredicate { _, _ in self.app.frame.width > self.app.frame.height }
+            expectation(for: landscape, evaluatedWith: app)
+            waitForExpectations(timeout: 5)
+        }
+        app.buttons["alarms.settings"].tap()
+        let chooseSound = app.buttons["settings.choose-sound"]
+        scrollTo(chooseSound)
+        chooseSound.tap()
+        scrollTo(app.buttons["sound.select.chime"])
+        XCTAssertTrue(app.buttons["sound.select.chime"].isHittable)
+        XCTAssertTrue(app.buttons["soundpicker.done"].isHittable)
+        capture("13 - Rotated sound picker")
+        app.buttons["soundpicker.done"].tap()
+        app.navigationBars.buttons["Done"].tap()
+
+        app.buttons["Statistics"].tap()
+        XCTAssertTrue(app.navigationBars["Stats"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars.buttons["Done"].isHittable)
+        capture("14 - Rotated statistics")
+        app.navigationBars.buttons["Done"].tap()
+
+        app.buttons["alarms.add"].tap()
+        let unlock = app.buttons.matching(identifier: "addalarm.unlock-premium").firstMatch
+        scrollTo(unlock)
+        unlock.tap()
+        let restore = app.buttons["paywall.restore-premium"]
+        scrollTo(restore)
+        XCTAssertTrue(restore.isHittable)
+        XCTAssertTrue(app.navigationBars.buttons["Close"].isHittable)
+        capture("15 - Rotated Premium sheet")
+        app.navigationBars.buttons["Close"].tap()
+        app.navigationBars.buttons["Cancel"].tap()
+
+        let practice = app.buttons["alarms.practice"]
+        scrollTo(practice)
+        practice.tap()
+        let start = app.buttons["practice.start"]
+        scrollTo(start)
+        start.tap()
+        let submit = app.buttons["Submit answer"]
+        scrollTo(submit)
+        XCTAssertTrue(submit.isHittable)
+        XCTAssertTrue(app.buttons["practice.done"].isHittable)
+        capture("16 - Rotated practice")
+        app.buttons["practice.done"].tap()
+        XCTAssertTrue(app.buttons["alarms.add"].isHittable)
+    }
+
     private func alarmButton(named name: String) -> XCUIElement {
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
     }
@@ -242,7 +295,7 @@ final class AlarmFlowTests: XCTestCase {
     }
 
     private func capture(_ name: String) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)

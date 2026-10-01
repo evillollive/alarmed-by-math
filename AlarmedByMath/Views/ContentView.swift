@@ -278,6 +278,8 @@ struct ContentView: View {
                         .foregroundStyle(Theme.chalkFaded)
                 }
                 .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("alarms.practice")
