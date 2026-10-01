@@ -10,6 +10,14 @@ enum NotificationPermissionStatus: Equatable {
     case denied
 }
 
+enum AlarmPermissionError: LocalizedError {
+    case denied
+
+    var errorDescription: String? {
+        "Alarm access is off. Allow alarms in Settings, then retry scheduling."
+    }
+}
+
 struct RingingAlarmContext: Equatable {
     let alarmID: String
     var songPersistentID: String?
@@ -57,6 +65,9 @@ struct RingingAlarmQueue: Equatable {
     var activeAlarmID: String? { active?.alarmID }
     var isRinging: Bool { active != nil }
     var autoPresentMath: Bool { active?.autoPresentMath ?? false }
+    var alarmIDs: Set<String> {
+        Set(queued.map(\.alarmID) + (active.map { [$0.alarmID] } ?? []))
+    }
 
     mutating func push(_ context: RingingAlarmContext) -> Bool {
         if let active, active.alarmID == context.alarmID {
@@ -105,6 +116,54 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     /// (used on iOS 26 when the app is opened from the alarm's secondary button).
     @Published private(set) var autoPresentMath: Bool = false
     @Published private(set) var notificationPermissionStatus: NotificationPermissionStatus = .unknown
+    @Published private(set) var alarmPermissionStatus: NotificationPermissionStatus = .unknown
+    @Published private(set) var notificationSoundsEnabled = true
+    @Published private(set) var schedulingFailures: [String: String] = [:]
+    @Published private(set) var previewingSound: AlarmSound?
+    @Published private(set) var previewErrorMessage: String?
+    private var schedulingRevisions: [String: UUID] = [:]
+
+    var permissionWarning: String? {
+        Self.readinessWarning(
+            usesAlarmKit: useAlarmKit,
+            alarmPermission: alarmPermissionStatus,
+            notificationPermission: notificationPermissionStatus,
+            notificationSoundsEnabled: notificationSoundsEnabled
+        )
+    }
+
+    var needsPermissionRequest: Bool {
+        (useAlarmKit ? alarmPermissionStatus : notificationPermissionStatus) == .unknown
+    }
+
+    var schedulingFailureMessage: String? {
+        guard !schedulingFailures.isEmpty else { return nil }
+        return schedulingFailures.values.sorted().joined(separator: "\n")
+    }
+
+    static func readinessWarning(
+        usesAlarmKit: Bool,
+        alarmPermission: NotificationPermissionStatus,
+        notificationPermission: NotificationPermissionStatus,
+        notificationSoundsEnabled: Bool
+    ) -> String? {
+        let permission = usesAlarmKit ? alarmPermission : notificationPermission
+        switch permission {
+        case .unknown:
+            return usesAlarmKit
+                ? "Allow alarm access so scheduled alarms can ring, including while your phone is locked."
+                : "Allow notifications and sounds so scheduled alarms can notify you."
+        case .denied:
+            return usesAlarmKit
+                ? "Alarm access is off. Enable Alarms in Settings, then return here to reschedule."
+                : "Notifications are off. Enable notifications and sounds in Settings."
+        case .granted:
+            if !usesAlarmKit && !notificationSoundsEnabled {
+                return "Notification sounds are off. Enable Sounds in Settings to hear alarm notifications."
+            }
+            return nil
+        }
+    }
 
     // MARK: - Constants
 
@@ -121,6 +180,11 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
 
     var supportsPerAlarmVolume: Bool { !useAlarmKit }
+    var keepsRingingWhileSolving: Bool { activeKeepRinging }
+    var isPreview: Bool { ringingQueue.active?.preview == true }
+    var ringingAlarmIDs: Set<UUID> {
+        Set(ringingQueue.alarmIDs.compactMap(UUID.init(uuidString:)))
+    }
 
     /// iOS can't start music-library playback while the device is locked, so a
     /// custom song can't be the locked-screen wake sound. It plays in the
@@ -151,16 +215,32 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
     // MARK: - Private
 
-    private var audioPlayer: AVAudioPlayer?
-    private var soundtrackPlayer: AVAudioPlayer?
+    private let audioSession: AudioSessionControlling
+    private let makePlayer: (URL) throws -> any AlarmAudioPlaying
+    private var audioPlayer: (any AlarmAudioPlaying)?
+    private var soundtrackPlayer: (any AlarmAudioPlaying)?
     private var fallbackTimer: Timer?
-    private var previewPlayer: AVAudioPlayer?
+    private var previewPlayer: (any AlarmAudioPlaying)?
     private var previewStopTimer: Timer?
+    private var previewRequestID: UUID?
+    private var alarmAudioRequestID: UUID?
+    private var soundtrackRequestID: UUID?
+    private var soundtrackAlarmID: String?
+    private var audioRevision = UUID()
     private var ringingQueue = RingingAlarmQueue()
 
     // MARK: - Init
 
-    override init() {
+    override convenience init() {
+        self.init(audioSession: AudioSessionController.shared)
+    }
+
+    init(
+        audioSession: AudioSessionControlling,
+        makePlayer: @escaping (URL) throws -> any AlarmAudioPlaying = { try AVAudioPlayer(contentsOf: $0) }
+    ) {
+        self.audioSession = audioSession
+        self.makePlayer = makePlayer
         super.init()
         let center = UNUserNotificationCenter.current()
         center.delegate = self
@@ -168,35 +248,74 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         refreshPermissionStatus(center: center)
     }
 
+    deinit {
+        previewStopTimer?.invalidate()
+        fallbackTimer?.invalidate()
+        previewPlayer?.stop()
+        audioPlayer?.stop()
+        soundtrackPlayer?.stop()
+        if previewRequestID != nil || alarmAudioRequestID != nil || soundtrackRequestID != nil {
+            audioSession.deactivate { result in
+                if case .failure(let error) = result, !(error is CancellationError) {
+                    print("Audio session cleanup failed: \(error)")
+                }
+            }
+        }
+    }
+
     // MARK: - Permissions
 
     func requestPermission(completion: @escaping (Bool) -> Void) {
+        if #available(iOS 26.1, *) {
+            Task { @MainActor in
+                do {
+                    try await AlarmKitScheduler.ensureAuthorized()
+                    alarmPermissionStatus = AlarmKitScheduler.permissionStatus
+                    schedulingFailures.removeValue(forKey: "authorization")
+                    completion(true)
+                } catch {
+                    alarmPermissionStatus = AlarmKitScheduler.permissionStatus
+                    recordSchedulingFailure(error.localizedDescription, id: "authorization")
+                    completion(false)
+                }
+            }
+            return
+        }
         UNUserNotificationCenter.current()
-            .requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+            .requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
                 DispatchQueue.main.async {
                     self.notificationPermissionStatus = granted ? .granted : .denied
+                    if let error {
+                        self.recordSchedulingFailure(error.localizedDescription, id: "authorization")
+                    } else {
+                        self.schedulingFailures.removeValue(forKey: "authorization")
+                    }
+                    self.refreshPermissionStatus()
                     completion(granted)
                 }
             }
-        // AlarmKit has its own authorization, requested lazily when scheduling.
     }
 
     func refreshPermissionStatus(center: UNUserNotificationCenter = .current()) {
+        if #available(iOS 26.1, *) {
+            alarmPermissionStatus = AlarmKitScheduler.permissionStatus
+        }
         center.getNotificationSettings { settings in
             let mapped = Self.permissionState(for: settings.authorizationStatus)
             DispatchQueue.main.async {
                 self.notificationPermissionStatus = mapped
+                self.notificationSoundsEnabled = settings.soundSetting == .enabled
             }
         }
     }
 
     static func permissionState(for status: UNAuthorizationStatus) -> NotificationPermissionStatus {
         switch status {
-        case .authorized, .provisional, .ephemeral:
+        case .authorized, .ephemeral:
             return .granted
         case .denied:
             return .denied
-        case .notDetermined:
+        case .notDetermined, .provisional:
             return .unknown
         @unknown default:
             return .unknown
@@ -208,8 +327,25 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     /// Re-schedules all enabled alarms (call after store changes / on launch).
     func scheduleAlarms(_ alarms: [Alarm]) {
         if #available(iOS 26.1, *) {
-            Task { await AlarmKitScheduler.scheduleAll(alarms) }
+            Task { @MainActor in
+                let revision = UUID()
+                for alarm in alarms { schedulingRevisions[alarm.id.uuidString] = revision }
+                do {
+                    let failures = try await AlarmKitScheduler.scheduleAll(alarms)
+                    schedulingFailures.removeValue(forKey: "authorization")
+                    for alarm in alarms where schedulingRevisions[alarm.id.uuidString] == revision {
+                        schedulingFailures[alarm.id.uuidString] = failures[alarm.id]
+                    }
+                } catch {
+                    for alarm in alarms where alarm.isEnabled && schedulingRevisions[alarm.id.uuidString] == revision {
+                        recordSchedulingFailure("\(alarm.displayLabel): \(error.localizedDescription)",
+                                                id: alarm.id.uuidString)
+                    }
+                }
+                refreshPermissionStatus()
+            }
         } else {
+            schedulingFailures.removeAll()
             scheduleChainedAll(alarms)
         }
     }
@@ -217,14 +353,33 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     /// Schedules a single alarm.
     func schedule(_ alarm: Alarm) {
         if #available(iOS 26.1, *) {
-            Task { await AlarmKitScheduler.schedule(alarm) }
+            Task { @MainActor in
+                let id = alarm.id.uuidString
+                let revision = UUID()
+                schedulingRevisions[id] = revision
+                do {
+                    try await AlarmKitScheduler.schedule(alarm)
+                    if schedulingRevisions[id] == revision {
+                        schedulingFailures.removeValue(forKey: id)
+                        schedulingFailures.removeValue(forKey: "authorization")
+                    }
+                } catch {
+                    if schedulingRevisions[id] == revision {
+                        recordSchedulingFailure("\(alarm.displayLabel): \(error.localizedDescription)", id: id)
+                    }
+                }
+                refreshPermissionStatus()
+            }
         } else {
+            schedulingFailures.removeValue(forKey: alarm.id.uuidString)
             scheduleChained(alarm)
         }
     }
 
     /// Removes all pending notifications / alarms for a given alarm.
     func cancel(_ alarm: Alarm) {
+        schedulingRevisions.removeValue(forKey: alarm.id.uuidString)
+        schedulingFailures.removeValue(forKey: alarm.id.uuidString)
         if #available(iOS 26.1, *) {
             AlarmKitScheduler.cancel(alarm.id.uuidString)
         } else {
@@ -247,7 +402,11 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
         var budget = Self.chainBudget
         for (alarm, next) in enabled {
-            guard budget > 0 else { break }
+            guard budget > 0 else {
+                recordSchedulingFailure("\(alarm.displayLabel): notification capacity is full. Disable an unused alarm, then retry.",
+                                        id: alarm.id.uuidString)
+                continue
+            }
             budget -= scheduleChain(for: alarm, firstFire: next, budget: budget)
         }
     }
@@ -269,7 +428,13 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
             let usedByOthers = pending.filter { !$0.identifier.hasPrefix(prefix) }.count
             let remaining = max(0, Self.chainBudget - usedByOthers)
             self.removeChained(alarm)
-            guard remaining > 0 else { return }
+            guard remaining > 0 else {
+                DispatchQueue.main.async {
+                    self.recordSchedulingFailure("\(alarm.displayLabel): notification capacity is full. Disable an unused alarm, then retry.",
+                                                 id: prefix)
+                }
+                return
+            }
             _ = self.scheduleChain(for: alarm, firstFire: next, budget: remaining)
         }
     }
@@ -279,12 +444,20 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     @discardableResult
     private func scheduleChain(for alarm: Alarm, firstFire: Date, budget: Int) -> Int {
         var used = 0
-        let cal = Calendar.current
+        let calendar = Calendar.current
 
         // Long-term recurrence: one repeating notification per selected weekday.
         if !alarm.repeatDays.isEmpty {
             for day in alarm.repeatDays.sorted() {
-                guard used < budget else { return used }
+                guard used < budget else {
+                    DispatchQueue.main.async {
+                        self.recordSchedulingFailure(
+                            "\(alarm.displayLabel): not all repeat days could be scheduled. Disable an unused alarm, then retry.",
+                            id: alarm.id.uuidString
+                        )
+                    }
+                    return used
+                }
                 var comps = DateComponents()
                 comps.hour    = alarm.hour
                 comps.minute  = alarm.minute
@@ -301,12 +474,27 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         for k in startIndex..<Self.chainBurst {
             guard used < budget else { break }
             let fire = firstFire.addingTimeInterval(Double(k) * Self.chainSpacing)
-            let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: fire)
-            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            let trigger: UNCalendarNotificationTrigger
+            if alarm.repeatDays.isEmpty {
+                trigger = Self.fixedNotificationTrigger(at: fire)
+            } else {
+                // Keep weekly bursts floating with the local-time recurrence.
+                let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: fire)
+                trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            }
             add(makeChainRequest(alarm: alarm, identifier: "\(alarm.id.uuidString)::\(k)", trigger: trigger))
             used += 1
         }
         return used
+    }
+
+    static func fixedNotificationTrigger(at date: Date) -> UNCalendarNotificationTrigger {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+        components.calendar = calendar
+        components.timeZone = calendar.timeZone
+        return UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
     }
 
     private func makeChainRequest(alarm: Alarm, identifier: String, trigger: UNNotificationTrigger) -> UNNotificationRequest {
@@ -334,32 +522,12 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
     }
 
-    /// Computes the next time an alarm will fire, mirroring `AlarmStore`.
+    /// Computes the shared planned occurrence used by the store and widget.
     ///
     /// `now` is injectable so the time-of-day-sensitive scheduling logic can be
     /// tested deterministically; production callers use the default `Date()`.
-    static func nextFireDate(for alarm: Alarm, now: Date = Date()) -> Date? {
-        let cal = Calendar.current
-        var comps = DateComponents()
-        comps.hour   = alarm.hour
-        comps.minute = alarm.minute
-        comps.second = 0
-
-        if alarm.repeatDays.isEmpty {
-            if alarm.hasFired { return nil }
-            guard let scheduled = cal.date(
-                bySettingHour: alarm.hour,
-                minute: alarm.minute,
-                second: 0,
-                of: now
-            ) else { return nil }
-            return scheduled > now ? scheduled : nil
-        }
-        return alarm.repeatDays.compactMap { weekday -> Date? in
-            var c = comps
-            c.weekday = weekday
-            return cal.nextDate(after: now.addingTimeInterval(-1), matching: c, matchingPolicy: .nextTime)
-        }.min()
+    static func nextFireDate(for alarm: Alarm, now: Date = Date(), calendar: Calendar = .current) -> Date? {
+        alarm.nextFireDate(after: now, calendar: calendar)
     }
 
     // MARK: - Ringing state
@@ -384,6 +552,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         )
         let becameActive = ringingQueue.push(context)
         syncPublishedState()
+        stopSoundPreview()
 
         guard becameActive else { return }
 
@@ -453,15 +622,32 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     /// Otherwise, the active ring is replaced with a delayed re-ring.
     func snooze() {
         guard let alarmID = activeAlarmID else { return }
+        if isPreview {
+            if !activeKeepRinging {
+                stopWakeAudio()
+                deactivateAudioSessionIfIdle(alarmID: alarmID)
+            }
+            return
+        }
         guard Self.shouldScheduleSnooze(keepRinging: activeKeepRinging) else { return }
         StatsStore.shared.recordSnooze()
 
         if #available(iOS 26.1, *), useAlarmKit {
-            Task { await AlarmKitScheduler.snooze(alarmID, minutes: activeSnoozeDuration) }
+            let minutes = activeSnoozeDuration
+            Task { @MainActor in
+                do {
+                    try await AlarmKitScheduler.snooze(alarmID, minutes: minutes)
+                } catch {
+                    recordSchedulingFailure("The alarm could not be rescheduled after snoozing. \(error.localizedDescription)",
+                                            id: alarmID)
+                    refreshPermissionStatus()
+                }
+            }
             return
         }
 
-        if !activeKeepRinging { stopSound() }
+        stopWakeAudio()
+        deactivateAudioSessionIfIdle(alarmID: alarmID)
 
         let content = UNMutableNotificationContent()
         content.title              = "Snoozed Alarm"
@@ -491,9 +677,9 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     func dismiss() {
         let alarmID = activeAlarmID
         stopSound()
-        if #available(iOS 26.1, *) {
+        if #available(iOS 26.1, *), !isPreview {
             if let alarmID { AlarmKitScheduler.solve(alarmID) }
-        } else if let alarmID {
+        } else if let alarmID, !isPreview {
             UNUserNotificationCenter.current()
                 .removePendingNotificationRequests(withIdentifiers: ["\(alarmID)-snooze"])
         }
@@ -511,6 +697,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         )
         let didActivate = ringingQueue.push(context)
         syncPublishedState()
+        stopSoundPreview()
         return didActivate
     }
 
@@ -543,43 +730,79 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
 
     // MARK: - Audio (foreground only)
 
-    /// Plays a single sound option once (capped at a few seconds) so users can
-    /// audition each alarm tone from Settings. Uses `.playback` so it overrides
-    /// the silent switch (but not the media volume level).
+    /// Auditions the bundled recording without changing the selected wake sound.
     func previewSound(_ sound: AlarmSound) {
-        previewStopTimer?.invalidate()
-        previewPlayer?.stop()
-
-        do {
-            try AVAudioSession.sharedInstance().setCategory(
-                .playback, mode: .default, options: [.duckOthers])
-            try AVAudioSession.sharedInstance().setActive(true, options: [])
-        } catch {
-            print("Audio session setup failed: \(error)")
+        stopSoundPreview()
+        previewErrorMessage = nil
+        guard !isRinging else {
+            previewErrorMessage = "Finish the active alarm before previewing another sound."
+            return
         }
-
-        if sound.vibrates { AudioServicesPlaySystemSound(kSystemSoundID_Vibrate) }
-
         guard let url = Bundle.main.url(
             forResource: sound.resource.name, withExtension: sound.resource.ext) else {
-            AudioServicesPlaySystemSound(sound.systemSoundID)
+            previewErrorMessage = "\(sound.label) is missing from this installation."
+            print("Missing alarm preview resource: \(sound.fileName)")
             return
         }
 
         do {
-            let player = try AVAudioPlayer(contentsOf: url)
+            let player = try makePlayer(url)
+            guard player.duration > 0, player.duration < 30 else {
+                previewErrorMessage = "\(sound.label) is not a valid alarm recording."
+                print("Invalid alarm preview duration: \(sound.fileName), \(player.duration)")
+                return
+            }
             player.numberOfLoops = 0
             player.volume        = 1.0
-            player.play()
-            previewPlayer = player
-            previewStopTimer = Timer.scheduledTimer(
-                withTimeInterval: 3.0, repeats: false) { [weak self] _ in
-                self?.previewPlayer?.stop()
-                self?.previewPlayer = nil
+            let requestID = UUID()
+            previewRequestID = requestID
+            audioRevision = requestID
+            previewingSound = sound
+            audioSession.activate(preparing: player) { [weak self] result in
+                guard let self, self.previewRequestID == requestID, !self.isRinging else {
+                    player.stop()
+                    return
+                }
+                switch result {
+                case .failure(let error):
+                    player.stop()
+                    self.stopSoundPreview()
+                    self.previewErrorMessage = "Could not preview \(sound.label): \(error.localizedDescription)"
+                    print("Alarm preview activation failed: \(error)")
+                case .success:
+                    guard player.play() else {
+                        player.stop()
+                        self.stopSoundPreview()
+                        self.previewErrorMessage = "\(sound.label) could not start playing."
+                        print("Alarm preview playback failed: \(sound.fileName)")
+                        return
+                    }
+                    self.previewPlayer = player
+                    if sound.vibrates { AudioServicesPlaySystemSound(kSystemSoundID_Vibrate) }
+                    self.previewStopTimer = Timer.scheduledTimer(
+                        withTimeInterval: player.duration + 0.05, repeats: false
+                    ) { [weak self] _ in
+                        guard self?.previewRequestID == requestID else { return }
+                        self?.stopSoundPreview()
+                    }
+                }
             }
         } catch {
-            AudioServicesPlaySystemSound(sound.systemSoundID)
+            stopSoundPreview()
+            previewErrorMessage = "Could not preview \(sound.label): \(error.localizedDescription)"
+            print("Alarm preview failed: \(error)")
         }
+    }
+
+    func stopSoundPreview() {
+        let hadPreview = previewRequestID != nil || previewPlayer != nil
+        previewRequestID = nil
+        previewStopTimer?.invalidate()
+        previewStopTimer = nil
+        previewPlayer?.stop()
+        previewPlayer = nil
+        previewingSound = nil
+        if hadPreview { deactivateAudioSessionIfIdle(preview: true) }
     }
 
     /// Plays the wake/alert sound. This is always the bundled sound chosen in
@@ -587,35 +810,58 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     /// (iOS can't start library playback while locked); it plays only as the
     /// in-app solve soundtrack via `startSolveSoundtrack`.
     private func playAlarmSound(volume: Float = 1.0) {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(
-                .playback, mode: .default, options: [.duckOthers])
-            try AVAudioSession.sharedInstance().setActive(true, options: [])
-        } catch {
-            print("Audio session setup failed: \(error)")
-        }
-
+        stopWakeAudio()
+        stopSoundtrackAudio()
+        let requestID = UUID()
+        let alarmID = activeAlarmID
+        alarmAudioRequestID = requestID
+        audioRevision = requestID
         let selected = SettingsStore.shared.alarmSound
-        let url = Bundle.main.url(forResource: selected.resource.name, withExtension: selected.resource.ext)
-               ?? Bundle.main.url(forResource: "alarm", withExtension: "caf")
-               ?? Bundle.main.url(forResource: "alarm", withExtension: "wav")
-
-        guard let soundURL = url else {
+        guard let soundURL = Bundle.main.url(forResource: selected.resource.name, withExtension: selected.resource.ext) else {
+            recordSchedulingFailure("The selected alarm recording is missing. Trying the system fallback sound.",
+                                    id: alarmID ?? "foreground-audio")
             startFallbackLoop()
             return
         }
 
         do {
-            audioPlayer                = try AVAudioPlayer(contentsOf: soundURL)
-            audioPlayer?.numberOfLoops = -1
-            audioPlayer?.volume        = volume
-            audioPlayer?.play()
+            let player = try makePlayer(soundURL)
+            player.numberOfLoops = -1
+            player.volume = volume
+            audioSession.activate(preparing: player) { [weak self] result in
+                guard let self, self.alarmAudioRequestID == requestID,
+                      self.activeAlarmID == alarmID, self.isRinging else {
+                    player.stop()
+                    return
+                }
+                switch result {
+                case .failure(let error):
+                    player.stop()
+                    self.recordSchedulingFailure(
+                        "Could not activate alarm audio. Trying the system fallback. \(error.localizedDescription)",
+                        id: alarmID ?? "foreground-audio"
+                    )
+                    self.startFallbackLoop()
+                case .success:
+                    guard player.play() else {
+                        player.stop()
+                        self.recordSchedulingFailure("The alarm recording could not play. Trying the system fallback.",
+                                                     id: alarmID ?? "foreground-audio")
+                        self.startFallbackLoop()
+                        return
+                    }
+                    self.audioPlayer = player
+                }
+            }
         } catch {
+            recordSchedulingFailure("Could not load alarm audio. Trying the system fallback. \(error.localizedDescription)",
+                                    id: alarmID ?? "foreground-audio")
             startFallbackLoop()
         }
     }
 
     private func startFallbackLoop() {
+        fallbackTimer?.invalidate()
         playFallbackOnce()
         fallbackTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { [weak self] _ in
             self?.playFallbackOnce()
@@ -628,67 +874,123 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     private func playFallbackOnce() {
         let sound = SettingsStore.shared.alarmSound
         AudioServicesPlaySystemSound(sound.systemSoundID)
-        if sound != .buzzOnly {
-            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
-        }
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
     }
 
-    private func stopSound() {
+    private func stopWakeAudio() {
+        alarmAudioRequestID = nil
         fallbackTimer?.invalidate()
         fallbackTimer = nil
         audioPlayer?.stop()
         audioPlayer = nil
+    }
+
+    private func stopSoundtrackAudio() {
+        soundtrackRequestID = nil
+        soundtrackAlarmID = nil
         soundtrackPlayer?.stop()
         soundtrackPlayer = nil
-        try? AVAudioSession.sharedInstance()
-            .setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    private func stopSound() {
+        stopWakeAudio()
+        stopSoundtrackAudio()
+        deactivateAudioSessionIfIdle(alarmID: activeAlarmID)
+    }
+
+    private func deactivateAudioSessionIfIdle(preview: Bool = false, alarmID: String? = nil) {
+        guard previewRequestID == nil, alarmAudioRequestID == nil, soundtrackRequestID == nil,
+              previewPlayer == nil, audioPlayer == nil, soundtrackPlayer == nil, fallbackTimer == nil else { return }
+        let revision = UUID()
+        audioRevision = revision
+        audioSession.deactivate { [weak self] result in
+            guard case .failure(let error) = result else { return }
+            guard !(error is CancellationError) else { return }
+            print("Audio session deactivation failed: \(error)")
+            guard let self, self.audioRevision == revision else { return }
+            let message = "Could not release the audio session: \(error.localizedDescription)"
+            if preview {
+                self.previewErrorMessage = message
+            } else {
+                self.recordSchedulingFailure(message, id: alarmID ?? "foreground-audio")
+            }
+        }
     }
 
     // MARK: - Solve soundtrack (Premium)
 
     /// Plays the alarm's custom song as the foreground "solve" soundtrack, looping
     /// until `stopSolveSoundtrack()`. No-op unless custom songs are available
-    /// (premium) and the chosen track is a playable on-device asset, so DRM /
-    /// not-downloaded songs simply leave the solve screen quiet rather than
-    /// hijacking the wake alarm. Replaces any in-app alert audio so the two don't
-    /// overlap once the user is solving.
+    /// (premium). Unavailable tracks report an error without silencing wake
+    /// audio. The soundtrack replaces wake audio only after playback starts.
     func startSolveSoundtrack(songPersistentID: String?, volume: Float = 1.0) {
-        guard supportsCustomSongs,
-              let idString = songPersistentID,
-              let persistentID = UInt64(idString) else { return }
+        guard supportsCustomSongs, let idString = songPersistentID,
+              let alarmID = activeAlarmID else { return }
+        guard let persistentID = UInt64(idString) else {
+            recordSchedulingFailure("The selected solve soundtrack has an invalid library identifier.", id: alarmID)
+            return
+        }
 
         let query = MPMediaQuery.songs()
         query.addFilterPredicate(MPMediaPropertyPredicate(
             value: NSNumber(value: persistentID),
             forProperty: MPMediaItemPropertyPersistentID
         ))
-        guard let item = query.items?.first,
-              let assetURL = item.assetURL,
-              let player = try? AVAudioPlayer(contentsOf: assetURL) else { return }
-
-        // Only now that we have a playable song do we silence the alert audio,
-        // so a failed lookup never leaves the user with no sound at all.
-        stopSound()
-        do {
-            try AVAudioSession.sharedInstance().setCategory(
-                .playback, mode: .default, options: [.duckOthers])
-            try AVAudioSession.sharedInstance().setActive(true, options: [])
-        } catch {
-            print("Soundtrack audio session setup failed: \(error)")
+        guard let item = query.items?.first, let assetURL = item.assetURL else {
+            recordSchedulingFailure("The solve soundtrack is unavailable. Choose a downloaded, playable song.", id: alarmID)
+            return
         }
-        player.numberOfLoops = -1
-        player.volume = volume
-        player.play()
-        soundtrackPlayer = player
+        startSolveSoundtrack(assetURL: assetURL, alarmID: alarmID, volume: volume)
+    }
+
+    func startSolveSoundtrack(assetURL: URL, alarmID: String, volume: Float) {
+        guard supportsCustomSongs, activeAlarmID == alarmID, isRinging else { return }
+        do {
+            let player = try makePlayer(assetURL)
+            stopSoundtrackAudio()
+            let requestID = UUID()
+            soundtrackRequestID = requestID
+            soundtrackAlarmID = alarmID
+            audioRevision = requestID
+            player.numberOfLoops = -1
+            player.volume = volume
+            audioSession.activate(preparing: player) { [weak self] result in
+                guard let self, self.soundtrackRequestID == requestID,
+                      self.activeAlarmID == alarmID, self.isRinging else {
+                    player.stop()
+                    return
+                }
+                switch result {
+                case .failure(let error):
+                    player.stop()
+                    self.stopSoundtrackAudio()
+                    self.recordSchedulingFailure("Could not activate the solve soundtrack: \(error.localizedDescription)", id: alarmID)
+                    self.deactivateAudioSessionIfIdle(alarmID: alarmID)
+                case .success:
+                    guard player.play() else {
+                        player.stop()
+                        self.stopSoundtrackAudio()
+                        self.recordSchedulingFailure("The solve soundtrack could not play.", id: alarmID)
+                        self.deactivateAudioSessionIfIdle(alarmID: alarmID)
+                        return
+                    }
+                    self.soundtrackPlayer = player
+                    // Keep wake audio until the replacement actually starts.
+                    self.stopWakeAudio()
+                }
+            }
+        } catch {
+            recordSchedulingFailure("Could not load the solve soundtrack: \(error.localizedDescription)", id: alarmID)
+        }
     }
 
     /// Stops the solve soundtrack if it's playing. Safe to call when nothing is.
-    func stopSolveSoundtrack() {
-        guard soundtrackPlayer != nil else { return }
-        soundtrackPlayer?.stop()
-        soundtrackPlayer = nil
-        try? AVAudioSession.sharedInstance()
-            .setActive(false, options: .notifyOthersOnDeactivation)
+    func stopSolveSoundtrack(for alarmID: String? = nil) {
+        if let alarmID, soundtrackAlarmID != alarmID { return }
+        guard soundtrackRequestID != nil || soundtrackPlayer != nil else { return }
+        let ownerID = soundtrackAlarmID
+        stopSoundtrackAudio()
+        deactivateAudioSessionIfIdle(alarmID: ownerID)
     }
 
     // MARK: - UNUserNotificationCenterDelegate
@@ -730,9 +1032,20 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     // MARK: - Private helpers
 
     private func add(_ request: UNNotificationRequest) {
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error { print("Notification error: \(error)") }
+        UNUserNotificationCenter.current().add(request) { [weak self] error in
+            guard let error else { return }
+            DispatchQueue.main.async {
+                self?.recordSchedulingFailure(
+                    "\(request.content.title): \(error.localizedDescription)",
+                    id: request.content.userInfo["alarmID"] as? String ?? request.identifier
+                )
+            }
         }
+    }
+
+    private func recordSchedulingFailure(_ message: String, id: String) {
+        print("Alarm scheduling failed: \(message)")
+        schedulingFailures[id] = message
     }
 
     private func registerNotificationCategories(center: UNUserNotificationCenter) {

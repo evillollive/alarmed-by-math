@@ -112,14 +112,14 @@ struct StatsView: View {
                 if let pct = stats.overallAccuracy {
                     VStack(spacing: 6) {
                         Text(String(format: "%.0f%%", pct * 100))
-                            .font(.system(size: 64, weight: .thin, design: Theme.fontDesign))
+                            .font(AppTypography.title)
                             .foregroundColor(accuracyColor(pct))
 
                         AccuracyBar(value: pct, color: accuracyColor(pct))
                             .frame(height: 10)
 
                         Text("\(correctTotal) correct out of \(stats.totalAttempts) attempts")
-                            .font(.caption)
+                            .font(AppTypography.body)
                             .foregroundColor(Theme.chalkFaded)
                     }
                 } else {
@@ -133,16 +133,16 @@ struct StatsView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Best Solve Time")
-                                .font(.system(.caption2, design: Theme.fontDesign))
+                                .font(AppTypography.body)
                                 .fontWeight(.semibold)
                                 .foregroundColor(Theme.chalkFaded)
                             Text(formatTime(best))
-                                .font(.system(size: 32, weight: .light, design: Theme.fontDesign))
+                                .font(AppTypography.title)
                                 .foregroundColor(Theme.chalkYellow)
                         }
                         Spacer()
                         Image(systemName: "trophy.fill")
-                            .font(.title)
+                            .font(AppTypography.title)
                             .foregroundColor(Theme.chalkYellow.opacity(0.7))
                     }
                 }
@@ -195,11 +195,11 @@ struct StatsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         sectionHeader("Little Theorem")
                         Text(easterEgg.title)
-                            .font(.system(.title3, design: Theme.fontDesign))
+                            .font(AppTypography.title)
                             .fontWeight(.semibold)
                             .foregroundColor(Theme.chalk)
                         Text(easterEgg.message)
-                            .font(.subheadline)
+                            .font(AppTypography.body)
                             .foregroundColor(Theme.chalkFaded)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -209,7 +209,7 @@ struct StatsView: View {
                     .background(Theme.chalk.opacity(0.15))
 
                 Text(easterEgg.footnote)
-                    .font(.caption)
+                    .font(AppTypography.body)
                     .foregroundColor(Theme.chalkBlue)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -241,14 +241,14 @@ struct StatsView: View {
 
     private func sectionHeader(_ text: String) -> some View {
         Text(text)
-            .font(.system(.caption, design: Theme.fontDesign))
+            .font(AppTypography.body)
             .fontWeight(.semibold)
             .foregroundColor(Theme.chalkYellow)
     }
 
     private func emptyHint(_ text: String) -> some View {
         Text(text)
-            .font(.subheadline)
+            .font(AppTypography.body)
             .foregroundColor(Theme.chalkFaded)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
@@ -266,17 +266,17 @@ private struct StatCard: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.title2)
+                .font(AppTypography.title)
                 .foregroundColor(iconColor)
 
             Text(value)
-                .font(.system(size: 32, weight: .light, design: Theme.fontDesign))
+                .font(AppTypography.title)
                 .foregroundColor(Theme.chalk)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
 
             Text(label)
-                .font(.system(.caption2, design: Theme.fontDesign))
+                .font(AppTypography.body)
                 .foregroundColor(Theme.chalkFaded)
                 .multilineTextAlignment(.center)
         }
@@ -305,21 +305,21 @@ private struct DifficultyRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(difficulty.label)
-                    .font(.system(.subheadline, design: Theme.fontDesign))
+                    .font(AppTypography.body)
                     .foregroundColor(Theme.chalk)
 
                 Spacer()
 
                 if let pct = accuracy {
                     Text(String(format: "%.0f%%", pct * 100))
-                        .font(.system(.subheadline, design: Theme.fontDesign))
+                        .font(AppTypography.body)
                         .foregroundColor(barColor)
                     Text("(\(correct)/\(attempts))")
-                        .font(.caption)
+                        .font(AppTypography.body)
                         .foregroundColor(Theme.chalkFaded)
                 } else {
                     Text("Not yet")
-                        .font(.subheadline)
+                        .font(AppTypography.body)
                         .foregroundColor(Theme.chalkFaded)
                 }
             }
@@ -420,9 +420,6 @@ private struct PythagorasBadgeView: View {
                         .offset(x: 25, y: 20)
                 }
 
-                Text("3² + 4² = 5²")
-                    .font(.system(.caption2, design: Theme.fontDesign))
-                    .foregroundColor(Theme.chalk)
             }
             .padding(.vertical, 14)
         }

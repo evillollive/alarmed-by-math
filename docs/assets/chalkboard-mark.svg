@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Alarmed by Math</title>
+  <desc id="description">A golden alarm clock with small cream right-triangle bells and a right triangle inside its face.</desc>
+  <rect width="512" height="512" rx="112" fill="#102b24"/>
+  <path d="M120.650 138.550 L150.550 78.100 L211.000 108.000 Z M391.350 138.550 L361.450 78.100 L301.000 108.000 Z" fill="#f5f0d9"/>
+<path d="M408.000 286.000 C408.000 369.947 339.947 438.000 256.000 438.000 C172.053 438.000 104.000 369.947 104.000 286.000 C104.000 202.053 172.053 134.000 256.000 134.000 C339.947 134.000 408.000 202.053 408.000 286.000 Z" fill="#f7cf63"/>
+<path d="M223.200 225.200 L223.200 316.400 L320.800 316.400 Z" fill="none" stroke="#102b24" stroke-width="16" stroke-linejoin="round"/>
+</svg>

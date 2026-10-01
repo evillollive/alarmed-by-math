@@ -191,8 +191,20 @@ final class SettingsStore: ObservableObject {
         let themeRaw = UserDefaults.standard.string(forKey: Keys.theme) ?? ""
         activeTheme = AppTheme(rawValue: themeRaw) ?? .chalk
 
-        let soundRaw = UserDefaults.standard.string(forKey: Keys.sound) ?? ""
-        alarmSound = AlarmSound(rawValue: soundRaw) ?? .chime
+        if let soundRaw = UserDefaults.standard.string(forKey: Keys.sound) {
+            if let migrated = AlarmSound.fromStoredValue(soundRaw) {
+                alarmSound = migrated
+                if soundRaw != migrated.rawValue {
+                    UserDefaults.standard.set(migrated.rawValue, forKey: Keys.sound)
+                }
+            } else {
+                print("Unknown saved alarm sound '\(soundRaw)'; restoring Chime.")
+                alarmSound = .chime
+                UserDefaults.standard.set(AlarmSound.chime.rawValue, forKey: Keys.sound)
+            }
+        } else {
+            alarmSound = .chime
+        }
 
         let stored = UserDefaults.standard.integer(forKey: Keys.snooze)
         snoozeDuration = stored > 0 ? stored : 5

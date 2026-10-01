@@ -12,15 +12,22 @@ enum AlarmKitScheduler {
 
     // MARK: - Authorization
 
-    @discardableResult
-    static func ensureAuthorized() async -> Bool {
+    static var permissionStatus: NotificationPermissionStatus {
+        switch AlarmManager.shared.authorizationState {
+        case .authorized: return .granted
+        case .denied: return .denied
+        default: return .unknown
+        }
+    }
+
+    static func ensureAuthorized() async throws {
         let manager = AlarmManager.shared
         switch manager.authorizationState {
-        case .authorized: return true
-        case .denied:     return false
+        case .authorized: return
+        case .denied: throw AlarmPermissionError.denied
         default:
-            let state = try? await manager.requestAuthorization()
-            return state == .authorized
+            let state = try await manager.requestAuthorization()
+            guard state == .authorized else { throw AlarmPermissionError.denied }
         }
     }
 
@@ -28,8 +35,11 @@ enum AlarmKitScheduler {
 
     /// Cancels everything AlarmKit knows about for these alarms and reschedules
     /// the enabled ones. Safe to call repeatedly (e.g. on every app launch).
-    static func scheduleAll(_ alarms: [Alarm]) async {
-        guard await ensureAuthorized() else { return }
+    static func scheduleAll(_ alarms: [Alarm]) async throws -> [UUID: String] {
+        if alarms.contains(where: \.isEnabled) {
+            try await ensureAuthorized()
+        }
+        var failures: [UUID: String] = [:]
         let alerting = alertingIDs()
         for alarm in alarms {
             let oid = alarm.id.uuidString
@@ -41,8 +51,14 @@ enum AlarmKitScheduler {
             if AlarmGate.reringIDs(oid).contains(where: alerting.contains) { continue }
             cancel(oid)
             guard alarm.isEnabled else { continue }
-            await schedulePrimary(alarm)
+            do {
+                try await schedulePrimary(alarm)
+            } catch {
+                failures[alarm.id] = "\(alarm.displayLabel): \(error.localizedDescription)"
+                print("AlarmKit schedule failed for \(alarm.id): \(error)")
+            }
         }
+        return failures
     }
 
     /// UUID strings of every AlarmKit alarm currently in the alerting state.
@@ -62,16 +78,17 @@ enum AlarmKitScheduler {
         alertingOriginalIDs().first
     }
 
-    static func schedule(_ alarm: Alarm) async {
-        guard await ensureAuthorized() else { return }
+    static func schedule(_ alarm: Alarm) async throws {
+        try await ensureAuthorized()
         cancel(alarm.id.uuidString)
         guard alarm.isEnabled else { return }
-        await schedulePrimary(alarm)
+        try await schedulePrimary(alarm)
     }
 
     /// Schedules the recurring/one-time alarm whose AlarmKit id equals the
     /// app-level `Alarm.id`, so the gate maps cleanly back to it.
-    private static func schedulePrimary(_ alarm: Alarm) async {
+    private static func schedulePrimary(_ alarm: Alarm) async throws {
+        let schedule = try systemSchedule(for: alarm)
         let originalID = alarm.id.uuidString
         AlarmGate.reset(originalID)
         AlarmGate.clearReringIDs(originalID)
@@ -80,10 +97,6 @@ enum AlarmKitScheduler {
         let soundName = SettingsStore.shared.alarmSound.fileName
         AlarmGate.setSound(originalID, soundName)
 
-        let schedule: AlarmKit.Alarm.Schedule = .relative(.init(
-            time: .init(hour: alarm.hour, minute: alarm.minute),
-            repeats: recurrence(for: alarm.repeatDays)
-        ))
         let config = makeConfiguration(
             originalID:    originalID,
             ringingID:     originalID,
@@ -91,12 +104,21 @@ enum AlarmKitScheduler {
             soundName:     soundName,
             schedule:      schedule
         )
-        do {
-            _ = try await AlarmManager.shared.schedule(
-                id: alarm.id, configuration: config)
-        } catch {
-            print("AlarmKit schedule failed: \(error)")
+        _ = try await AlarmManager.shared.schedule(
+            id: alarm.id, configuration: config)
+    }
+
+    static func systemSchedule(for alarm: Alarm, now: Date = Date(), calendar: Calendar = .current) throws -> AlarmKit.Alarm.Schedule {
+        guard let next = alarm.nextFireDate(after: now, calendar: calendar) else {
+            throw SchedulingError.noFutureOccurrence
         }
+        // Relative one-shots have no day. A fixed date cannot drift to another
+        // occurrence after midnight or select the second copy of a folded hour.
+        if alarm.repeatDays.isEmpty { return .fixed(next) }
+        return .relative(.init(
+            time: .init(hour: alarm.hour, minute: alarm.minute),
+            repeats: recurrence(for: alarm.repeatDays)
+        ))
     }
 
     // MARK: - Re-ring (strict math gate)
@@ -117,8 +139,8 @@ enum AlarmKitScheduler {
 
     /// Schedules a brand-new one-shot alarm a few seconds out. A distinct id is
     /// used to avoid colliding with the alarm that is still being torn down.
-    static func scheduleReRing(originalAlarmID: String, after delay: TimeInterval) async {
-        guard await ensureAuthorized() else { return }
+    static func scheduleReRing(originalAlarmID: String, after delay: TimeInterval) async throws {
+        try await ensureAuthorized()
         guard !AlarmGate.isSolved(originalAlarmID) else { return }
 
         let ringingID = UUID()
@@ -130,23 +152,19 @@ enum AlarmKitScheduler {
             soundName:     AlarmGate.sound(originalAlarmID),
             schedule:      schedule
         )
-        do {
-            _ = try await AlarmManager.shared.schedule(
-                id: ringingID, configuration: config)
-            if AlarmGate.isSolved(originalAlarmID) {
-                try? AlarmManager.shared.cancel(id: ringingID)
-                return
-            }
-            AlarmGate.addReringID(originalAlarmID, ringingID.uuidString)
-        } catch {
-            print("AlarmKit re-ring failed: \(error)")
+        _ = try await AlarmManager.shared.schedule(
+            id: ringingID, configuration: config)
+        if AlarmGate.isSolved(originalAlarmID) {
+            try AlarmManager.shared.cancel(id: ringingID)
+            return
         }
+        AlarmGate.addReringID(originalAlarmID, ringingID.uuidString)
     }
 
     /// Silences the current alert for one alarm occurrence and replaces any
     /// outstanding quick re-rings with a single snoozed re-ring.
-    static func snooze(_ originalID: String, minutes: Int) async {
-        guard await ensureAuthorized() else { return }
+    static func snooze(_ originalID: String, minutes: Int) async throws {
+        try await ensureAuthorized()
 
         let delay = snoozeDelay(forMinutes: minutes)
         let current = (try? AlarmManager.shared.alarms) ?? []
@@ -165,7 +183,7 @@ enum AlarmKitScheduler {
         }
         AlarmGate.clearReringIDs(originalID)
         AlarmGate.reset(originalID)
-        await scheduleReRing(originalAlarmID: originalID, after: delay)
+        try await scheduleReRing(originalAlarmID: originalID, after: delay)
     }
 
     // MARK: - Dismiss / cancel
@@ -240,6 +258,14 @@ enum AlarmKitScheduler {
         }
         return .weekly(weekdays)
     }
+
+    private enum SchedulingError: LocalizedError {
+        case noFutureOccurrence
+
+        var errorDescription: String? {
+            "This alarm no longer has a future occurrence. Review its time or re-enable it."
+        }
+    }
 }
 
 // MARK: - Metadata
@@ -283,7 +309,7 @@ struct StopMathAlarmIntent: LiveActivityIntent {
         if !AlarmGate.isSolved(originalAlarmID) {
             let attempt = AlarmGate.incrementRerings(originalAlarmID)
             if attempt <= AlarmGate.maxRerings {
-                await AlarmKitScheduler.scheduleReRing(
+                try await AlarmKitScheduler.scheduleReRing(
                     originalAlarmID: originalAlarmID,
                     after: AlarmKitScheduler.reringDelay(forAttempt: attempt))
             }

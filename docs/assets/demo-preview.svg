@@ -20,21 +20,14 @@
   <circle cx="120" cy="640" r="180" fill="#9ED1FA" opacity="0.08"/>
 
   <!-- header -->
-  <g font-family="Arial, Helvetica, sans-serif" transform="translate(70 58)">
-    <g transform="translate(-2 -4) scale(0.76)">
-      <g fill="#FCE361">
-        <ellipse cx="18" cy="13" rx="8" ry="8.5" transform="rotate(-14 18 13)"/>
-        <ellipse cx="46" cy="13" rx="8" ry="8.5" transform="rotate(14 46 13)"/>
-        <rect x="29" y="4" width="6" height="8" rx="3"/>
-        <circle cx="32" cy="37" r="21"/>
-        <rect x="12" y="54" width="8" height="7" rx="2" transform="rotate(28 16 57)"/>
-        <rect x="44" y="54" width="8" height="7" rx="2" transform="rotate(-28 48 57)"/>
-      </g>
-      <g fill="#23503A">
-        <rect x="29" y="26" width="6" height="22" rx="3"/>
-        <rect x="21" y="34" width="22" height="6" rx="3"/>
-      </g>
+  <g font-family="ui-rounded, -apple-system, BlinkMacSystemFont, sans-serif" transform="translate(70 58)">
+    <!-- brand-mark:start -->
+    <g transform="translate(-2 -4) scale(.095)">
+      <path d="M120.650 138.550 L150.550 78.100 L211.000 108.000 Z M391.350 138.550 L361.450 78.100 L301.000 108.000 Z" fill="#f5f0d9"/>
+<path d="M408.000 286.000 C408.000 369.947 339.947 438.000 256.000 438.000 C172.053 438.000 104.000 369.947 104.000 286.000 C104.000 202.053 172.053 134.000 256.000 134.000 C339.947 134.000 408.000 202.053 408.000 286.000 Z" fill="#f7cf63"/>
+<path d="M223.200 225.200 L223.200 316.400 L320.800 316.400 Z" fill="none" stroke="#102b24" stroke-width="16" stroke-linejoin="round"/>
     </g>
+    <!-- brand-mark:end -->
     <text x="62" y="20" fill="#F5F5EB" font-size="34" font-weight="800">Alarmed by Math</text>
     <text x="62" y="46" fill="#B8C7B8" font-size="18">Solve to wake. No snooze, no shortcuts.</text>
   </g>

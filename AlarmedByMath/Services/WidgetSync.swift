@@ -10,30 +10,25 @@ enum WidgetSync {
     /// widget timelines. Safe to call often (scene activation, purchase/restore,
     /// alarm, theme, or streak changes).
     @MainActor
-    static func refresh(alarmStore: AlarmStore, settings: SettingsStore) {
-        // Pair each enabled alarm with its own next fire date using the same
-        // helper the scheduler uses, then keep the few soonest. The widget shows
-        // as many as the user's layout preference (and the widget family) allow.
-        let upcoming = alarmStore.alarms
-            .filter(\.isEnabled)
-            .compactMap { alarm -> WidgetSharedStore.UpcomingAlarm? in
-                guard let date = AlarmScheduler.nextFireDate(for: alarm) else { return nil }
-                return WidgetSharedStore.UpcomingAlarm(date: date, label: alarm.label)
-            }
-            .sorted { $0.date < $1.date }
-            .prefix(WidgetSharedStore.WidgetConfig.snapshotBufferCount)
-            .map { $0 }
-
+    static func refresh(alarmStore: AlarmStore, settings: SettingsStore, currentStreak: Int? = nil) {
         let snapshot = WidgetSharedStore.Snapshot(
             isPremiumUnlocked: settings.isWhizUnlocked,
-            upcomingAlarms: Array(upcoming),
-            currentStreak: StatsStore.shared.stats.currentStreak,
+            upcomingAlarms: upcomingAlarms(from: alarmStore.alarms),
+            currentStreak: currentStreak ?? StatsStore.shared.stats.currentStreak,
             theme: palette(for: settings.activeTheme),
             config: config(from: settings)
         )
 
         WidgetSharedStore.save(snapshot)
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    static func upcomingAlarms(from alarms: [Alarm], now: Date = Date(), calendar: Calendar = .current) -> [WidgetSharedStore.UpcomingAlarm] {
+        alarms.compactMap { alarm in
+            guard let date = alarm.nextFireDate(after: now, calendar: calendar) else { return nil }
+            return WidgetSharedStore.UpcomingAlarm(date: date, label: alarm.label, schedule: alarm.schedule)
+        }
+        .sorted { $0.date < $1.date }
     }
 
     private static func config(from settings: SettingsStore) -> WidgetSharedStore.WidgetConfig {
@@ -73,4 +68,3 @@ enum WidgetSync {
         }
     }
 }
-

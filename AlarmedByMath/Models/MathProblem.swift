@@ -22,6 +22,12 @@ extension Difficulty {
 }
 
 struct MathProblem {
+    enum AnswerResult: Equatable {
+        case invalid
+        case incorrect
+        case correct
+    }
+
     let expression: String
     /// Stored as a Double so Whiz (scientific) problems can have non-integer answers.
     /// Integer problems use the `Int` convenience initializer below.
@@ -35,6 +41,17 @@ struct MathProblem {
     init(expression: String, answer: Int) {
         self.expression = expression
         self.answer = Double(answer)
+    }
+
+    func evaluateAnswer(_ input: String) -> AnswerResult {
+        var text = input
+        if text.hasSuffix(".") { text.removeLast() }
+        guard let entered = Double(text), entered.isFinite else { return .invalid }
+        let enteredCents = entered * 100
+        let expectedCents = answer * 100
+        guard enteredCents.isFinite, expectedCents.isFinite else { return .invalid }
+        return enteredCents.rounded(.toNearestOrAwayFromZero)
+            == expectedCents.rounded(.toNearestOrAwayFromZero) ? .correct : .incorrect
     }
 
     /// Generate a random arithmetic problem at the requested difficulty.
@@ -125,5 +142,69 @@ struct MathProblem {
         let whole       = denominator * multiplier          // divisible by denominator
         let result      = (numerator * whole) / denominator // always integer
         return MathProblem(expression: "(\(numerator)/\(denominator)) × \(whole) = ?", answer: result)
+    }
+}
+
+/// An in-memory practice run with no access to alarm, audio, or statistics stores.
+struct MathPracticeSession {
+    enum Phase: Equatable {
+        case answering
+        case correct
+        case incorrect
+        case completed
+    }
+
+    let difficulty: Difficulty
+    let problemCount: Int
+    private(set) var problem: MathProblem
+    private(set) var solvedCount = 0
+    private(set) var phase: Phase = .answering
+    private(set) var feedback = "Take your time. This is just practice."
+    var input = ""
+    private let makeProblem: (Difficulty) -> MathProblem
+
+    init(
+        difficulty: Difficulty,
+        problemCount: Int,
+        whizUnlocked: Bool,
+        makeProblem: @escaping (Difficulty) -> MathProblem = { MathProblem.generate(difficulty: $0) }
+    ) {
+        let effective = Difficulty.effective(difficulty, whizUnlocked: whizUnlocked)
+        self.difficulty = effective
+        self.problemCount = min(10, max(1, problemCount))
+        self.makeProblem = makeProblem
+        self.problem = makeProblem(effective)
+    }
+
+    var problemNumber: Int {
+        phase == .correct || phase == .completed ? solvedCount : solvedCount + 1
+    }
+
+    mutating func submit() {
+        guard phase == .answering else { return }
+        switch problem.evaluateAnswer(input) {
+        case .invalid:
+            feedback = "Enter a number before checking your answer."
+        case .incorrect:
+            phase = .incorrect
+            feedback = "Not quite. Try a fresh problem when you're ready."
+        case .correct:
+            solvedCount += 1
+            if solvedCount == problemCount {
+                phase = .completed
+                feedback = "Practice complete. Your alarms and streak are unchanged."
+            } else {
+                phase = .correct
+                feedback = "Correct. Ready for the next problem?"
+            }
+        }
+    }
+
+    mutating func nextProblem() {
+        guard phase == .correct || phase == .incorrect else { return }
+        problem = makeProblem(difficulty)
+        input = ""
+        phase = .answering
+        feedback = "Take your time. This is just practice."
     }
 }

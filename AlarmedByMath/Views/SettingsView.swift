@@ -4,6 +4,8 @@ struct SettingsView: View {
     @EnvironmentObject var settings: SettingsStore
     @EnvironmentObject var scheduler: AlarmScheduler
     @Environment(\.dismiss) var dismiss
+    @State private var showingSounds = false
+    @ScaledMetric(relativeTo: .body) private var optionWidth = 96
 
     var body: some View {
         NavigationView {
@@ -43,6 +45,11 @@ struct SettingsView: View {
             await settings.prepareStoreKitIfNeeded()
         }
         .colorScheme(settings.activeTheme.colorScheme)
+        .sheet(isPresented: $showingSounds) {
+            SoundPickerView()
+                .environmentObject(settings)
+                .environmentObject(scheduler)
+        }
     }
 
     private var themeSection: some View {
@@ -50,7 +57,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader("Theme")
                 Text("Each palette keeps the main reading colors above accessibility contrast targets, and the full row is tappable.")
-                    .font(.caption)
+                    .font(AppTypography.body)
                     .foregroundColor(Theme.chalkFaded)
                 VStack(spacing: 8) {
                     ForEach(AppTheme.allCases, id: \.self) { theme in
@@ -67,19 +74,25 @@ struct SettingsView: View {
         settingsCard {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader("Default Alarm Sound")
-                HStack(spacing: 8) {
-                    ForEach(AlarmSound.allCases, id: \.self) { sound in
-                        DayToggleButton(
-                            title: sound.label,
-                            isSelected: settings.alarmSound == sound
-                        ) {
-                            settings.alarmSound = sound
-                            scheduler.previewSound(sound)
-                        }
-                    }
+                Text(settings.alarmSound.label)
+                    .font(AppTypography.title)
+                    .foregroundStyle(Theme.chalk)
+                    .accessibilityIdentifier("sound.current")
+                Text(settings.alarmSound.detail)
+                    .font(AppTypography.body)
+                    .foregroundStyle(Theme.chalkFaded)
+                Button {
+                    showingSounds = true
+                } label: {
+                    actionButtonLabel(
+                        title: "Choose sound", systemImage: "waveform",
+                        fill: Theme.chalkYellow, foreground: Theme.boardDark
+                    )
                 }
-                Text("Tap to preview. Turn your volume up to hear it, previews follow the media volume level even when your phone is on silent.")
-                    .font(.caption2)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.choose-sound")
+                Text("Applies to every alarm. You can preview a sound without changing your selection.")
+                    .font(AppTypography.body)
                     .foregroundColor(Theme.chalkFaded)
             }
         }
@@ -92,7 +105,7 @@ struct SettingsView: View {
                 Text(settings.isWhizUnlocked
                      ? "Premium is unlocked on this device, and the app will keep that purchase in sync with the App Store."
                      : "Free alarms go up to Expert. Premium unlocks Whiz scientific problems, a custom song to play while you solve your alarm, and a Home Screen widget.")
-                    .font(.caption)
+                    .font(AppTypography.body)
                     .foregroundColor(Theme.chalkFaded)
                     .accessibilityLabel(settings.isWhizUnlocked
                                         ? "Premium is unlocked on this device."
@@ -103,13 +116,13 @@ struct SettingsView: View {
                     Text("- A custom song while you solve the alarm")
                     Text("- A Home Screen widget for your next alarm and streak")
                 }
-                .font(.caption)
+                .font(AppTypography.body)
                 .foregroundColor(Theme.chalk)
                 .accessibilityElement(children: .combine)
 
                 if let price = settings.whizPrice, !settings.isWhizUnlocked {
                     Text("Unlock once for \(price).")
-                        .font(.caption)
+                        .font(AppTypography.body)
                         .foregroundColor(Theme.chalkYellow)
                 }
 
@@ -158,14 +171,14 @@ struct SettingsView: View {
 
                 if let status = settings.storeStatusMessage {
                     Text(status)
-                        .font(.caption)
+                        .font(AppTypography.body)
                         .foregroundColor(Theme.chalkFaded)
                         .accessibilityLabel(status)
                 }
 
                 if let error = settings.storeErrorMessage {
                     Text(error)
-                        .font(.caption)
+                        .font(AppTypography.body)
                         .foregroundColor(Theme.chalkRed)
                         .accessibilityLabel(error)
                 }
@@ -175,7 +188,7 @@ struct SettingsView: View {
                     Link("Privacy Policy", destination: PremiumLinks.privacyPolicy)
                     Spacer()
                 }
-                .font(.caption)
+                .font(AppTypography.body)
                 .tint(Theme.chalkYellow)
                 .foregroundColor(Theme.chalkYellow)
 
@@ -195,7 +208,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader("Widget")
                 Text("Customize the Home Screen widget. Changes apply the next time the widget refreshes.")
-                    .font(.caption)
+                    .font(AppTypography.body)
                     .foregroundColor(Theme.chalkFaded)
 
                 widgetOptionRow("Clock") {
@@ -235,18 +248,18 @@ struct SettingsView: View {
                     Stepper(value: $settings.widgetUpcomingCount,
                             in: SettingsStore.widgetUpcomingCountRange) {
                         Text("Upcoming alarms: \(settings.widgetUpcomingCount)")
-                            .font(.caption)
+                            .font(AppTypography.body)
                             .foregroundColor(Theme.chalk)
                     }
                     .tint(Theme.chalkYellow)
                     Text("How many alarms the medium widget lists. The small widget always shows the next one.")
-                        .font(.caption2)
+                        .font(AppTypography.body)
                         .foregroundColor(Theme.chalkFaded)
                 }
 
                 Toggle(isOn: $settings.widgetShowStreak) {
                     Text("Show solve streak")
-                        .font(.caption)
+                        .font(AppTypography.body)
                         .foregroundColor(Theme.chalk)
                 }
                 .tint(Theme.chalkYellow)
@@ -260,9 +273,9 @@ struct SettingsView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.caption2.weight(.semibold))
+                .font(AppTypography.emphasis)
                 .foregroundColor(Theme.chalkFaded)
-            HStack(spacing: 8) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: min(optionWidth, 240)))], spacing: 8) {
                 content()
             }
         }
@@ -273,7 +286,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader("Test Alarm")
                 Text("Triggers the ringing screen immediately so you can preview the sound and math challenge. It plays even on silent, but turn your volume up to hear it, the test follows your media volume level. Real scheduled alarms use the system alarm volume instead.")
-                    .font(.caption)
+                    .font(AppTypography.body)
                     .foregroundColor(Theme.chalkFaded)
                 Button {
                     dismiss()
@@ -310,7 +323,7 @@ struct SettingsView: View {
 
     private func sectionHeader(_ text: String) -> some View {
         Text(text)
-            .font(.system(.caption, design: Theme.fontDesign))
+            .font(AppTypography.body)
             .fontWeight(.semibold)
             .foregroundColor(Theme.chalkYellow)
     }
@@ -331,6 +344,150 @@ struct SettingsView: View {
         .background(fill)
         .foregroundColor(foreground)
         .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+struct SoundPickerView: View {
+    @EnvironmentObject private var settings: SettingsStore
+    @EnvironmentObject private var scheduler: AlarmScheduler
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                ChalkboardBackground()
+                List {
+                    Section {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Find your morning voice.")
+                                .font(AppTypography.title)
+                                .foregroundStyle(Theme.chalk)
+                            Text("Preview first. Select when ready. Previews play up to 24 seconds and can be stopped at any time. Start at a low volume; they use media volume and can play even on silent.")
+                                .font(AppTypography.body)
+                                .foregroundStyle(Theme.chalkFaded)
+                            if let error = scheduler.previewErrorMessage {
+                                Label(error, systemImage: "exclamationmark.triangle")
+                                    .foregroundStyle(Theme.chalkRed)
+                                    .font(AppTypography.body)
+                            }
+                        }
+                        .listRowBackground(Color.clear)
+                    }
+                    ForEach(AlarmSound.Family.allCases, id: \.self) { family in
+                        Section {
+                            ForEach(AlarmSound.allCases.filter { $0.family == family }, id: \.self) { sound in
+                                SoundChoiceRow(
+                                    sound: sound,
+                                    isSelected: settings.alarmSound == sound,
+                                    isPreviewing: scheduler.previewingSound == sound,
+                                    onSelect: {
+                                        scheduler.stopSoundPreview()
+                                        settings.alarmSound = sound
+                                    },
+                                    onPreview: {
+                                        if scheduler.previewingSound == sound {
+                                            scheduler.stopSoundPreview()
+                                        } else {
+                                            scheduler.previewSound(sound)
+                                        }
+                                    }
+                                )
+                                .listRowBackground(Theme.boardDark)
+                            }
+                        } header: {
+                            Text(family.rawValue)
+                                .font(AppTypography.emphasis)
+                                .foregroundStyle(Theme.chalkFaded)
+                                .textCase(nil)
+                        }
+                    }
+                    Section {
+                        Text("Sound V2 refreshes Bell and Buzz. Classic becomes Roll Call; Chime is unchanged. Check a scheduled alarm on your phone before relying on a new sound. Scheduled volume follows the system's controls, not this preview.")
+                            .font(AppTypography.body)
+                            .foregroundStyle(Theme.chalkFaded)
+                            .listRowBackground(Color.clear)
+                    }
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("Alarm Sounds")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .tint(Theme.chalkYellow)
+                        .accessibilityIdentifier("soundpicker.done")
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if let sound = scheduler.previewingSound {
+                    Button {
+                        scheduler.stopSoundPreview()
+                    } label: {
+                        Label("Stop preview: \(sound.label)", systemImage: "stop.fill")
+                            .font(AppTypography.emphasis)
+                            .frame(maxWidth: .infinity)
+                            .padding(16)
+                            .foregroundStyle(Theme.boardDark)
+                            .background(Theme.chalkYellow)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("soundpicker.stop-preview")
+                }
+            }
+        }
+        .colorScheme(settings.activeTheme.colorScheme)
+        .onDisappear { scheduler.stopSoundPreview() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { scheduler.stopSoundPreview() }
+        }
+    }
+}
+
+private struct SoundChoiceRow: View {
+    let sound: AlarmSound
+    let isSelected: Bool
+    let isPreviewing: Bool
+    let onSelect: () -> Void
+    let onPreview: () -> Void
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Button(action: onSelect) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(isSelected ? Theme.chalkYellow : Theme.chalkFaded)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(sound.label)
+                            .font(AppTypography.emphasis)
+                            .foregroundStyle(Theme.chalk)
+                        Text(sound.detail)
+                            .font(AppTypography.body)
+                            .foregroundStyle(Theme.chalkFaded)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Select \(sound.label)")
+            .accessibilityValue(isSelected ? "Selected" : "Not selected")
+            .accessibilityHint(sound.detail)
+            .accessibilityIdentifier("sound.select.\(sound.rawValue)")
+
+            Button(action: onPreview) {
+                Image(systemName: isPreviewing ? "stop.fill" : "play.fill")
+                    .frame(minWidth: 44, minHeight: 44)
+                    .foregroundStyle(Theme.chalkYellow)
+                    .background(Theme.board, in: RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isPreviewing ? "Stop preview of \(sound.label)" : "Preview \(sound.label)")
+            .accessibilityIdentifier("sound.preview.\(sound.rawValue)")
+        }
+        .padding(.vertical, 8)
     }
 }
 
@@ -362,10 +519,10 @@ struct ThemeRow: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(theme.label)
-                        .font(.system(.body, design: previewColors.fontDesign))
+                        .font(AppTypography.body)
                         .foregroundColor(Theme.chalk)
                     Text(theme == .highContrast ? "Maximum separation" : theme == .retro ? "Sharper LCD contrast" : "Accessible palette")
-                        .font(.caption2)
+                        .font(AppTypography.body)
                         .foregroundColor(Theme.chalkFaded)
                 }
 
@@ -374,7 +531,7 @@ struct ThemeRow: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(Theme.chalkYellow)
-                        .font(.title3)
+                        .font(AppTypography.title)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

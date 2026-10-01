@@ -27,9 +27,8 @@ struct AlarmProvider: TimelineProvider {
         // if the system is slow to honor `.atEnd`. The snapshot is identical
         // across entries; only the displayed minute advances, and each entry
         // re-evaluates the next-alarm freshness against its own date. The app
-        // also pushes reloads on data changes (alarms, entitlement, theme).
-        let minuteComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)
-        let startOfMinute = calendar.date(from: minuteComponents) ?? now
+        // also pushes reloads on data changes and foreground clock changes.
+        let startOfMinute = calendar.dateInterval(of: .minute, for: now)?.start ?? now
 
         let entries: [AlarmEntry] = (0..<120).map { offset in
             let date = calendar.date(byAdding: .minute, value: offset, to: startOfMinute) ?? startOfMinute
@@ -90,7 +89,7 @@ struct AlarmWidgetView: View {
 
         if snapshot.isPremiumUnlocked {
             let visibleLimit = family == .systemMedium ? config.upcomingCount : 1
-            let visible = snapshot.upcomingAlarms.filter { $0.date > entry.date }.prefix(visibleLimit)
+            let visible = snapshot.visibleAlarms(after: entry.date, limit: visibleLimit)
             if let next = visible.first {
                 let time = next.date.formatted(date: .omitted, time: .shortened)
                 parts.append(next.label.isEmpty
@@ -225,44 +224,11 @@ private struct AnalogClock: View {
     let date: Date
     let palette: WidgetSharedStore.ThemePalette
 
-    private var minute: Double { Double(Calendar.current.component(.minute, from: date)) }
-    private var hour: Double { Double(Calendar.current.component(.hour, from: date) % 12) }
-    private var minuteAngle: Double { minute / 60 * 360 }
-    private var hourAngle: Double { (hour + minute / 60) / 12 * 360 }
-
     var body: some View {
-        GeometryReader { geo in
-            let s = min(geo.size.width, geo.size.height)
-            ZStack {
-                Circle()
-                    .stroke(palette.chalkFaded.color.opacity(0.7), lineWidth: max(1.5, s * 0.025))
-
-                ForEach(0..<12, id: \.self) { tick in
-                    Capsule()
-                        .fill(palette.chalkFaded.color)
-                        .frame(width: max(1.5, s * 0.02), height: s * 0.07)
-                        .offset(y: -s * 0.43)
-                        .rotationEffect(.degrees(Double(tick) / 12 * 360))
-                }
-
-                hand(length: s * 0.26, width: max(2, s * 0.045), angle: hourAngle, color: palette.chalk.color)
-                hand(length: s * 0.38, width: max(1.5, s * 0.03), angle: minuteAngle, color: palette.chalk.color)
-
-                Circle()
-                    .fill(palette.chalkYellow.color)
-                    .frame(width: s * 0.08, height: s * 0.08)
-            }
-            .frame(width: s, height: s)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-
-    private func hand(length: CGFloat, width: CGFloat, angle: Double, color: Color) -> some View {
-        Capsule()
-            .fill(color)
-            .frame(width: width, height: length)
-            .offset(y: -length / 2)
-            .rotationEffect(.degrees(angle))
+        AlarmClockArtwork(
+            faceColor: palette.chalkYellow.color, bellColor: palette.chalk.color,
+            detailColor: palette.board.color, date: date
+        )
     }
 }
 
@@ -353,15 +319,6 @@ private struct LockedDetailView: View {
 }
 
 // MARK: - Snapshot / config helpers
-
-private extension WidgetSharedStore.Snapshot {
-    /// Upcoming alarms that are still in the future relative to `date`, capped at
-    /// `limit`. Re-filtering per entry keeps fired alarms from lingering as the
-    /// minute-by-minute timeline advances.
-    func visibleAlarms(after date: Date, limit: Int) -> [WidgetSharedStore.UpcomingAlarm] {
-        Array(upcomingAlarms.filter { $0.date > date }.prefix(max(0, limit)))
-    }
-}
 
 private extension WidgetSharedStore.WidgetConfig {
     var isAnalog: Bool { clockStyle == "analog" }

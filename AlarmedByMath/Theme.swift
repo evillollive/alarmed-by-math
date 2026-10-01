@@ -89,13 +89,13 @@ enum AppTheme: String, CaseIterable, Codable {
         switch self {
         case .chalk:
             return ThemeColors(
-                boardSwatch:       ThemeSwatch(red: 0.16, green: 0.30, blue: 0.20),
-                boardDarkSwatch:   ThemeSwatch(red: 0.10, green: 0.20, blue: 0.13),
-                chalkSwatch:       ThemeSwatch(red: 0.96, green: 0.96, blue: 0.92),
-                chalkFadedSwatch:  ThemeSwatch(red: 0.72, green: 0.74, blue: 0.70),
-                chalkYellowSwatch: ThemeSwatch(red: 0.99, green: 0.89, blue: 0.38),
-                chalkRedSwatch:    ThemeSwatch(red: 0.96, green: 0.58, blue: 0.56),
-                chalkBlueSwatch:   ThemeSwatch(red: 0.62, green: 0.82, blue: 0.98),
+                boardSwatch:       ThemeSwatch(red: 0.06, green: 0.17, blue: 0.14),
+                boardDarkSwatch:   ThemeSwatch(red: 0.04, green: 0.12, blue: 0.10),
+                chalkSwatch:       ThemeSwatch(red: 0.96, green: 0.94, blue: 0.85),
+                chalkFadedSwatch:  ThemeSwatch(red: 0.70, green: 0.76, blue: 0.68),
+                chalkYellowSwatch: ThemeSwatch(red: 0.97, green: 0.81, blue: 0.39),
+                chalkRedSwatch:    ThemeSwatch(red: 0.99, green: 0.60, blue: 0.48),
+                chalkBlueSwatch:   ThemeSwatch(red: 0.63, green: 0.82, blue: 0.81),
                 fontDesign:        .rounded
             )
         case .whiteboard:
@@ -183,17 +183,54 @@ enum AppTheme: String, CaseIterable, Codable {
 
 enum AlarmSound: String, CaseIterable, Codable {
     case chime
-    case classic
+    case daybreak
+    case glasshouse
+    case clockwork
     case bell
     case buzzOnly
+    case rollCall
+    case ratchet
+
+    enum Family: String, CaseIterable {
+        case melodic = "Melodic"
+        case insistent = "Insistent"
+    }
 
     var label: String {
         switch self {
         case .chime:    return "Chime"
-        case .classic:  return "Classic"
+        case .daybreak: return "Daybreak"
+        case .glasshouse: return "Glasshouse"
+        case .clockwork: return "Clockwork"
         case .bell:     return "Bell"
         case .buzzOnly: return "Buzz"
+        case .rollCall: return "Roll Call"
+        case .ratchet:  return "Ratchet"
         }
+    }
+
+    var detail: String {
+        switch self {
+        case .chime: return "The familiar chime, unchanged."
+        case .daybreak: return "Warm mallets over a rounded low accompaniment."
+        case .glasshouse: return "A low opening note and a clear, short melody."
+        case .clockwork: return "Dry ticks under a repeating mallet pattern."
+        case .bell: return "Deep, closely spaced double-strikes."
+        case .buzzOnly: return "A low buzz with long calls and shorter pairs."
+        case .rollCall: return "Varied call-and-response with ringing tails."
+        case .ratchet: return "Mechanical bursts with low body and sharp attacks."
+        }
+    }
+
+    var family: Family {
+        switch self {
+        case .chime, .daybreak, .glasshouse, .clockwork: return .melodic
+        case .bell, .buzzOnly, .rollCall, .ratchet: return .insistent
+        }
+    }
+
+    static func fromStoredValue(_ value: String) -> AlarmSound? {
+        value == "classic" ? .rollCall : AlarmSound(rawValue: value)
     }
 
     /// Bundled looping tone (< 30s) used for the real alarm: AlarmKit, the
@@ -204,9 +241,13 @@ enum AlarmSound: String, CaseIterable, Codable {
     var resource: (name: String, ext: String) {
         switch self {
         case .chime:    return ("chime", "caf")
-        case .classic:  return ("classic", "caf")
-        case .bell:     return ("bell", "caf")
-        case .buzzOnly: return ("buzz", "caf")
+        case .daybreak: return ("daybreak", "caf")
+        case .glasshouse: return ("glasshouse", "caf")
+        case .clockwork: return ("clockwork", "caf")
+        case .bell:     return ("bell_v2", "caf")
+        case .buzzOnly: return ("buzz_v2", "caf")
+        case .rollCall: return ("roll_call", "caf")
+        case .ratchet:  return ("ratchet", "caf")
         }
     }
 
@@ -215,10 +256,9 @@ enum AlarmSound: String, CaseIterable, Codable {
 
     var systemSoundID: SystemSoundID {
         switch self {
-        case .chime:    return SystemSoundID(1005)
-        case .classic:  return SystemSoundID(1007)
-        case .bell:     return SystemSoundID(1013)
-        case .buzzOnly: return kSystemSoundID_Vibrate
+        case .chime, .daybreak: return SystemSoundID(1005)
+        case .bell, .glasshouse: return SystemSoundID(1013)
+        case .clockwork, .buzzOnly, .rollCall, .ratchet: return SystemSoundID(1007)
         }
     }
 }
@@ -236,4 +276,40 @@ enum Theme {
     static var chalkRed:    Color       { c.chalkRed }
     static var chalkBlue:   Color       { c.chalkBlue }
     static var fontDesign:  Font.Design { c.fontDesign }
+}
+
+enum AppTypography {
+    static var body: Font { .system(.body, design: Theme.fontDesign) }
+    static var emphasis: Font { body.weight(.semibold) }
+    static var title: Font { .system(.title2, design: Theme.fontDesign).weight(.semibold) }
+    static var display: Font { .system(.largeTitle, design: Theme.fontDesign).weight(.semibold) }
+}
+
+struct ChalkboardBackground: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        ZStack {
+            Theme.board
+            if !reduceTransparency {
+                Canvas { context, size in
+                    var lines = Path()
+                    for y in stride(from: CGFloat(32), to: size.height, by: 32) {
+                        lines.move(to: CGPoint(x: 0, y: y))
+                        lines.addLine(to: CGPoint(x: size.width, y: y))
+                    }
+                    context.stroke(lines, with: .color(Theme.chalk.opacity(0.035)), lineWidth: 0.5)
+                }
+            }
+        }
+        .ignoresSafeArea()
+        .accessibilityHidden(true)
+        .allowsHitTesting(false)
+    }
+}
+
+struct ChalkClockMark: View {
+    var body: some View {
+        AlarmClockArtwork(faceColor: Theme.chalkYellow, bellColor: Theme.chalk, detailColor: Theme.board)
+    }
 }
