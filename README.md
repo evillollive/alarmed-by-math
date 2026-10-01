@@ -36,6 +36,7 @@ Alarmed by Math is a small, focused iOS alarm app built with Swift and SwiftUI. 
 - [Free vs Premium](#free-vs-premium)
 - [The clever bits](#the-clever-bits)
 - [Sound V2](#sound-v2)
+- [Artwork](#artwork)
 - [What's under the hood](#whats-under-the-hood)
 - [Project structure](#project-structure)
 - [Requirements](#requirements)
@@ -107,10 +108,10 @@ A few design choices that make this more than just "alarm + quiz":
 - **Your clock preferences.** Alarm times use the device's 12/24-hour format.
   Repeat-day labels and the weekday picker follow the current calendar's
   language and first day of the week. Widgets already use native time formatting.
-- **Refined chalkboard artwork.** Deep green, warm chalk, and a golden
-  clock-and-right-triangle mark tie the alarm list, ringing screen, and challenge
-  together. The editable [vector artwork](docs/assets/chalkboard-mark.svg) is
-  included; the installed app icon is unchanged in this first pass.
+- **One clock-and-math identity.** Small right-triangle bells and a triangle
+  inside the clock face connect the installed icon, in-app artwork, and README
+  branding. The analog widget uses the same bells with time-correct hands.
+  Default, dark, and tinted icon appearances share the same geometry.
 - **A quieter type system.** App-owned text uses one font design per theme and
   three Dynamic Type sizes: body text, compact headings, and large time/math
   values. Labels use weight and color instead of extra fonts or tiny captions.
@@ -166,6 +167,24 @@ phrase against its approved PCM SHA-256 and verifies lossless CAF conversion.
 The generated files are included in the app target, so normal builds need no audio tools.
 Actual phone-speaker, locked-screen, and scheduled-alarm checks remain necessary
 before release. Music-library solve soundtracks remain a separate Premium feature.
+
+## Artwork
+
+The selected B3 design keeps the bells at 65% and face triangle at 80% of the
+original concept. Its geometry is shared by the app, analog widget, and export
+tool in [`AlarmClockArtwork.swift`](AlarmedByMath/Services/AlarmClockArtwork.swift).
+The [SVG mark](docs/assets/chalkboard-mark.svg) and light/dark README logos are
+generated from those same paths.
+
+The native asset catalog contains opaque, full-bleed 1024px RGB PNGs for default,
+dark, and tinted appearances. Corners are masked by iOS, not baked into the PNGs.
+These are deliberately flat assets, not an Icon Composer layered package.
+
+To regenerate, compile `scripts/generate_app_icons.swift` together with the shared
+artwork file using `swiftc` on macOS, then run the executable with the repository
+root as its argument. It updates the three icons, SVG mark, README logos, and
+the branding symbol in the illustrative README demo. Final App Store screenshots
+remain separate release work.
 
 ## What's under the hood
 

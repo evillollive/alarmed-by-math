@@ -225,44 +225,11 @@ private struct AnalogClock: View {
     let date: Date
     let palette: WidgetSharedStore.ThemePalette
 
-    private var minute: Double { Double(Calendar.current.component(.minute, from: date)) }
-    private var hour: Double { Double(Calendar.current.component(.hour, from: date) % 12) }
-    private var minuteAngle: Double { minute / 60 * 360 }
-    private var hourAngle: Double { (hour + minute / 60) / 12 * 360 }
-
     var body: some View {
-        GeometryReader { geo in
-            let s = min(geo.size.width, geo.size.height)
-            ZStack {
-                Circle()
-                    .stroke(palette.chalkFaded.color.opacity(0.7), lineWidth: max(1.5, s * 0.025))
-
-                ForEach(0..<12, id: \.self) { tick in
-                    Capsule()
-                        .fill(palette.chalkFaded.color)
-                        .frame(width: max(1.5, s * 0.02), height: s * 0.07)
-                        .offset(y: -s * 0.43)
-                        .rotationEffect(.degrees(Double(tick) / 12 * 360))
-                }
-
-                hand(length: s * 0.26, width: max(2, s * 0.045), angle: hourAngle, color: palette.chalk.color)
-                hand(length: s * 0.38, width: max(1.5, s * 0.03), angle: minuteAngle, color: palette.chalk.color)
-
-                Circle()
-                    .fill(palette.chalkYellow.color)
-                    .frame(width: s * 0.08, height: s * 0.08)
-            }
-            .frame(width: s, height: s)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-
-    private func hand(length: CGFloat, width: CGFloat, angle: Double, color: Color) -> some View {
-        Capsule()
-            .fill(color)
-            .frame(width: width, height: length)
-            .offset(y: -length / 2)
-            .rotationEffect(.degrees(angle))
+        AlarmClockArtwork(
+            faceColor: palette.chalkYellow.color, bellColor: palette.chalk.color,
+            detailColor: palette.board.color, date: date
+        )
     }
 }
 

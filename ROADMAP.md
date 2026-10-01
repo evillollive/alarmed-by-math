@@ -17,7 +17,9 @@ deferred while Actions minutes are unavailable.
   ringing screen, and math challenge, with scrollable layouts, answer feedback,
   and a repeated-submission guard. Added original
   [clock-and-geometry vector artwork](docs/assets/chalkboard-mark.svg).
-  The installed app icon and README logo have not been replaced.
+  The selected B3 icon now replaces the old equation icon, with default/dark/tinted
+  appearances and matching README branding. Shared geometry also updates the
+  analog widget while preserving its working clock hands.
 - Simplified app typography to one typeface per active theme and three semantic
   sizes, centralized in `AppTypography`. Removed mixed serif headings and
   monospaced captions, kept large digits for time/math, and made choice grids
@@ -35,8 +37,8 @@ deferred while Actions minutes are unavailable.
   native practice and ringing-to-challenge flows. The practice flow also passed
   at the largest accessibility text size on iOS 27. These are scoped local
   results, not a release qualification or proof of locked-screen wake behavior.
-- **Still next:** skip-next scheduling, icon appearance variants,
-  remaining theme/widget polish, and real-device alarm lifecycle coverage.
+- **Still next:** skip-next scheduling, remaining theme/widget polish,
+  final App Store screenshots, and real-device alarm lifecycle coverage.
 
 ## Starting point
 
@@ -72,15 +74,13 @@ cannot qualify locked-screen alarm behavior.
 
 ## 2. Astra 6 visual refresh, started early
 
-- **Choose a coherent identity:** use Astra 6 for two or three original visual
-  concepts, such as refined chalkboard, playful geometric math, and retro LCD.
-  Compare icon-size samples and the alarm-list/ringing/challenge screens before
-  selecting one direction. The current equation-heavy icon and plus-mark README
-  logo should become a consistent family without losing the clock-and-math idea.
-- **Produce a reusable art set:** editable vector masters, a clearer small-size
-  icon, layered Icon Composer artwork and appearance variants, matching analog
-  clock details, empty-state illustration, and restrained milestone/badge art.
-  Preserve compatible assets for older iOS versions.
+- **Selected identity:** refined chalkboard with the B3 clock mark. The bells
+  use right triangles at 65% scale and the central triangle uses 80% scale.
+  Icon, in-app mark, analog clock styling, and README logos now share geometry.
+- **Reusable art set:** default/dark/tinted PNG icons and SVG branding are
+  implemented locally, using the supported asset-catalog path and preserving
+  older-iOS compatibility. Optional layered Icon Composer treatments and
+  additional milestone/badge art remain later polish, not completed work.
 - **Polish the actual app:** the shared three-size typography system is now
   implemented. Continue refining spacing, theme previews, keypad hierarchy,
   and answer feedback. Explore native Liquid Glass for navigation

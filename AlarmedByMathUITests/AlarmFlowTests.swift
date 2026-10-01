@@ -193,6 +193,25 @@ final class AlarmFlowTests: XCTestCase {
         XCTAssertFalse(app.buttons["Solve to dismiss alarm"].exists)
     }
 
+    func testProductionArtworkIsVisibleOnHomeScreen() {
+        capture("11 - App with production B3 mark")
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 5))
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let icon = springboard.icons["Alarmed"]
+        for _ in 0..<4 {
+            if icon.exists && icon.isHittable { break }
+            springboard.swipeLeft()
+        }
+        XCTAssertTrue(icon.isHittable, springboard.debugDescription)
+        let screenshot = XCTAttachment(screenshot: springboard.screenshot())
+        screenshot.name = "12 - Installed production icon"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.launch()
+        XCTAssertTrue(app.buttons["alarms.add"].waitForExistence(timeout: 5))
+    }
+
     private func alarmButton(named name: String) -> XCUIElement {
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
     }

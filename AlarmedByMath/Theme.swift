@@ -308,46 +308,8 @@ struct ChalkboardBackground: View {
     }
 }
 
-/// A clock whose hands form the two sides of a right-angle proof.
 struct ChalkClockMark: View {
     var body: some View {
-        GeometryReader { geometry in
-            let side = min(geometry.size.width, geometry.size.height)
-            ZStack {
-                Circle()
-                    .fill(Theme.boardDark)
-                Circle()
-                    .strokeBorder(Theme.chalk, lineWidth: side * 0.016)
-                    .padding(side * 0.045)
-                ForEach(0..<12, id: \.self) { tick in
-                    Capsule()
-                        .fill(tick.isMultiple(of: 3) ? Theme.chalkYellow : Theme.chalkFaded)
-                        .frame(width: side * 0.016, height: side * (tick.isMultiple(of: 3) ? 0.075 : 0.04))
-                        .offset(y: -side * 0.37)
-                        .rotationEffect(.degrees(Double(tick) * 30))
-                }
-                Path { path in
-                    path.move(to: CGPoint(x: side * 0.29, y: side * 0.5))
-                    path.addLine(to: CGPoint(x: side * 0.5, y: side * 0.5))
-                    path.addLine(to: CGPoint(x: side * 0.5, y: side * 0.22))
-                }
-                .stroke(Theme.chalkYellow, style: StrokeStyle(lineWidth: side * 0.035, lineCap: .round, lineJoin: .round))
-                Path { path in
-                    path.move(to: CGPoint(x: side * 0.29, y: side * 0.5))
-                    path.addLine(to: CGPoint(x: side * 0.5, y: side * 0.22))
-                    path.move(to: CGPoint(x: side * 0.435, y: side * 0.5))
-                    path.addLine(to: CGPoint(x: side * 0.435, y: side * 0.435))
-                    path.addLine(to: CGPoint(x: side * 0.5, y: side * 0.435))
-                }
-                .stroke(Theme.chalkFaded, style: StrokeStyle(lineWidth: side * 0.008, dash: [side * 0.022, side * 0.018]))
-                Circle()
-                    .fill(Theme.chalkYellow)
-                    .frame(width: side * 0.065, height: side * 0.065)
-            }
-            .frame(width: side, height: side)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .aspectRatio(1, contentMode: .fit)
-        .accessibilityHidden(true)
+        AlarmClockArtwork(faceColor: Theme.chalkYellow, bellColor: Theme.chalk, detailColor: Theme.board)
     }
 }
