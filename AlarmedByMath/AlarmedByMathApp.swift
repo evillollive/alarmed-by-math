@@ -65,6 +65,8 @@ struct AlarmedByMathApp: App {
                 .environmentObject(alarmStore)
                 .environmentObject(scheduler)
                 .environmentObject(settings)
+                .font(AppTypography.body)
+                .fontDesign(Theme.fontDesign)
                 .colorScheme(settings.activeTheme.colorScheme)
                 .onAppear {
                     Task {
@@ -93,6 +95,9 @@ struct AlarmedByMathApp: App {
                 }
                 .onReceive(settings.$activeTheme) { _ in
                     WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
+                }
+                .onChange(of: settings.alarmSound) {
+                    scheduler.scheduleAlarms(alarmStore.alarms)
                 }
                 .onReceive(settings.widgetConfigChanged) { _ in
                     WidgetSync.refresh(alarmStore: alarmStore, settings: settings)

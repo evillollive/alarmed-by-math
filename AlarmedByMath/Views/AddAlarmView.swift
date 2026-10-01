@@ -6,8 +6,13 @@ struct AddAlarmView: View {
     @EnvironmentObject var scheduler:  AlarmScheduler
     @EnvironmentObject var settings:   SettingsStore
     @Environment(\.dismiss) var dismiss
+    @Environment(\.calendar) private var calendar
+    @Environment(\.locale) private var locale
+    @ScaledMetric(relativeTo: .body) private var choiceWidth = 104
+    @ScaledMetric(relativeTo: .body) private var weekdayWidth = 52
 
     let alarmToEdit: Alarm?
+    private let isDuplicate: Bool
 
     @State private var selectedTime:      Date
     @State private var label:             String
@@ -23,13 +28,18 @@ struct AddAlarmView: View {
     @State private var songWarning:       String?
     @State private var showingPaywall     = false
 
-    private let daySymbols = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    private var weekdayCalendar: Calendar {
+        var localized = calendar
+        localized.locale = locale
+        return localized
+    }
     private var premiumLocked: Bool { !settings.allowsWhizDifficulty }
 
     // Designated init, pre-fills fields when editing an existing alarm
-    init(alarmToEdit: Alarm? = nil) {
+    init(alarmToEdit: Alarm? = nil, duplicating source: Alarm? = nil) {
         self.alarmToEdit = alarmToEdit
-        if let alarm = alarmToEdit {
+        self.isDuplicate = source != nil
+        if let alarm = alarmToEdit ?? source?.duplicateDraft() {
             var components    = DateComponents()
             components.hour   = alarm.hour
             components.minute = alarm.minute
@@ -59,12 +69,18 @@ struct AddAlarmView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
-                Theme.board.ignoresSafeArea()
+                ChalkboardBackground()
 
                 ScrollView {
                     VStack(spacing: 20) {
+                        if isDuplicate {
+                            Label("Review this copy before saving. Your original alarm is unchanged.",
+                                  systemImage: "doc.on.doc")
+                                .font(AppTypography.body)
+                                .foregroundStyle(Theme.chalk)
+                        }
 
                         // Time picker
                         chalkCard {
@@ -75,6 +91,7 @@ struct AddAlarmView: View {
                             )
                             .datePickerStyle(.wheel)
                             .labelsHidden()
+                            .accessibilityLabel("Alarm time")
                             .frame(maxWidth: .infinity)
                         }
 
@@ -84,7 +101,7 @@ struct AddAlarmView: View {
                                 sectionHeader("Label")
                                 TextField("Alarm label (optional)", text: $label)
                                     .foregroundColor(Theme.chalk)
-                                    .font(.system(.body, design: Theme.fontDesign))
+                                    .font(AppTypography.body)
                             }
                         }
 
@@ -92,7 +109,7 @@ struct AddAlarmView: View {
                         chalkCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 sectionHeader("Difficulty")
-                                HStack(spacing: 6) {
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: min(choiceWidth, 240)))], spacing: 8) {
                                     ForEach(Difficulty.allCases, id: \.self) { level in
                                         let isLockedPremium = level == .whiz && premiumLocked
                                         DayToggleButton(
@@ -120,7 +137,7 @@ struct AddAlarmView: View {
                                 }
                                 if premiumLocked {
                                     Text("Premium is part of the paid tier. Free alarms currently support up to Expert.")
-                                        .font(.caption)
+                                        .font(AppTypography.body)
                                         .foregroundColor(Theme.chalkFaded)
                                     unlockPremiumButton(
                                         context: "Whiz scientific problems are a Premium feature."
@@ -128,7 +145,7 @@ struct AddAlarmView: View {
                                 }
                                 if difficulty == .whiz && premiumLocked {
                                     Text("This alarm will be saved as Expert until Premium is unlocked.")
-                                        .font(.caption)
+                                        .font(AppTypography.body)
                                         .foregroundColor(Theme.chalkYellow)
                                 }
                             }
@@ -140,7 +157,7 @@ struct AddAlarmView: View {
                                 sectionHeader("Problems to Solve")
                                 HStack {
                                     Text("\(problemCount) problem\(problemCount == 1 ? "" : "s")")
-                                        .font(.system(.body, design: Theme.fontDesign))
+                                        .font(AppTypography.body)
                                         .foregroundColor(Theme.chalk)
                                     Spacer()
                                     Stepper("", value: $problemCount, in: 1...10)
@@ -155,7 +172,7 @@ struct AddAlarmView: View {
                                 VStack(alignment: .leading, spacing: 12) {
                                     sectionHeader("Solve Soundtrack")
                                     Text("Pick a song to play while you solve this alarm's math after you open it. Your phone still wakes you with the alarm sound from Settings.")
-                                        .font(.caption)
+                                        .font(AppTypography.body)
                                         .foregroundColor(Theme.chalkFaded)
                                     Button {
                                         showingMusicPicker = true
@@ -164,12 +181,12 @@ struct AddAlarmView: View {
                                             Image(systemName: "music.note")
                                                 .foregroundColor(Theme.chalkYellow)
                                             Text(songTitle ?? "Default Sound")
-                                                .font(.system(.body, design: Theme.fontDesign))
+                                                .font(AppTypography.body)
                                                 .foregroundColor(songTitle == nil ? Theme.chalkFaded : Theme.chalk)
                                                 .lineLimit(1)
                                             Spacer()
                                             Image(systemName: "chevron.right")
-                                                .font(.caption)
+                                                .font(AppTypography.body)
                                                 .foregroundColor(Theme.chalkFaded)
                                         }
                                     }
@@ -179,7 +196,7 @@ struct AddAlarmView: View {
 
                                     if let songWarning {
                                         Text(songWarning)
-                                            .font(.caption)
+                                            .font(AppTypography.body)
                                             .foregroundColor(Theme.chalkRed)
                                             .accessibilityLabel("Song unavailable: \(songWarning)")
                                     }
@@ -190,7 +207,7 @@ struct AddAlarmView: View {
                                             songTitle        = nil
                                             songWarning      = nil
                                         }
-                                        .font(.caption)
+                                        .font(AppTypography.body)
                                         .foregroundColor(Theme.chalkRed)
                                     }
                                 }
@@ -200,7 +217,7 @@ struct AddAlarmView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     sectionHeader("Solve Soundtrack")
                                     Text("Unlock Premium to play your own song while you solve the alarm. Your phone always wakes you with the dependable alarm sound from Settings.")
-                                        .font(.caption)
+                                        .font(AppTypography.body)
                                         .foregroundColor(Theme.chalkFaded)
                                     unlockPremiumButton(
                                         context: "Custom solve songs are a Premium feature."
@@ -217,12 +234,12 @@ struct AddAlarmView: View {
                                     HStack(spacing: 10) {
                                         Image(systemName: "speaker.fill")
                                             .foregroundColor(Theme.chalkFaded)
-                                            .font(.caption)
+                                            .font(AppTypography.body)
                                         Slider(value: $volume, in: 0.1...1.0)
                                             .tint(Theme.chalkYellow)
                                         Image(systemName: "speaker.wave.3.fill")
                                             .foregroundColor(Theme.chalkFaded)
-                                            .font(.caption)
+                                            .font(AppTypography.body)
                                     }
                                 }
                             }
@@ -231,7 +248,7 @@ struct AddAlarmView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     sectionHeader("Volume")
                                     Text("Scheduled alarms use the system alarm volume on this iOS path, so there isn't a reliable per-alarm volume control here.")
-                                        .font(.caption)
+                                        .font(AppTypography.body)
                                         .foregroundColor(Theme.chalkFaded)
                                 }
                             }
@@ -243,7 +260,7 @@ struct AddAlarmView: View {
                                 sectionHeader("Keep Ringing While Solving")
                                 HStack {
                                     Text("Sound keeps playing during the math challenge.")
-                                        .font(.caption)
+                                        .font(AppTypography.body)
                                         .foregroundColor(Theme.chalkFaded)
                                     Spacer()
                                     Toggle("", isOn: $keepRinging)
@@ -258,11 +275,11 @@ struct AddAlarmView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 sectionHeader("Snooze Duration")
                                 Text("How long before the alarm re-rings after you open the challenge.")
-                                    .font(.caption)
+                                    .font(AppTypography.body)
                                     .foregroundColor(Theme.chalkFaded)
                                 HStack {
                                     Text("\(snoozeDuration) minute\(snoozeDuration == 1 ? "" : "s")")
-                                        .font(.system(.body, design: Theme.fontDesign))
+                                        .font(AppTypography.body)
                                         .foregroundColor(Theme.chalk)
                                     Spacer()
                                     Stepper("", value: $snoozeDuration, in: 1...60)
@@ -275,10 +292,10 @@ struct AddAlarmView: View {
                         chalkCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 sectionHeader("Repeat")
-                                HStack(spacing: 6) {
-                                    ForEach(1...7, id: \.self) { day in
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: min(weekdayWidth, 180)))], spacing: 8) {
+                                    ForEach(Alarm.orderedWeekdays(calendar: weekdayCalendar), id: \.self) { day in
                                         DayToggleButton(
-                                            title: daySymbols[day - 1],
+                                            title: weekdayCalendar.shortWeekdaySymbols[day - 1],
                                             isSelected: repeatDays.contains(day)
                                         ) {
                                             if repeatDays.contains(day) {
@@ -287,7 +304,7 @@ struct AddAlarmView: View {
                                                 repeatDays.insert(day)
                                             }
                                         }
-                                        .accessibilityLabel("\(daySymbols[day - 1]) repeat")
+                                        .accessibilityLabel("\(weekdayCalendar.weekdaySymbols[day - 1]) repeat")
                                         .accessibilityValue(repeatDays.contains(day) ? "Selected" : "Not selected")
                                         .accessibilityHint("Double tap to toggle this weekday")
                                     }
@@ -298,7 +315,7 @@ struct AddAlarmView: View {
                     .padding()
                 }
             }
-            .navigationTitle(alarmToEdit == nil ? "New Alarm" : "Edit Alarm")
+            .navigationTitle(alarmToEdit != nil ? "Edit Alarm" : isDuplicate ? "Copy Alarm" : "New Alarm")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Theme.boardDark, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -357,7 +374,7 @@ struct AddAlarmView: View {
                 Text("Unlock Premium")
                     .fontWeight(.semibold)
             }
-            .font(.caption)
+            .font(AppTypography.body)
             .padding(.vertical, 8)
             .padding(.horizontal, 14)
             .background(Theme.chalkYellow)
@@ -384,7 +401,7 @@ struct AddAlarmView: View {
 
     private func sectionHeader(_ text: String) -> some View {
         Text(text)
-            .font(.system(.caption, design: Theme.fontDesign))
+            .font(AppTypography.body)
             .fontWeight(.semibold)
             .foregroundColor(Theme.chalkYellow)
     }
@@ -498,9 +515,10 @@ struct DayToggleButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(.caption, design: Theme.fontDesign))
+                .font(AppTypography.body)
                 .fontWeight(isSelected ? .semibold : .regular)
                 .frame(maxWidth: .infinity)
+                .frame(minHeight: 44)
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 8)

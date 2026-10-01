@@ -91,18 +91,52 @@ struct Alarm: Identifiable, Codable, Equatable {
     }
 
     var timeString: String {
-        let h = hour % 12 == 0 ? 12 : hour % 12
-        let period = hour < 12 ? "AM" : "PM"
-        return String(format: "%d:%02d %@", h, minute, period)
+        formattedTime()
+    }
+
+    func formattedTime(locale: Locale = .autoupdatingCurrent) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        // This date represents a wall-clock time, not a scheduled occurrence.
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.setLocalizedDateFormatFromTemplate("jm")
+        let time = Date(timeIntervalSinceReferenceDate: Double(hour * 3600 + minute * 60))
+        return formatter.string(from: time)
     }
 
     var repeatLabel: String {
+        formattedRepeatLabel()
+    }
+
+    func formattedRepeatLabel(calendar: Calendar = .autoupdatingCurrent) -> String {
         if repeatDays.isEmpty { return "Once" }
         let validDays = repeatDays.filter { (1...7).contains($0) }
         if validDays.count == 7 { return "Every day" }
-        let symbols = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-        let labels = validDays.sorted().map { symbols[$0 - 1] }
+        let labels = Self.orderedWeekdays(calendar: calendar)
+            .filter { validDays.contains($0) }
+            .map { calendar.shortWeekdaySymbols[$0 - 1] }
         return labels.isEmpty ? "Once" : labels.joined(separator: ", ")
+    }
+
+    static func orderedWeekdays(calendar: Calendar = .autoupdatingCurrent) -> [Int] {
+        (0..<7).map { (calendar.firstWeekday - 1 + $0) % 7 + 1 }
+    }
+
+    func duplicateDraft() -> Alarm {
+        Alarm(
+            label: label,
+            hour: hour,
+            minute: minute,
+            repeatDays: repeatDays,
+            isEnabled: false,
+            difficulty: difficulty,
+            problemCount: problemCount,
+            songPersistentID: songPersistentID,
+            songTitle: songTitle,
+            volume: volume,
+            snoozeDuration: snoozeDuration,
+            keepRinging: keepRinging
+        )
     }
 
     func normalized() -> Alarm {

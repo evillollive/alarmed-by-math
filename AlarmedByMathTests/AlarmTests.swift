@@ -1,7 +1,22 @@
 import XCTest
+import AVFoundation
+import SwiftUI
 @testable import AlarmedByMath
 
+private func testWeekdayCalendar(locale: String = "en_US", firstWeekday: Int = 1) -> Calendar {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.locale = Locale(identifier: locale)
+    calendar.firstWeekday = firstWeekday
+    return calendar
+}
+
 final class AlarmTests: XCTestCase {
+
+    private func twelveHourTime(_ alarm: Alarm) -> String {
+        alarm.formattedTime(locale: Locale(identifier: "en_US_POSIX"))
+            .replacingOccurrences(of: "\u{202F}", with: " ")
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
+    }
 
     // MARK: - Defaults
 
@@ -17,23 +32,34 @@ final class AlarmTests: XCTestCase {
     // MARK: - timeString
 
     func testTimeStringMorning() {
-        XCTAssertEqual(Alarm(hour: 8,  minute: 30).timeString, "8:30 AM")
+        XCTAssertEqual(twelveHourTime(Alarm(hour: 8, minute: 30)), "8:30 AM")
     }
 
     func testTimeStringAfternoon() {
-        XCTAssertEqual(Alarm(hour: 14, minute:  5).timeString, "2:05 PM")
+        XCTAssertEqual(twelveHourTime(Alarm(hour: 14, minute: 5)), "2:05 PM")
     }
 
     func testTimeStringMidnight() {
-        XCTAssertEqual(Alarm(hour: 0,  minute:  0).timeString, "12:00 AM")
+        XCTAssertEqual(twelveHourTime(Alarm(hour: 0, minute: 0)), "12:00 AM")
     }
 
     func testTimeStringNoon() {
-        XCTAssertEqual(Alarm(hour: 12, minute:  0).timeString, "12:00 PM")
+        XCTAssertEqual(twelveHourTime(Alarm(hour: 12, minute: 0)), "12:00 PM")
     }
 
     func testTimeStringLeadingZeroMinute() {
-        XCTAssertEqual(Alarm(hour: 9, minute: 5).timeString, "9:05 AM")
+        XCTAssertEqual(twelveHourTime(Alarm(hour: 9, minute: 5)), "9:05 AM")
+    }
+
+    func testTimeUsesTwentyFourHourLocale() {
+        let locale = Locale(identifier: "en_GB")
+        XCTAssertEqual(Alarm(hour: 14, minute: 5).formattedTime(locale: locale), "14:05")
+        XCTAssertEqual(Alarm(hour: 0, minute: 0).formattedTime(locale: locale), "00:00")
+    }
+
+    func testTimeStringUsesCurrentLocale() {
+        XCTAssertEqual(Alarm(hour: 14, minute: 5).timeString,
+                       Alarm(hour: 14, minute: 5).formattedTime(locale: .autoupdatingCurrent))
     }
 
     // MARK: - repeatLabel
@@ -48,24 +74,38 @@ final class AlarmTests: XCTestCase {
 
     func testRepeatLabelWeekdays() {
         let alarm = Alarm(repeatDays: [2, 3, 4, 5, 6])
-        XCTAssertEqual(alarm.repeatLabel, "Mon, Tue, Wed, Thu, Fri")
+        XCTAssertEqual(alarm.formattedRepeatLabel(calendar: testWeekdayCalendar()), "Mon, Tue, Wed, Thu, Fri")
     }
 
     func testRepeatLabelWeekend() {
         let alarm = Alarm(repeatDays: [1, 7])
-        XCTAssertEqual(alarm.repeatLabel, "Sun, Sat")
+        XCTAssertEqual(alarm.formattedRepeatLabel(calendar: testWeekdayCalendar()), "Sun, Sat")
+    }
+
+    func testWeekdaysFollowConfiguredFirstDay() {
+        let calendar = testWeekdayCalendar(firstWeekday: 2)
+        XCTAssertEqual(Alarm.orderedWeekdays(calendar: calendar), [2, 3, 4, 5, 6, 7, 1])
+        XCTAssertEqual(Alarm(repeatDays: [1, 7]).formattedRepeatLabel(calendar: calendar), "Sat, Sun")
+    }
+
+    func testWeekdayLabelsUseCalendarLocale() {
+        let calendar = testWeekdayCalendar(locale: "fr_FR", firstWeekday: 2)
+        let alarm = Alarm(repeatDays: [1, 2])
+        XCTAssertEqual(alarm.formattedRepeatLabel(calendar: calendar), "lun., dim.")
+        XCTAssertEqual(Alarm.orderedWeekdays(calendar: calendar).count, 7)
+        XCTAssertEqual(Set(Alarm.orderedWeekdays(calendar: calendar)), Set(1...7))
     }
 
     // MARK: - detailLabel
 
     func testDetailLabelWithoutName() {
         let alarm = Alarm(repeatDays: [2, 4, 6])
-        XCTAssertEqual(alarm.detailLabel, "Mon, Wed, Fri")
+        XCTAssertEqual(alarm.detailLabel, alarm.repeatLabel)
     }
 
     func testDetailLabelWithNameIncludesComma() {
         let alarm = Alarm(label: "Gym", repeatDays: [2, 4, 6])
-        XCTAssertEqual(alarm.detailLabel, "Gym, Mon, Wed, Fri")
+        XCTAssertEqual(alarm.detailLabel, "Gym, \(alarm.repeatLabel)")
     }
 
     // MARK: - Codable round-trip
@@ -90,6 +130,34 @@ final class AlarmTests: XCTestCase {
         let a1 = Alarm(label: "A", hour: 6, minute: 0)
         let a2 = Alarm(label: "A", hour: 6, minute: 0)
         XCTAssertNotEqual(a1, a2)
+    }
+
+    func testDuplicateDraftPreservesSettingsWithoutArmingOrReusingIdentity() {
+        let original = Alarm(
+            label: "Study", hour: 7, minute: 20, repeatDays: [2, 4],
+            difficulty: .expert, problemCount: 3, songPersistentID: "123",
+            songTitle: "Morning", volume: 0.6, snoozeDuration: 8,
+            keepRinging: true, hasFired: true
+        )
+        let draft = original.duplicateDraft()
+
+        XCTAssertNotEqual(draft.id, original.id)
+        XCTAssertNotEqual(draft.id, original.duplicateDraft().id)
+        XCTAssertFalse(draft.isEnabled)
+        XCTAssertFalse(draft.hasFired)
+        XCTAssertTrue(original.isEnabled)
+        XCTAssertTrue(original.hasFired)
+        XCTAssertEqual(draft.label, original.label)
+        XCTAssertEqual(draft.hour, original.hour)
+        XCTAssertEqual(draft.minute, original.minute)
+        XCTAssertEqual(draft.repeatDays, original.repeatDays)
+        XCTAssertEqual(draft.difficulty, original.difficulty)
+        XCTAssertEqual(draft.problemCount, original.problemCount)
+        XCTAssertEqual(draft.songPersistentID, original.songPersistentID)
+        XCTAssertEqual(draft.songTitle, original.songTitle)
+        XCTAssertEqual(draft.volume, original.volume)
+        XCTAssertEqual(draft.snoozeDuration, original.snoozeDuration)
+        XCTAssertEqual(draft.keepRinging, original.keepRinging)
     }
 }
 
@@ -170,6 +238,28 @@ final class RingingAlarmQueueTests: XCTestCase {
 
 final class ThemePaletteTests: XCTestCase {
 
+    func testTypographyUsesOneDesignAndThreeSemanticSizes() {
+        let settings = SettingsStore.shared
+        let previousTheme = settings.activeTheme
+        let previousSavedTheme = UserDefaults.standard.object(forKey: "settings_theme")
+        defer {
+            settings.activeTheme = previousTheme
+            if let previousSavedTheme {
+                UserDefaults.standard.set(previousSavedTheme, forKey: "settings_theme")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "settings_theme")
+            }
+        }
+        for theme in AppTheme.allCases {
+            settings.activeTheme = theme
+            let design = theme.colors.fontDesign
+            XCTAssertEqual(AppTypography.body, Font.system(.body, design: design))
+            XCTAssertEqual(AppTypography.emphasis, AppTypography.body.weight(.semibold))
+            XCTAssertEqual(AppTypography.title, Font.system(.title2, design: design).weight(.semibold))
+            XCTAssertEqual(AppTypography.display, Font.system(.largeTitle, design: design).weight(.semibold))
+        }
+    }
+
     func testBodyTextContrastMeetsAA() {
         for theme in AppTheme.allCases {
             let colors = theme.colors
@@ -221,6 +311,18 @@ final class ThemePaletteTests: XCTestCase {
         XCTAssertNotEqual(AppTheme.dark.colors.boardSwatch, AppTheme.highContrast.colors.boardSwatch)
         XCTAssertNotEqual(AppTheme.dark.colors.chalkYellowSwatch, AppTheme.highContrast.colors.chalkYellowSwatch)
     }
+
+    func testRefinedChalkboardTextAndFilledButtonsMeetAA() {
+        let colors = AppTheme.chalk.colors
+        for background in [colors.boardSwatch, colors.boardDarkSwatch] {
+            for foreground in [colors.chalkSwatch, colors.chalkFadedSwatch,
+                               colors.chalkYellowSwatch, colors.chalkRedSwatch,
+                               colors.chalkBlueSwatch] {
+                XCTAssertGreaterThanOrEqual(background.contrastRatio(with: foreground), 4.5)
+            }
+        }
+        XCTAssertGreaterThanOrEqual(colors.chalkYellowSwatch.contrastRatio(with: colors.boardDarkSwatch), 4.5)
+    }
 }
 
 final class AlarmStoreOrderingTests: XCTestCase {
@@ -242,7 +344,7 @@ final class AlarmStoreOrderingTests: XCTestCase {
         store.add(Alarm(label: "Early", hour: 6, minute: 15))
         store.add(Alarm(label: "Mid", hour: 8, minute: 0))
 
-        XCTAssertEqual(store.alarms.map(\.timeString), ["6:15 AM", "8:00 AM", "9:30 AM"])
+        XCTAssertEqual(store.alarms.map { $0.hour * 60 + $0.minute }, [375, 480, 570])
     }
 
     func testAlarmsResortWhenTimeChanges() {
@@ -257,7 +359,7 @@ final class AlarmStoreOrderingTests: XCTestCase {
         updatedLate.minute = 45
         store.update(updatedLate)
 
-        XCTAssertEqual(store.alarms.map(\.timeString), ["5:45 AM", "6:00 AM"])
+        XCTAssertEqual(store.alarms.map { $0.hour * 60 + $0.minute }, [345, 360])
         XCTAssertEqual(store.alarms.first?.id, late.id)
     }
 }
@@ -285,7 +387,7 @@ final class AlarmValidationTests: XCTestCase {
 
     func testRepeatLabelIgnoresInvalidWeekdays() {
         let alarm = Alarm(repeatDays: [1, 4, 10])
-        XCTAssertEqual(alarm.repeatLabel, "Sun, Wed")
+        XCTAssertEqual(alarm.formattedRepeatLabel(calendar: testWeekdayCalendar()), "Sun, Wed")
     }
 }
 
@@ -398,14 +500,154 @@ final class AlarmStoreExpirationTests: XCTestCase {
 }
 
 final class AlarmSchedulerPolicyTests: XCTestCase {
+    func testPreviewSnoozeDoesNotScheduleOrRecordARealAlarm() {
+        let scheduler = AlarmScheduler()
+        let id = UUID().uuidString
+        let snoozesBefore = StatsStore.shared.stats.totalSnoozesTaken
+        defer { AlarmGate.forget(id) }
+        scheduler.startRinging(alarmID: id, volume: 0, preview: true)
+        XCTAssertTrue(scheduler.isPreview)
+
+        scheduler.snooze()
+
+        XCTAssertEqual(StatsStore.shared.stats.totalSnoozesTaken, snoozesBefore)
+        XCTAssertTrue(scheduler.schedulingFailures.isEmpty)
+        XCTAssertTrue(AlarmGate.reringIDs(id).isEmpty)
+        scheduler.dismiss()
+        XCTAssertFalse(scheduler.isRinging)
+        XCTAssertFalse(AlarmGate.isSolved(id))
+    }
+
     func testPermissionStateMapping() {
         XCTAssertEqual(AlarmScheduler.permissionState(for: .notDetermined), .unknown)
         XCTAssertEqual(AlarmScheduler.permissionState(for: .denied), .denied)
         XCTAssertEqual(AlarmScheduler.permissionState(for: .authorized), .granted)
+        XCTAssertEqual(AlarmScheduler.permissionState(for: .provisional), .unknown)
     }
 
     func testKeepRingingDisablesAutoSnoozeScheduling() {
         XCTAssertFalse(AlarmScheduler.shouldScheduleSnooze(keepRinging: true))
         XCTAssertTrue(AlarmScheduler.shouldScheduleSnooze(keepRinging: false))
+    }
+
+    func testAlarmKitReadinessDoesNotDependOnNotificationPermissionOrSound() {
+        XCTAssertNil(AlarmScheduler.readinessWarning(
+            usesAlarmKit: true, alarmPermission: .granted,
+            notificationPermission: .denied, notificationSoundsEnabled: false
+        ))
+    }
+
+    func testNotificationPermissionDoesNotMaskDeniedAlarmKitAccess() {
+        let warning = AlarmScheduler.readinessWarning(
+            usesAlarmKit: true, alarmPermission: .denied,
+            notificationPermission: .granted, notificationSoundsEnabled: true
+        )
+        XCTAssertTrue(warning?.contains("Alarm access is off") == true)
+    }
+
+    func testUnknownAlarmKitPermissionRequiresSetup() {
+        let warning = AlarmScheduler.readinessWarning(
+            usesAlarmKit: true, alarmPermission: .unknown,
+            notificationPermission: .granted, notificationSoundsEnabled: true
+        )
+        XCTAssertTrue(warning?.contains("Allow alarm access") == true)
+    }
+
+    func testFallbackReadinessRequiresNotificationSounds() {
+        let warning = AlarmScheduler.readinessWarning(
+            usesAlarmKit: false, alarmPermission: .granted,
+            notificationPermission: .granted, notificationSoundsEnabled: false
+        )
+        XCTAssertTrue(warning?.contains("Notification sounds are off") == true)
+    }
+
+    func testFallbackReadinessUsesNotificationPermission() {
+        XCTAssertNotNil(AlarmScheduler.readinessWarning(
+            usesAlarmKit: false, alarmPermission: .granted,
+            notificationPermission: .denied, notificationSoundsEnabled: true
+        ))
+        XCTAssertNil(AlarmScheduler.readinessWarning(
+            usesAlarmKit: false, alarmPermission: .denied,
+            notificationPermission: .granted, notificationSoundsEnabled: true
+        ))
+    }
+}
+
+final class AlarmSoundTests: XCTestCase {
+    func testV2ContainsExactlyTheApprovedSounds() {
+        XCTAssertEqual(
+            AlarmSound.allCases.map(\.label),
+            ["Chime", "Daybreak", "Glasshouse", "Clockwork", "Bell", "Buzz", "Roll Call", "Ratchet"]
+        )
+        XCTAssertEqual(Set(AlarmSound.allCases.map(\.fileName)).count, 8)
+        XCTAssertEqual(AlarmSound.chime.fileName, "chime.caf")
+        XCTAssertEqual(AlarmSound.bell.fileName, "bell_v2.caf")
+        XCTAssertEqual(AlarmSound.buzzOnly.fileName, "buzz_v2.caf")
+        XCTAssertEqual(AlarmSound.glasshouse.fileName, "glasshouse.caf")
+        XCTAssertEqual(AlarmSound.ratchet.fileName, "ratchet.caf")
+    }
+
+    func testLegacySelectionsMigrateWithoutLosingTheirIdentity() {
+        XCTAssertEqual(AlarmSound.fromStoredValue("classic"), .rollCall)
+        XCTAssertEqual(AlarmSound.fromStoredValue("bell"), .bell)
+        XCTAssertEqual(AlarmSound.fromStoredValue("buzzOnly"), .buzzOnly)
+        XCTAssertEqual(AlarmSound.fromStoredValue("chime"), .chime)
+        XCTAssertNil(AlarmSound.fromStoredValue("missing-sound"))
+        for sound in AlarmSound.allCases {
+            XCTAssertEqual(AlarmSound.fromStoredValue(sound.rawValue), sound)
+        }
+    }
+
+    func testSettingsPersistClassicMigrationAndNewSelection() {
+        let defaults = UserDefaults.standard
+        let original = defaults.object(forKey: "settings_sound")
+        defer {
+            if let original {
+                defaults.set(original, forKey: "settings_sound")
+            } else {
+                defaults.removeObject(forKey: "settings_sound")
+            }
+        }
+        defaults.set("classic", forKey: "settings_sound")
+        let settings = SettingsStore(storeKitEnabled: false)
+        XCTAssertEqual(settings.alarmSound, .rollCall)
+        XCTAssertEqual(defaults.string(forKey: "settings_sound"), "rollCall")
+
+        settings.alarmSound = .glasshouse
+        XCTAssertEqual(SettingsStore(storeKitEnabled: false).alarmSound, .glasshouse)
+
+        defaults.removeObject(forKey: "settings_sound")
+        XCTAssertEqual(SettingsStore(storeKitEnabled: false).alarmSound, .chime)
+    }
+
+    func testAllBundledSoundsArePlayableNotificationLengthPCM() throws {
+        let bundle = Bundle(for: AlarmScheduler.self)
+        for sound in AlarmSound.allCases {
+            let url = try XCTUnwrap(bundle.url(
+                forResource: sound.resource.name, withExtension: sound.resource.ext
+            ), "Missing bundled sound: \(sound.fileName)")
+            let file = try AVAudioFile(forReading: url)
+            XCTAssertEqual(file.fileFormat.channelCount, 1)
+            XCTAssertEqual(file.fileFormat.sampleRate, 44_100)
+            XCTAssertEqual(file.fileFormat.commonFormat, .pcmFormatInt16)
+            XCTAssertGreaterThan(file.length, 0)
+            XCTAssertLessThan(file.length, AVAudioFramePosition(30 * 44_100))
+            XCTAssertEqual(file.length, AVAudioFramePosition((sound == .chime ? 20 : 24) * 44_100))
+
+            let buffer = try XCTUnwrap(AVAudioPCMBuffer(
+                pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)
+            ))
+            try file.read(into: buffer)
+            let channels = try XCTUnwrap(buffer.floatChannelData)
+            let samples = UnsafeBufferPointer(start: channels[0], count: Int(buffer.frameLength))
+            XCTAssertTrue(samples.allSatisfy { $0.isFinite && abs($0) <= 1 })
+            let peak = samples.reduce(Float.zero) { max($0, abs($1)) }
+            XCTAssertGreaterThan(peak, 0)
+            if sound != .chime {
+                XCTAssertLessThanOrEqual(peak, 0.355)
+                XCTAssertEqual(samples.first, 0)
+                XCTAssertEqual(samples.last, 0)
+            }
+        }
     }
 }

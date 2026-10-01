@@ -29,7 +29,7 @@ struct PaywallView: View {
                                     .foregroundColor(Theme.chalkYellow)
                                     .frame(width: 24)
                                 Text(feature.text)
-                                    .font(.system(.body, design: Theme.fontDesign))
+                                    .font(AppTypography.body)
                                     .foregroundColor(Theme.chalk)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -66,20 +66,20 @@ struct PaywallView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: "sparkles")
-                .font(.largeTitle)
+                .font(AppTypography.title)
                 .foregroundColor(Theme.chalkYellow)
             Text("Unlock Premium")
-                .font(.system(.title, design: Theme.fontDesign))
-                .fontWeight(.bold)
+                .font(AppTypography.title)
+                .fontWeight(.semibold)
                 .foregroundColor(Theme.chalk)
             if let context {
                 Text(context)
-                    .font(.system(.subheadline, design: Theme.fontDesign))
+                    .font(AppTypography.body)
                     .foregroundColor(Theme.chalkFaded)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text("A one-time purchase. Free alarms still go all the way up to Expert; your phone always wakes you with the dependable alarm sound from Settings.")
-                .font(.caption)
+                .font(AppTypography.body)
                 .foregroundColor(Theme.chalkFaded)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -96,7 +96,7 @@ struct PaywallView: View {
 
         if let price = settings.whizPrice, !settings.isWhizUnlocked {
             Text("Unlock once for \(price).")
-                .font(.system(.headline, design: Theme.fontDesign))
+                .font(AppTypography.emphasis)
                 .foregroundColor(Theme.chalkYellow)
         }
 
@@ -141,13 +141,13 @@ struct PaywallView: View {
     private var messages: some View {
         if let status = settings.storeStatusMessage {
             Text(status)
-                .font(.caption)
+                .font(AppTypography.body)
                 .foregroundColor(Theme.chalkFaded)
                 .accessibilityLabel(status)
         }
         if let error = settings.storeErrorMessage {
             Text(error)
-                .font(.caption)
+                .font(AppTypography.body)
                 .foregroundColor(Theme.chalkRed)
                 .accessibilityLabel(error)
         }
@@ -159,7 +159,7 @@ struct PaywallView: View {
             Link("Privacy Policy", destination: PremiumLinks.privacyPolicy)
             Spacer()
         }
-        .font(.caption)
+        .font(AppTypography.body)
         .tint(Theme.chalkYellow)
         .foregroundColor(Theme.chalkYellow)
     }

@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BB0000000000000000006002 /* AudioLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000006002 /* AudioLifecycleTests.swift */; };
+		BB0000000000000000006001 /* AudioSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000006001 /* AudioSessionController.swift */; };
+		BB0000000000000000005001 /* MathPracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000005001 /* MathPracticeView.swift */; };
+		BB0000000000000000004001 /* bell_v2.caf in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000004001 /* bell_v2.caf */; };
+		BB0000000000000000004002 /* buzz_v2.caf in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000004002 /* buzz_v2.caf */; };
+		BB0000000000000000004003 /* daybreak.caf in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000004003 /* daybreak.caf */; };
+		BB0000000000000000004004 /* glasshouse.caf in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000004004 /* glasshouse.caf */; };
+		BB0000000000000000004005 /* clockwork.caf in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000004005 /* clockwork.caf */; };
+		BB0000000000000000004006 /* roll_call.caf in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000004006 /* roll_call.caf */; };
+		BB0000000000000000004007 /* ratchet.caf in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000004007 /* ratchet.caf */; };
+		BB0000000000000000003000 /* AlarmFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000003000 /* AlarmFlowTests.swift */; };
 		A1B2C3D4E5F60002 /* alarm.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001 /* alarm.wav */; };
 		A1B2C3D4E5F60004 /* alarm.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60003 /* alarm.caf */; };
 		BB000000000000000000003B /* AlarmedByMathApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003A /* AlarmedByMathApp.swift */; };
@@ -76,6 +87,18 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AA0000000000000000006002 /* AudioLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLifecycleTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000006001 /* AudioSessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionController.swift; sourceTree = "<group>"; };
+		AA0000000000000000005001 /* MathPracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathPracticeView.swift; sourceTree = "<group>"; };
+		AA0000000000000000004001 /* bell_v2.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = bell_v2.caf; sourceTree = "<group>"; };
+		AA0000000000000000004002 /* buzz_v2.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = buzz_v2.caf; sourceTree = "<group>"; };
+		AA0000000000000000004003 /* daybreak.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = daybreak.caf; sourceTree = "<group>"; };
+		AA0000000000000000004004 /* glasshouse.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = glasshouse.caf; sourceTree = "<group>"; };
+		AA0000000000000000004005 /* clockwork.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = clockwork.caf; sourceTree = "<group>"; };
+		AA0000000000000000004006 /* roll_call.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = roll_call.caf; sourceTree = "<group>"; };
+		AA0000000000000000004007 /* ratchet.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = ratchet.caf; sourceTree = "<group>"; };
+		AA0000000000000000003000 /* AlarmFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmFlowTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000003010 /* AlarmedByMathUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlarmedByMathUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F60001 /* alarm.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = alarm.wav; sourceTree = "<group>"; };
 		A1B2C3D4E5F60003 /* alarm.caf */ = {isa = PBXFileReference; lastKnownFileType = audio; path = alarm.caf; sourceTree = "<group>"; };
 		AA000000000000000000001A /* AlarmedByMath.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlarmedByMath.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -124,6 +147,12 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		DD0000000000000000003010 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DD000000000000000000003D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -148,12 +177,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CC000000000000000000009C /* AlarmedByMathUITests */ = {
+			isa = PBXGroup;
+			children = (AA0000000000000000003000 /* AlarmFlowTests.swift */, );
+			path = AlarmedByMathUITests;
+			sourceTree = "<group>";
+		};
 		CC000000000000000000001C = {
 			isa = PBXGroup;
 			children = (
 				CC000000000000000000003C /* AlarmedByMath */,
 				CC000000000000000000007C /* AlarmedByMathTests */,
 				CC000000000000000000008C /* AlarmedByMathWidget */,
+				CC000000000000000000009C /* AlarmedByMathUITests */,
 				CC000000000000000000002C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -164,6 +200,7 @@
 				AA000000000000000000001A /* AlarmedByMath.app */,
 				AA000000000000000000002A /* AlarmedByMathTests.xctest */,
 				AA0000000000000000002000 /* AlarmedByMathWidgetExtension.appex */,
+				AA0000000000000000003010 /* AlarmedByMathUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -178,6 +215,13 @@
 				C0000000000000000000C2 /* classic.caf */,
 				C0000000000000000000C3 /* bell.caf */,
 				C0000000000000000000C4 /* buzz.caf */,
+				AA0000000000000000004001 /* bell_v2.caf */,
+				AA0000000000000000004002 /* buzz_v2.caf */,
+				AA0000000000000000004003 /* daybreak.caf */,
+				AA0000000000000000004004 /* glasshouse.caf */,
+				AA0000000000000000004005 /* clockwork.caf */,
+				AA0000000000000000004006 /* roll_call.caf */,
+				AA0000000000000000004007 /* ratchet.caf */,
 				AA0000000000000000000100 /* Theme.swift */,
 				CC000000000000000000004C /* Models */,
 				CC000000000000000000005C /* Services */,
@@ -205,6 +249,7 @@
 			children = (
 				AA000000000000000000007A /* AlarmStore.swift */,
 				AA000000000000000000008A /* AlarmScheduler.swift */,
+				AA0000000000000000006001 /* AudioSessionController.swift */,
 				AA0000000000000000000600 /* AlarmGate.swift */,
 				AA0000000000000000000700 /* AlarmKitScheduler.swift */,
 				AA0000000000000000000200 /* SettingsStore.swift */,
@@ -223,6 +268,7 @@
 				AA000000000000000000009A /* AddAlarmView.swift */,
 				AA00000000000000000000AA /* AlarmRingingView.swift */,
 				AA00000000000000000000BA /* MathChallengeView.swift */,
+				AA0000000000000000005001 /* MathPracticeView.swift */,
 				AA0000000000000000000300 /* SettingsView.swift */,
 				AA0000000000000000001000 /* PaywallView.swift */,
 				AA0000000000000000000500 /* StatsView.swift */,
@@ -235,6 +281,7 @@
 			children = (
 				AA00000000000000000000EA /* MathProblemTests.swift */,
 				AA00000000000000000000FA /* AlarmTests.swift */,
+				AA0000000000000000006002 /* AudioLifecycleTests.swift */,
 				AA0000000000000000000800 /* AlarmGateTests.swift */,
 				FA000000000000000000000B /* Premium */,
 			);
@@ -255,6 +302,20 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		EE000000000000000000004E /* AlarmedByMathUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FF000000000000000000005F /* Build configuration list for AlarmedByMathUITests */;
+			buildPhases = (
+				DD0000000000000000003000 /* Sources */,
+				DD0000000000000000003010 /* Frameworks */,
+			);
+			buildRules = ();
+			dependencies = (DEAD00000000000000000003 /* PBXTargetDependency */, );
+			name = AlarmedByMathUITests;
+			productName = AlarmedByMathUITests;
+			productReference = AA0000000000000000003010 /* AlarmedByMathUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		EE000000000000000000001E /* AlarmedByMath */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = FF000000000000000000002F /* Build configuration list for PBXNativeTarget "AlarmedByMath" */;
@@ -325,6 +386,10 @@
 				LastSwiftUpdateCheck = 1500;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
+					EE000000000000000000004E = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = EE000000000000000000001E;
+					};
 					EE000000000000000000001E = {
 						CreatedOnToolsVersion = 15.0;
 					};
@@ -355,6 +420,7 @@
 				EE000000000000000000001E /* AlarmedByMath */,
 				EE000000000000000000002E /* AlarmedByMathTests */,
 				EE000000000000000000003E /* AlarmedByMathWidgetExtension */,
+				EE000000000000000000004E /* AlarmedByMathUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -371,6 +437,13 @@
 				C0000000000000000000B2 /* classic.caf in Resources */,
 				C0000000000000000000B3 /* bell.caf in Resources */,
 				C0000000000000000000B4 /* buzz.caf in Resources */,
+				BB0000000000000000004001 /* bell_v2.caf in Resources */,
+				BB0000000000000000004002 /* buzz_v2.caf in Resources */,
+				BB0000000000000000004003 /* daybreak.caf in Resources */,
+				BB0000000000000000004004 /* glasshouse.caf in Resources */,
+				BB0000000000000000004005 /* clockwork.caf in Resources */,
+				BB0000000000000000004006 /* roll_call.caf in Resources */,
+				BB0000000000000000004007 /* ratchet.caf in Resources */,
 				C0000000000000000000B5 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -392,6 +465,12 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		DD0000000000000000003000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (BB0000000000000000003000 /* AlarmFlowTests.swift in Sources */, );
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DD000000000000000000001D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -403,11 +482,13 @@
 				BB000000000000000000006B /* MathProblem.swift in Sources */,
 				BB000000000000000000007B /* AlarmStore.swift in Sources */,
 				BB000000000000000000008B /* AlarmScheduler.swift in Sources */,
+				BB0000000000000000006001 /* AudioSessionController.swift in Sources */,
 				BB0000000000000000000600 /* AlarmGate.swift in Sources */,
 				BB0000000000000000000700 /* AlarmKitScheduler.swift in Sources */,
 				BB000000000000000000009B /* AddAlarmView.swift in Sources */,
 				BB00000000000000000000AB /* AlarmRingingView.swift in Sources */,
 				BB00000000000000000000BB /* MathChallengeView.swift in Sources */,
+				BB0000000000000000005001 /* MathPracticeView.swift in Sources */,
 				BB0000000000000000000200 /* SettingsStore.swift in Sources */,
 				BB0000000000000000000900 /* PremiumPlugin.swift in Sources */,
 				BB0000000000000000000300 /* SettingsView.swift in Sources */,
@@ -425,6 +506,7 @@
 			files = (
 				BB00000000000000000000EB /* MathProblemTests.swift in Sources */,
 				BB00000000000000000000FB /* AlarmTests.swift in Sources */,
+				BB0000000000000000006002 /* AudioLifecycleTests.swift in Sources */,
 				BB0000000000000000000800 /* AlarmGateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -442,6 +524,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		DEAD00000000000000000003 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EE000000000000000000001E /* AlarmedByMath */;
+			targetProxy = BEEF00000000000000000001 /* PBXContainerItemProxy */;
+		};
 		DEAD00000000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = EE000000000000000000001E /* AlarmedByMath */;
@@ -455,6 +542,34 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		F00000000000000000000C30 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alarmedbymath.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AlarmedByMath;
+			};
+			name = Debug;
+		};
+		F00000000000000000000D30 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alarmedbymath.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AlarmedByMath;
+			};
+			name = Release;
+		};
 		F0000000000000000000000A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -711,6 +826,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		FF000000000000000000005F /* Build configuration list for AlarmedByMathUITests */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00000000000000000000C30 /* Debug */,
+				F00000000000000000000D30 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		FF000000000000000000001F /* Build configuration list for PBXProject "AlarmedByMath" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

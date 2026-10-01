@@ -35,6 +35,7 @@ struct MathChallengeView: View {
     @State private var problem        = MathProblem.generate() // replaced on appear
     @State private var userInput      = ""
     @State private var isWrong        = false
+    @State private var feedbackMessage = "Take a breath. You've got this."
     @State private var hasSnoozed     = false
     @State private var showSuccess    = false
     @State private var solvedCount    = 0
@@ -43,89 +44,55 @@ struct MathChallengeView: View {
     /// can't swap the keypad or difficulty out from under the user.
     @State private var challengeDifficulty: Difficulty = .medium
     @State private var hasStarted     = false
+    @State private var challengeAlarmID: String?
 
     var body: some View {
         ZStack {
-            Theme.board.ignoresSafeArea()
+            ChalkboardBackground()
+            ScrollView {
+                VStack(spacing: 24) {
+                    header
 
-            // Ruled chalkboard lines
-            GeometryReader { geo in
-                Path { path in
-                    let spacing: CGFloat = 44
-                    var y: CGFloat = spacing
-                    while y < geo.size.height {
-                        path.move(to: CGPoint(x: 0, y: y))
-                        path.addLine(to: CGPoint(x: geo.size.width, y: y))
-                        y += spacing
-                    }
-                }
-                .stroke(Theme.chalk.opacity(0.07), lineWidth: 1)
-            }
-            .ignoresSafeArea()
+                    ChallengeProblemView(
+                        problem: problem, input: userInput, subtitle: subtitle,
+                        isWrong: isWrong, identifierPrefix: "challenge"
+                    )
 
-            VStack(spacing: 28) {
-                header
-                    .padding(.top, 48)
-
-                Spacer()
-
-                // Math expression
-                VStack(spacing: 8) {
-                    Text(subtitle)
-                        .font(.system(.caption, design: Theme.fontDesign))
-                        .foregroundColor(Theme.chalkFaded)
-
-                    Text(problem.expression)
-                        .font(.system(size: 54, weight: .bold, design: Theme.fontDesign))
-                        .foregroundColor(Theme.chalkYellow)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
+                    Text(feedbackMessage)
+                        .font(AppTypography.body)
+                        .foregroundStyle(isWrong ? Theme.chalkRed : Theme.chalk)
+                        .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                }
+                        .accessibilityIdentifier("challenge.feedback")
 
-                // Answer box
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Theme.boardDark.opacity(0.6))
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(
-                            isWrong ? Theme.chalkRed : Theme.chalk.opacity(0.5),
-                            style: StrokeStyle(lineWidth: 2, dash: [8, 4])
-                        )
-                    Text(userInput.isEmpty ? "?" : userInput)
-                        .font(.system(size: 40, weight: .medium, design: Theme.fontDesign))
-                        .foregroundColor(userInput.isEmpty ? Theme.chalkFaded : Theme.chalk)
+                    ChallengeKeypad(difficulty: challengeDifficulty, input: $userInput, onSubmit: checkAnswer)
+                        .disabled(isWrong || showSuccess)
                 }
-                .frame(height: 72)
-                .padding(.horizontal, 60)
-                .modifier(ShakeModifier(active: isWrong))
-                .accessibilityLabel("Answer")
-                .accessibilityValue(userInput.isEmpty ? "No answer entered" : userInput)
-
-                Spacer()
-
-                // Input pad: scientific keypad for the Premium tier, integer pad otherwise.
-                if challengeDifficulty == .whiz,
-                   let scientificKeypad = PremiumPlugin.whiz?.keypad(input: $userInput, onSubmit: checkAnswer) {
-                    scientificKeypad
-                        .padding(.bottom, 24)
-                } else {
-                    NumberPad(input: $userInput, onSubmit: checkAnswer)
-                        .padding(.bottom, 24)
-                }
+                .frame(maxWidth: 540)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
             }
         }
         .interactiveDismissDisabled(true)
         .onAppear(perform: beginChallenge)
         .onDisappear {
             AppOrientation.reset()
-            scheduler.stopSolveSoundtrack()
+            if let challengeAlarmID {
+                scheduler.stopSolveSoundtrack(for: challengeAlarmID)
+            }
         }
         .onChange(of: showSuccess) { _, solved in
             guard solved else { return }
+            let completedAlarmID = challengeAlarmID
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                guard scheduler.activeAlarmID == completedAlarmID else { return }
                 scheduler.dismiss()
-                dismiss()
+                if !scheduler.autoPresentMath { dismiss() }
+            }
+        }
+        .onChange(of: userInput) { _, input in
+            if !input.isEmpty && !isWrong && !showSuccess {
+                feedbackMessage = "Take a breath. You've got this."
             }
         }
     }
@@ -133,21 +100,34 @@ struct MathChallengeView: View {
     // MARK: - Subviews
 
     private var header: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 12) {
+            ChalkClockMark()
+                .frame(width: 54, height: 54)
             Text("Solve to Dismiss")
-                .font(.system(.caption, design: Theme.fontDesign))
-                .fontWeight(.semibold)
-                .foregroundColor(Theme.chalkFaded)
+                .font(AppTypography.title)
+                .foregroundColor(Theme.chalk)
 
-            if hasSnoozed {
+            if scheduler.isPreview {
+                Text("Sound preview only. No alarm will be scheduled.")
+                    .font(AppTypography.body)
+                    .foregroundStyle(Theme.chalkFaded)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            } else if hasSnoozed && !scheduler.keepsRingingWhileSolving {
                 Label(
-                    "Alarm snoozed. Solve to fully dismiss",
+                    "Solve to fully dismiss the alarm",
                     systemImage: "moon.zzz.fill"
                 )
-                .font(.caption)
+                .font(AppTypography.body)
                 .foregroundColor(Theme.chalkYellow)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
+            }
+            if let id = scheduler.activeAlarmID, let failure = scheduler.schedulingFailures[id] {
+                Label(failure, systemImage: "exclamationmark.triangle")
+                    .font(AppTypography.body)
+                    .foregroundStyle(Theme.chalkRed)
+                    .padding(.horizontal)
             }
         }
     }
@@ -155,13 +135,14 @@ struct MathChallengeView: View {
     // MARK: - Logic
 
     private var subtitle: String {
-        if problemCount > 1 { return "Problem \(solvedCount + 1) of \(problemCount)" }
+        if problemCount > 1 { return "Problem \(min(solvedCount + 1, problemCount)) of \(problemCount)" }
         return challengeDifficulty == .whiz ? "Round to 2 decimals" : "Solve for x"
     }
 
     private func beginChallenge() {
         if !hasStarted {
             hasStarted = true
+            challengeAlarmID = scheduler.activeAlarmID
             challengeDifficulty = effectiveDifficulty
             scheduler.startSolveSoundtrack(
                 songPersistentID: activeAlarm?.songPersistentID,
@@ -183,56 +164,111 @@ struct MathChallengeView: View {
     }
 
     private func checkAnswer() {
-        guard let entered = parsedInput(userInput) else {
+        guard !isWrong && !showSuccess else { return }
+        let result = problem.evaluateAnswer(userInput)
+        guard result != .invalid else {
             triggerWrong()
             return
         }
-        if matches(entered, problem.answer) {
-            StatsStore.shared.recordAttempt(difficulty: challengeDifficulty, correct: true)
+        if result == .correct {
+            if !scheduler.isPreview {
+                StatsStore.shared.recordAttempt(difficulty: challengeDifficulty, correct: true)
+            }
             solvedCount += 1
+            UIAccessibility.post(notification: .announcement, argument: "Correct")
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             if solvedCount >= problemCount {
-                if let start = solveStartTime {
-                    StatsStore.shared.recordSolveTime(Date().timeIntervalSince(start))
+                if !scheduler.isPreview {
+                    if let start = solveStartTime {
+                        StatsStore.shared.recordSolveTime(Date().timeIntervalSince(start))
+                    }
+                    StatsStore.shared.recordAlarmDismissed()
                 }
-                StatsStore.shared.recordAlarmDismissed()
+                feedbackMessage = "Correct. You're all set."
                 showSuccess = true
             } else {
                 // More problems to go, reset input and generate next
                 userInput = ""
                 problem   = MathProblem.generate(difficulty: challengeDifficulty)
+                feedbackMessage = "Correct. Next problem."
             }
         } else {
-            StatsStore.shared.recordAttempt(difficulty: challengeDifficulty, correct: false)
+            if !scheduler.isPreview {
+                StatsStore.shared.recordAttempt(difficulty: challengeDifficulty, correct: false)
+            }
             triggerWrong()
         }
     }
 
-    /// Parse user input as a Double, tolerating a trailing decimal point and a lone sign.
-    private func parsedInput(_ raw: String) -> Double? {
-        var s = raw
-        if s.hasSuffix(".") { s.removeLast() }
-        if s.isEmpty || s == "-" { return nil }
-        return Double(s)
-    }
-
-    /// Two values match when they agree to two decimal places.
-    private func matches(_ a: Double, _ b: Double) -> Bool {
-        guard a.isFinite, b.isFinite else { return false }
-        return cents(a) == cents(b)
-    }
-
-    private func cents(_ value: Double) -> Int {
-        Int((value * 100).rounded(.toNearestOrAwayFromZero))
-    }
-
     private func triggerWrong() {
         UINotificationFeedbackGenerator().notificationOccurred(.error)
+        UIAccessibility.post(notification: .announcement, argument: "Incorrect. Try a new problem.")
+        feedbackMessage = "Not quite. Try a fresh problem."
         isWrong = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             isWrong    = false
             userInput  = ""
             problem    = MathProblem.generate(difficulty: challengeDifficulty)
+        }
+    }
+}
+
+struct ChallengeProblemView: View {
+    let problem: MathProblem
+    let input: String
+    let subtitle: String
+    let isWrong: Bool
+    let identifierPrefix: String
+
+    var body: some View {
+        VStack(spacing: 24) {
+            VStack(spacing: 8) {
+                Text(subtitle)
+                    .font(AppTypography.body)
+                    .foregroundStyle(Theme.chalkFaded)
+                Text(problem.expression)
+                    .font(AppTypography.display)
+                    .foregroundStyle(Theme.chalkYellow)
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
+                    .padding(.horizontal)
+                    .accessibilityIdentifier("\(identifierPrefix).expression")
+            }
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Theme.boardDark.opacity(0.6))
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(
+                        isWrong ? Theme.chalkRed : Theme.chalk.opacity(0.5),
+                        style: StrokeStyle(lineWidth: 2, dash: [8, 4])
+                    )
+                Text(input.isEmpty ? "?" : input)
+                    .font(AppTypography.display)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .foregroundStyle(input.isEmpty ? Theme.chalkFaded : Theme.chalk)
+            }
+            .frame(minHeight: 76)
+            .padding(.horizontal, 24)
+            .modifier(ShakeModifier(active: isWrong))
+            .accessibilityLabel("Answer")
+            .accessibilityValue(input.isEmpty ? "No answer entered" : input)
+        }
+    }
+}
+
+struct ChallengeKeypad: View {
+    let difficulty: Difficulty
+    @Binding var input: String
+    let onSubmit: () -> Void
+
+    var body: some View {
+        if difficulty == .whiz,
+           let keypad = PremiumPlugin.whiz?.keypad(input: $input, onSubmit: onSubmit) {
+            keypad
+        } else {
+            NumberPad(input: $input, onSubmit: onSubmit)
         }
     }
 }
@@ -305,10 +341,12 @@ struct NumberKey: View {
 
     var body: some View {
         Button(action: action) {
-            Text(label)
-                .font(.system(size: 28, weight: .regular, design: Theme.fontDesign))
+            Text(isSubmit ? "Check answer" : label)
+                .font(isSubmit ? AppTypography.emphasis : AppTypography.title)
+                .monospacedDigit()
                 .frame(maxWidth: .infinity)
-                .frame(height: 64)
+                .frame(minHeight: 56)
+                .padding(.vertical, 4)
                 .foregroundColor(
                     isSubmit ? Theme.boardDark :
                     isDelete ? Theme.chalkFaded : Theme.chalk
