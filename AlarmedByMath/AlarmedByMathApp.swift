@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Combine
 
 /// Controls which interface orientations the app allows at runtime.
 /// The app is portrait-only everywhere except the Whiz scientific challenge,
@@ -73,34 +74,44 @@ struct AlarmedByMathApp: App {
                         await settings.prepareStoreKitIfNeeded()
                         await settings.refreshWhizEntitlements(showConfirmation: false)
                     }
-                    alarmStore.applyEntitlements()
-                    expirePastOneTimeAlarms()
-                    scheduler.refreshPermissionStatus()
                     scheduler.requestPermission { _ in }
-                    scheduler.scheduleAlarms(alarmStore.alarms)
-                    if !scheduler.presentMathIfPending() {
-                        scheduler.presentMathIfActiveRing()
-                    }
+                    refreshAlarms()
                 }
-                .onReceive(settings.$whizPlan) { _ in
-                    alarmStore.applyEntitlements()
-                    scheduler.scheduleAlarms(alarmStore.alarms)
+                .onChange(of: settings.whizPlan) {
+                    refreshAlarms()
+                }
+                .onChange(of: alarmStore.alarms) {
                     WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
                 }
-                .onReceive(alarmStore.$alarms) { _ in
-                    WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
+                .onReceive(StatsStore.shared.$stats) { stats in
+                    WidgetSync.refresh(alarmStore: alarmStore, settings: settings, currentStreak: stats.currentStreak)
                 }
-                .onReceive(StatsStore.shared.$stats) { _ in
-                    WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
-                }
-                .onReceive(settings.$activeTheme) { _ in
+                .onChange(of: settings.activeTheme) {
                     WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
                 }
                 .onChange(of: settings.alarmSound) {
                     scheduler.scheduleAlarms(alarmStore.alarms)
                 }
+                .onChange(of: scheduler.isRinging) { _, ringing in
+                    if !ringing { refreshAlarms() }
+                }
+                .onChange(of: scheduler.activeAlarmID) { _, id in
+                    if !scheduler.isPreview, let id = id.flatMap(UUID.init(uuidString:)) {
+                        alarmStore.markOneTimeAlarmFired(id: id)
+                    }
+                }
                 .onReceive(settings.widgetConfigChanged) { _ in
                     WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
+                }
+                .onReceive(
+                    NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)
+                        .merge(
+                            with: NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange),
+                            NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+                        )
+                        .debounce(for: .milliseconds(250), scheduler: RunLoop.main)
+                ) { _ in
+                    if scenePhase == .active { refreshAlarms() }
                 }
                 .onOpenURL { url in
                     if url == WidgetSharedStore.paywallURL {
@@ -114,22 +125,12 @@ struct AlarmedByMathApp: App {
                 await settings.prepareStoreKitIfNeeded()
                 await settings.refreshWhizEntitlements(showConfirmation: false)
             }
-            alarmStore.applyEntitlements()
-            expirePastOneTimeAlarms()
-            scheduler.refreshPermissionStatus()
-            scheduler.scheduleAlarms(alarmStore.alarms)
-            WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
-            if !scheduler.presentMathIfPending() {
-                scheduler.presentMathIfActiveRing()
-            }
+            refreshAlarms()
         }
     }
 
-    private func expirePastOneTimeAlarms() {
-        var excluded: Set<UUID> = []
-        if let activeID = scheduler.activeAlarmID, let uuid = UUID(uuidString: activeID) {
-            excluded.insert(uuid)
-        }
+    private func refreshAlarms() {
+        var excluded = scheduler.ringingAlarmIDs
         if let pendingID = AlarmGate.pendingMathAlarmID, let uuid = UUID(uuidString: pendingID) {
             excluded.insert(uuid)
         }
@@ -140,6 +141,15 @@ struct AlarmedByMathApp: App {
                 }
             }
         }
-        alarmStore.expireOneTimeAlarms(excludingIDs: excluded)
+        alarmStore.applyEntitlements(excludingIDs: excluded)
+        scheduler.refreshPermissionStatus()
+        if !scheduler.presentMathIfPending() {
+            scheduler.presentMathIfActiveRing()
+        }
+        // A clock refresh must not remove the current fallback snooze or queued alarms.
+        if !scheduler.isRinging {
+            scheduler.scheduleAlarms(alarmStore.alarms)
+        }
+        WidgetSync.refresh(alarmStore: alarmStore, settings: settings)
     }
 }

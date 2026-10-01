@@ -27,9 +27,8 @@ struct AlarmProvider: TimelineProvider {
         // if the system is slow to honor `.atEnd`. The snapshot is identical
         // across entries; only the displayed minute advances, and each entry
         // re-evaluates the next-alarm freshness against its own date. The app
-        // also pushes reloads on data changes (alarms, entitlement, theme).
-        let minuteComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)
-        let startOfMinute = calendar.date(from: minuteComponents) ?? now
+        // also pushes reloads on data changes and foreground clock changes.
+        let startOfMinute = calendar.dateInterval(of: .minute, for: now)?.start ?? now
 
         let entries: [AlarmEntry] = (0..<120).map { offset in
             let date = calendar.date(byAdding: .minute, value: offset, to: startOfMinute) ?? startOfMinute
@@ -90,7 +89,7 @@ struct AlarmWidgetView: View {
 
         if snapshot.isPremiumUnlocked {
             let visibleLimit = family == .systemMedium ? config.upcomingCount : 1
-            let visible = snapshot.upcomingAlarms.filter { $0.date > entry.date }.prefix(visibleLimit)
+            let visible = snapshot.visibleAlarms(after: entry.date, limit: visibleLimit)
             if let next = visible.first {
                 let time = next.date.formatted(date: .omitted, time: .shortened)
                 parts.append(next.label.isEmpty
@@ -320,15 +319,6 @@ private struct LockedDetailView: View {
 }
 
 // MARK: - Snapshot / config helpers
-
-private extension WidgetSharedStore.Snapshot {
-    /// Upcoming alarms that are still in the future relative to `date`, capped at
-    /// `limit`. Re-filtering per entry keeps fired alarms from lingering as the
-    /// minute-by-minute timeline advances.
-    func visibleAlarms(after date: Date, limit: Int) -> [WidgetSharedStore.UpcomingAlarm] {
-        Array(upcomingAlarms.filter { $0.date > date }.prefix(max(0, limit)))
-    }
-}
 
 private extension WidgetSharedStore.WidgetConfig {
     var isAnalog: Bool { clockStyle == "analog" }

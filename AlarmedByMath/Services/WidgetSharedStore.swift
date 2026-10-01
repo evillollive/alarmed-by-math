@@ -24,8 +24,8 @@ enum WidgetSharedStore {
     /// the app/extension boundary without shared model code.
     struct Snapshot: Codable, Equatable {
         var isPremiumUnlocked: Bool
-        /// Soonest-first upcoming alarms (the app supplies a few; the widget
-        /// shows as many as the user's layout preference and family allow).
+        /// Enabled future alarm definitions. The widget recomputes each next
+        /// occurrence at timeline time instead of exhausting a fixed date buffer.
         var upcomingAlarms: [UpcomingAlarm]
         var currentStreak: Int
         var theme: ThemePalette
@@ -33,6 +33,22 @@ enum WidgetSharedStore {
 
         /// Convenience for the single soonest alarm (locked preview, summaries).
         var nextAlarm: UpcomingAlarm? { upcomingAlarms.first }
+
+        func visibleAlarms(after reference: Date, limit: Int, calendar: Calendar = .current) -> [UpcomingAlarm] {
+            let resolved = upcomingAlarms.compactMap { alarm -> UpcomingAlarm? in
+                if let schedule = alarm.schedule {
+                    if schedule.repeatDays.isEmpty {
+                        // One-shot system alarms stay at their saved absolute date
+                        // until the app can reschedule them after travel.
+                        return alarm.date > reference ? alarm : nil
+                    }
+                    guard let date = schedule.nextOccurrence(after: reference, calendar: calendar) else { return nil }
+                    return UpcomingAlarm(date: date, label: alarm.label, schedule: schedule)
+                }
+                return alarm.date > reference ? alarm : nil
+            }
+            return Array(resolved.sorted { $0.date < $1.date }.prefix(max(0, limit)))
+        }
 
         static let placeholder = Snapshot(
             isPremiumUnlocked: false,
@@ -47,6 +63,7 @@ enum WidgetSharedStore {
     struct UpcomingAlarm: Codable, Equatable {
         var date: Date
         var label: String
+        var schedule: AlarmSchedule? = nil
     }
 
     /// User-chosen widget layout, set in the app's premium settings and mirrored
@@ -62,11 +79,6 @@ enum WidgetSharedStore {
         /// How many upcoming alarms to list (1...3); the small family shows one.
         var upcomingCount: Int
         var showStreak: Bool
-
-        /// How many upcoming alarms to keep in the snapshot. Larger than the max
-        /// the UI lists (3) so that, as alarms pass during the timeline, the
-        /// widget can still backfill later ones without an app refresh.
-        static let snapshotBufferCount = 6
 
         static let placeholder = WidgetConfig(
             clockStyle: "digital",

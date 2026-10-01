@@ -22,6 +22,8 @@ struct Alarm: Identifiable, Codable, Equatable {
     var keepRinging:       Bool
     /// Tracks whether a one-time alarm has already fired and should no longer repeat.
     var hasFired:          Bool
+    /// Bound when armed, so a later launch cannot turn a missed one-shot into tomorrow's alarm.
+    var oneTimeDay:        AlarmDay?
 
     init(
         id:               UUID       = UUID(),
@@ -37,7 +39,8 @@ struct Alarm: Identifiable, Codable, Equatable {
         volume:           Float      = 1.0,
         snoozeDuration:   Int        = 5,
         keepRinging:      Bool       = false,
-        hasFired:         Bool       = false
+        hasFired:         Bool       = false,
+        oneTimeDay:       AlarmDay?  = nil
     ) {
         self.id               = id
         self.label            = label
@@ -53,6 +56,7 @@ struct Alarm: Identifiable, Codable, Equatable {
         self.snoozeDuration   = snoozeDuration
         self.keepRinging      = keepRinging
         self.hasFired         = hasFired
+        self.oneTimeDay       = oneTimeDay
     }
 
     // MARK: - Custom Codable (backward compatible)
@@ -60,6 +64,7 @@ struct Alarm: Identifiable, Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case id, label, hour, minute, repeatDays, isEnabled, difficulty, problemCount
         case songPersistentID, songTitle, volume, snoozeDuration, keepRinging, hasFired
+        case oneTimeDay
     }
 
     init(from decoder: Decoder) throws {
@@ -78,12 +83,22 @@ struct Alarm: Identifiable, Codable, Equatable {
         snoozeDuration   = try c.decodeIfPresent(Int.self,        forKey: .snoozeDuration)  ?? 5
         keepRinging      = try c.decodeIfPresent(Bool.self,       forKey: .keepRinging)     ?? false
         hasFired         = try c.decodeIfPresent(Bool.self,       forKey: .hasFired)        ?? false
+        oneTimeDay       = try c.decodeIfPresent(AlarmDay.self,   forKey: .oneTimeDay)
     }
 
     // MARK: - Computed
 
     /// Label to show on the alarm, falling back to a generic title.
     var displayLabel: String { label.isEmpty ? "Alarm" : label }
+
+    var schedule: AlarmSchedule {
+        AlarmSchedule(hour: hour, minute: minute, repeatDays: repeatDays, oneTimeDay: oneTimeDay)
+    }
+
+    func nextFireDate(after date: Date, calendar: Calendar = .current) -> Date? {
+        guard isEnabled, !repeatDays.isEmpty || !hasFired else { return nil }
+        return schedule.nextOccurrence(after: date, calendar: calendar)
+    }
 
     /// Subtitle shown in the alarm list.
     var detailLabel: String {
@@ -153,6 +168,7 @@ struct Alarm: Identifiable, Codable, Equatable {
         adjusted.snoozeDuration = min(60, max(1, adjusted.snoozeDuration))
         if !adjusted.repeatDays.isEmpty {
             adjusted.hasFired = false
+            adjusted.oneTimeDay = nil
         }
         return adjusted
     }

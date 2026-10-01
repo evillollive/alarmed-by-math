@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BB0000000000000000009003 /* AlarmScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000009002 /* AlarmScheduleTests.swift */; };
+		BB0000000000000000009001 /* AlarmSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000009001 /* AlarmSchedule.swift */; };
+		BB0000000000000000009002 /* AlarmSchedule.swift in Widget Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000009001 /* AlarmSchedule.swift */; };
 		BB0000000000000000007003 /* ArtworkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000007002 /* ArtworkTests.swift */; };
 		BB0000000000000000007001 /* AlarmClockArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000007001 /* AlarmClockArtwork.swift */; };
 		BB0000000000000000007002 /* AlarmClockArtwork.swift in Widget Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000007001 /* AlarmClockArtwork.swift */; };
@@ -90,6 +93,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AA0000000000000000009002 /* AlarmScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmScheduleTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000009001 /* AlarmSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmSchedule.swift; sourceTree = "<group>"; };
 		AA0000000000000000007002 /* ArtworkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkTests.swift; sourceTree = "<group>"; };
 		AA0000000000000000007001 /* AlarmClockArtwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmClockArtwork.swift; sourceTree = "<group>"; };
 		AA0000000000000000006002 /* AudioLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLifecycleTests.swift; sourceTree = "<group>"; };
@@ -253,6 +258,7 @@
 			isa = PBXGroup;
 			children = (
 				AA000000000000000000007A /* AlarmStore.swift */,
+				AA0000000000000000009001 /* AlarmSchedule.swift */,
 				AA000000000000000000008A /* AlarmScheduler.swift */,
 				AA0000000000000000006001 /* AudioSessionController.swift */,
 				AA0000000000000000007001 /* AlarmClockArtwork.swift */,
@@ -287,6 +293,7 @@
 			children = (
 				AA00000000000000000000EA /* MathProblemTests.swift */,
 				AA00000000000000000000FA /* AlarmTests.swift */,
+				AA0000000000000000009002 /* AlarmScheduleTests.swift */,
 				AA0000000000000000006002 /* AudioLifecycleTests.swift */,
 				AA0000000000000000007002 /* ArtworkTests.swift */,
 				AA0000000000000000000800 /* AlarmGateTests.swift */,
@@ -488,6 +495,7 @@
 				BB000000000000000000005B /* Alarm.swift in Sources */,
 				BB000000000000000000006B /* MathProblem.swift in Sources */,
 				BB000000000000000000007B /* AlarmStore.swift in Sources */,
+				BB0000000000000000009001 /* AlarmSchedule.swift in Sources */,
 				BB000000000000000000008B /* AlarmScheduler.swift in Sources */,
 				BB0000000000000000006001 /* AudioSessionController.swift in Sources */,
 				BB0000000000000000007001 /* AlarmClockArtwork.swift in Sources */,
@@ -514,6 +522,7 @@
 			files = (
 				BB00000000000000000000EB /* MathProblemTests.swift in Sources */,
 				BB00000000000000000000FB /* AlarmTests.swift in Sources */,
+				BB0000000000000000009003 /* AlarmScheduleTests.swift in Sources */,
 				BB0000000000000000006002 /* AudioLifecycleTests.swift in Sources */,
 				BB0000000000000000007003 /* ArtworkTests.swift in Sources */,
 				BB0000000000000000000800 /* AlarmGateTests.swift in Sources */,
@@ -527,6 +536,7 @@
 				BB0000000000000000002012 /* AlarmedByMathWidgetBundle.swift in Sources */,
 				BB0000000000000000002013 /* AlarmedByMathWidget.swift in Sources */,
 				BB0000000000000000002011 /* WidgetSharedStore.swift in Sources */,
+				BB0000000000000000009002 /* AlarmSchedule.swift in Widget Sources */,
 				BB0000000000000000007002 /* AlarmClockArtwork.swift in Widget Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -183,6 +183,9 @@ struct MathChallengeView: View {
                         StatsStore.shared.recordSolveTime(Date().timeIntervalSince(start))
                     }
                     StatsStore.shared.recordAlarmDismissed()
+                    if let id = challengeAlarmID.flatMap(UUID.init(uuidString:)) {
+                        alarmStore.markOneTimeAlarmFired(id: id)
+                    }
                 }
                 feedbackMessage = "Correct. You're all set."
                 showSuccess = true

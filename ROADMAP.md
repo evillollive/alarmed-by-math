@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated September 30, 2026. A short, prioritized plan, not a release commitment.
+Updated October 1, 2026. A short, prioritized plan, not a release commitment.
 Local implementation has started. Publishing and hosted automation remain
 deferred while Actions minutes are unavailable.
 
@@ -10,6 +10,10 @@ deferred while Actions minutes are unavailable.
   retry controls, including notification-capacity warnings.
 - Added duplicate-alarm drafts and locale-aware time and weekday formatting.
   A copy is not saved or scheduled until the user reviews and saves it.
+- Unified next-occurrence planning across the store, scheduler, and widget.
+  New one-time alarms can target tomorrow and retain their intended local day.
+  Exact one-shot payloads, conservative legacy migration, midnight expiry,
+  travel expiry, and widget forecast rollover are covered locally.
 - Added silent practice with difficulty selection, 1-10 problems, explicit
   retry/next controls, and an exit at any time. It shares the real challenge's
   keypad and answer rules but does not schedule, silence, or record alarms.
@@ -70,6 +74,14 @@ need separate verification.
   and timezone changes. Clearly distinguish bundled wake sounds from
   foreground-only library music and the less capable notification fallback,
   including iOS 26.0. Do not promise an unbreakable math gate.
+- **Approved clock policy:** use the next valid occurrence when arming a one-shot;
+  follow local time when recalculating; skip nonexistent spring-forward times;
+  use only the first fall-back occurrence. If travel puts a one-shot's planned
+  local day/time in the past, expire it and require explicit re-enabling.
+  The user accepted exact one-shot scheduling with reopening after travel to
+  recalculate. Native weekly DST delivery still needs physical-device evidence,
+  because the system APIs do not expose these policy switches. No finite
+  recurrence buffer or reopen-dependent skip-next workaround has been introduced.
 
 **Exit:** local regression coverage plus real-device evidence on current iOS
 and representative older supported versions. Simulator or hosted success alone

@@ -33,6 +33,7 @@ Alarmed by Math is a small, focused iOS alarm app built with Swift and SwiftUI. 
 
 - [Quick start](#quick-start)
 - [How it actually works](#how-it-actually-works)
+- [Scheduling and clock changes](#scheduling-and-clock-changes)
 - [Free vs Premium](#free-vs-premium)
 - [The clever bits](#the-clever-bits)
 - [Sound V2](#sound-v2)
@@ -72,6 +73,35 @@ The flow is intentionally simple so there's nothing between you and the alarm do
 4. **Wrong answer?** The problem resets and you try again. No shortcuts.
 5. **Walked away?** If you background the app, a follow-up notification re-rings after 5 minutes. You're not getting out of this one.
 6. **One-time alarms expire cleanly.** After a one-time alarm fires, it is marked fired and disabled so it doesn't silently roll into future days.
+
+## Scheduling and clock changes
+
+New or explicitly re-enabled one-time alarms use the next valid occurrence of
+the chosen local time. Setting 7:00 after 8:00 therefore schedules the next
+morning. Each one-time alarm stores its intended local calendar day, so reopening
+the app after that occurrence cannot silently turn it into another day's alarm.
+Completed and expired alarms remain off until explicitly re-enabled.
+
+The shared planning rules skip nonexistent spring-forward times and choose only
+the first copy of a repeated fall-back time. One-time alarms are submitted as
+exact dates, including their intended day and first fall-back instant. Repeating
+alarms remain system-managed weekly local-time schedules: AlarmKit and repeating
+notification triggers do not expose explicit DST-policy switches. The app and
+widget agree on planned dates, but native recurring delivery at DST boundaries
+still requires a real-device check before release.
+
+**After travel or a manual clock change, open the app before relying on a
+one-time alarm.** Its submitted date is fixed until the app recalculates it in the
+phone's local time zone. If the planned local day/time is already past at the
+destination, it expires rather than moving to another day. While the app is
+active, significant clock, time-zone, and day-change notifications refresh its
+schedules. Refreshing does not cancel an active alarm's snooze or queued alarms.
+
+The widget retains minimal schedule definitions instead of only a short buffer
+of dates, so repeating forecasts advance without reopening the app. A one-time
+entry retains the last fixed planned date until the app refreshes it. Existing
+undated one-time records migrate using the legacy today-only interpretation;
+the upgrade does not guess a new future day for a missed alarm.
 
 ## Free vs Premium
 
@@ -124,7 +154,7 @@ A few design choices that make this more than just "alarm + quiz":
   the saved sound; explicitly selecting one updates enabled alarm schedules.
 - **Free difficulty ladder, plus a real Premium tier.** Easy through Expert are available in the free app. Premium is a one-time StoreKit 2 unlock, and any locked Premium alarm is safely normalized back to Expert until the entitlement is active. A dedicated paywall is the single upsell surface, and locked features (Whiz difficulty, the solve soundtrack, the widget) deep-link straight into it.
 - **Premium solve soundtrack.** Premium users can pick a song from their library to play while they solve the alarm's math. It plays in the foreground only: your phone still wakes you with the dependable bundled alarm sound, because iOS won't start library playback from the lock screen.
-- **Premium Home Screen widget with a live, themed clock.** A small or medium widget shows a live current-time clock that mirrors your chosen in-app theme (colors and font), plus your next alarm and solve streak. Premium users can customize it from Settings: a **digital or analog** clock, **small/medium/large** text, an optional **date** line (weekday, short, or full), how many **upcoming alarms** the medium widget lists (1–3), and whether to **show the streak**. The clock shows for everyone; the alarm and streak details are Premium, and the locked state is a functional, redacted preview that taps through to the paywall. The app shares a tiny derived snapshot (theme palette, layout config, and a small buffer of upcoming alarms) with the widget through an App Group and reloads it on launch, scene changes, and alarm/entitlement/streak/theme/widget-setting updates.
+- **Premium Home Screen widget with a live, themed clock.** A small or medium widget shows a live current-time clock that mirrors your chosen in-app theme (colors and font), plus your next alarm and solve streak. Premium users can customize it from Settings: a **digital or analog** clock, **small/medium/large** text, an optional **date** line (weekday, short, or full), how many **upcoming alarms** the medium widget lists (1–3), and whether to **show the streak**. The clock shows for everyone; the alarm and streak details are Premium, and the locked state is a functional, redacted preview that taps through to the paywall. The app shares a derived snapshot of its palette, layout configuration, and minimal schedule definitions through an App Group. Repeating forecasts advance from those definitions; one-time entries retain their last fixed planned date until an app refresh.
 - **Repeating schedules.** Set alarms for specific days of the week or leave them as one-time events. The scheduling uses iOS local notifications, so alarms fire even when the app isn't in the foreground.
 - **Safer one-time behavior.** One-time alarms are treated as one-shot events and won't auto-reschedule for tomorrow after they have fired.
 - **Snooze safety net.** There's no snooze button, but if you try to cheat by closing the app, a follow-up notification catches you five minutes later. It's persistent by design.
@@ -212,6 +242,7 @@ AlarmedByMath/
 │   └── MathProblem.swift        # Random math problem generator
 ├── Services/
 │   ├── AlarmStore.swift         # CRUD + persistence for alarms
+│   ├── AlarmSchedule.swift      # Shared local-day, DST, and next-occurrence planning
 │   ├── AlarmScheduler.swift     # Notification scheduling, audio, ringing state
 │   ├── AudioSessionController.swift # Serialized session changes and player preparation
 │   ├── AlarmGate.swift          # Solve-to-dismiss gate state

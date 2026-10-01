@@ -65,6 +65,27 @@ final class AlarmFlowTests: XCTestCase {
         deleteAlarm(named: originalName)
     }
 
+    func testNewOneTimeAlarmRemainsEnabledAfterRelaunch() {
+        let name = "N\(UUID().uuidString.prefix(3))"
+        app.buttons["alarms.add"].tap()
+        let label = app.textFields["Alarm label (optional)"]
+        XCTAssertTrue(label.waitForExistence(timeout: 5))
+        label.tap()
+        label.typeText(name)
+        app.navigationBars.buttons["Save"].tap()
+        let enabled = app.switches.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
+        scrollTo(enabled)
+        XCTAssertEqual(enabled.value as? String, "On")
+        capture("17 - One-time alarm keeps its next occurrence")
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["alarms.add"].waitForExistence(timeout: 10))
+        scrollTo(enabled)
+        XCTAssertEqual(enabled.value as? String, "On")
+        deleteAlarm(named: name)
+    }
+
     func testRingingAndMathScreensKeepControlsReachable() {
         app.buttons["alarms.settings"].tap()
         let testAlarm = app.buttons["Trigger Test Alarm"]

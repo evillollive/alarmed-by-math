@@ -93,6 +93,11 @@ struct AddAlarmView: View {
                             .labelsHidden()
                             .accessibilityLabel("Alarm time")
                             .frame(maxWidth: .infinity)
+                            if repeatDays.isEmpty {
+                                Text("New one-time alarms use the next valid local occurrence, including tomorrow if today's time has passed. Open the app after travel or a clock change to update them to local time.")
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(Theme.chalkFaded)
+                            }
                         }
 
                         // Label
@@ -309,6 +314,9 @@ struct AddAlarmView: View {
                                         .accessibilityHint("Double tap to toggle this weekday")
                                     }
                                 }
+                                Text("Repeating alarms follow local time. Planned dates skip missing spring-forward times and use the first fall-back occurrence; system delivery at clock changes still needs device verification.")
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(Theme.chalkFaded)
                             }
                         }
                     }

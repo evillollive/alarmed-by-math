@@ -65,6 +65,9 @@ struct RingingAlarmQueue: Equatable {
     var activeAlarmID: String? { active?.alarmID }
     var isRinging: Bool { active != nil }
     var autoPresentMath: Bool { active?.autoPresentMath ?? false }
+    var alarmIDs: Set<String> {
+        Set(queued.map(\.alarmID) + (active.map { [$0.alarmID] } ?? []))
+    }
 
     mutating func push(_ context: RingingAlarmContext) -> Bool {
         if let active, active.alarmID == context.alarmID {
@@ -179,6 +182,9 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     var supportsPerAlarmVolume: Bool { !useAlarmKit }
     var keepsRingingWhileSolving: Bool { activeKeepRinging }
     var isPreview: Bool { ringingQueue.active?.preview == true }
+    var ringingAlarmIDs: Set<UUID> {
+        Set(ringingQueue.alarmIDs.compactMap(UUID.init(uuidString:)))
+    }
 
     /// iOS can't start music-library playback while the device is locked, so a
     /// custom song can't be the locked-screen wake sound. It plays in the
@@ -438,7 +444,7 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
     @discardableResult
     private func scheduleChain(for alarm: Alarm, firstFire: Date, budget: Int) -> Int {
         var used = 0
-        let cal = Calendar.current
+        let calendar = Calendar.current
 
         // Long-term recurrence: one repeating notification per selected weekday.
         if !alarm.repeatDays.isEmpty {
@@ -468,12 +474,27 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         for k in startIndex..<Self.chainBurst {
             guard used < budget else { break }
             let fire = firstFire.addingTimeInterval(Double(k) * Self.chainSpacing)
-            let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: fire)
-            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            let trigger: UNCalendarNotificationTrigger
+            if alarm.repeatDays.isEmpty {
+                trigger = Self.fixedNotificationTrigger(at: fire)
+            } else {
+                // Keep weekly bursts floating with the local-time recurrence.
+                let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: fire)
+                trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            }
             add(makeChainRequest(alarm: alarm, identifier: "\(alarm.id.uuidString)::\(k)", trigger: trigger))
             used += 1
         }
         return used
+    }
+
+    static func fixedNotificationTrigger(at date: Date) -> UNCalendarNotificationTrigger {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+        components.calendar = calendar
+        components.timeZone = calendar.timeZone
+        return UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
     }
 
     private func makeChainRequest(alarm: Alarm, identifier: String, trigger: UNNotificationTrigger) -> UNNotificationRequest {
@@ -501,32 +522,12 @@ class AlarmScheduler: NSObject, ObservableObject, UNUserNotificationCenterDelega
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
     }
 
-    /// Computes the next time an alarm will fire, mirroring `AlarmStore`.
+    /// Computes the shared planned occurrence used by the store and widget.
     ///
     /// `now` is injectable so the time-of-day-sensitive scheduling logic can be
     /// tested deterministically; production callers use the default `Date()`.
-    static func nextFireDate(for alarm: Alarm, now: Date = Date()) -> Date? {
-        let cal = Calendar.current
-        var comps = DateComponents()
-        comps.hour   = alarm.hour
-        comps.minute = alarm.minute
-        comps.second = 0
-
-        if alarm.repeatDays.isEmpty {
-            if alarm.hasFired { return nil }
-            guard let scheduled = cal.date(
-                bySettingHour: alarm.hour,
-                minute: alarm.minute,
-                second: 0,
-                of: now
-            ) else { return nil }
-            return scheduled > now ? scheduled : nil
-        }
-        return alarm.repeatDays.compactMap { weekday -> Date? in
-            var c = comps
-            c.weekday = weekday
-            return cal.nextDate(after: now.addingTimeInterval(-1), matching: c, matchingPolicy: .nextTime)
-        }.min()
+    static func nextFireDate(for alarm: Alarm, now: Date = Date(), calendar: Calendar = .current) -> Date? {
+        alarm.nextFireDate(after: now, calendar: calendar)
     }
 
     // MARK: - Ringing state

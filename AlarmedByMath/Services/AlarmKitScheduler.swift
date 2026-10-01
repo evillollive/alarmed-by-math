@@ -88,6 +88,7 @@ enum AlarmKitScheduler {
     /// Schedules the recurring/one-time alarm whose AlarmKit id equals the
     /// app-level `Alarm.id`, so the gate maps cleanly back to it.
     private static func schedulePrimary(_ alarm: Alarm) async throws {
+        let schedule = try systemSchedule(for: alarm)
         let originalID = alarm.id.uuidString
         AlarmGate.reset(originalID)
         AlarmGate.clearReringIDs(originalID)
@@ -96,10 +97,6 @@ enum AlarmKitScheduler {
         let soundName = SettingsStore.shared.alarmSound.fileName
         AlarmGate.setSound(originalID, soundName)
 
-        let schedule: AlarmKit.Alarm.Schedule = .relative(.init(
-            time: .init(hour: alarm.hour, minute: alarm.minute),
-            repeats: recurrence(for: alarm.repeatDays)
-        ))
         let config = makeConfiguration(
             originalID:    originalID,
             ringingID:     originalID,
@@ -109,6 +106,19 @@ enum AlarmKitScheduler {
         )
         _ = try await AlarmManager.shared.schedule(
             id: alarm.id, configuration: config)
+    }
+
+    static func systemSchedule(for alarm: Alarm, now: Date = Date(), calendar: Calendar = .current) throws -> AlarmKit.Alarm.Schedule {
+        guard let next = alarm.nextFireDate(after: now, calendar: calendar) else {
+            throw SchedulingError.noFutureOccurrence
+        }
+        // Relative one-shots have no day. A fixed date cannot drift to another
+        // occurrence after midnight or select the second copy of a folded hour.
+        if alarm.repeatDays.isEmpty { return .fixed(next) }
+        return .relative(.init(
+            time: .init(hour: alarm.hour, minute: alarm.minute),
+            repeats: recurrence(for: alarm.repeatDays)
+        ))
     }
 
     // MARK: - Re-ring (strict math gate)
@@ -247,6 +257,14 @@ enum AlarmKitScheduler {
             (1...7).contains(day) ? all[day - 1] : nil
         }
         return .weekly(weekdays)
+    }
+
+    private enum SchedulingError: LocalizedError {
+        case noFutureOccurrence
+
+        var errorDescription: String? {
+            "This alarm no longer has a future occurrence. Review its time or re-enable it."
+        }
     }
 }
 

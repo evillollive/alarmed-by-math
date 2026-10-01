@@ -209,6 +209,7 @@ final class RingingAlarmQueueTests: XCTestCase {
         XCTAssertFalse(queue.push(second))
         XCTAssertEqual(queue.activeAlarmID, "a")
         XCTAssertEqual(queue.queued.map(\.alarmID), ["b"])
+        XCTAssertEqual(queue.alarmIDs, ["a", "b"])
     }
 
     func testPushMergesRepeatedAlarmInsteadOfDuplicatingQueueEntry() {
@@ -423,15 +424,16 @@ final class AlarmStoreExpirationTests: XCTestCase {
         super.tearDown()
     }
 
-    func testOneTimePastAlarmIsExpiredAndDisabled() {
+    func testNewOneTimePastTimeSchedulesTomorrow() {
         let cal = Calendar.current
         let now = cal.date(from: DateComponents(year: 2026, month: 6, day: 3, hour: 9, minute: 0))!
         let store = AlarmStore(nowProvider: { now })
         store.add(Alarm(label: "Past", hour: 7, minute: 30, repeatDays: []))
 
         XCTAssertEqual(store.alarms.count, 1)
-        XCTAssertTrue(store.alarms[0].hasFired)
-        XCTAssertFalse(store.alarms[0].isEnabled)
+        XCTAssertFalse(store.alarms[0].hasFired)
+        XCTAssertTrue(store.alarms[0].isEnabled)
+        XCTAssertEqual(store.alarms[0].oneTimeDay, AlarmDay(date: cal.date(byAdding: .day, value: 1, to: now)!, calendar: cal))
     }
 
     func testExcludedAlarmIsNotExpired() {
@@ -454,7 +456,8 @@ final class AlarmStoreExpirationTests: XCTestCase {
     func testAlarmForSchedulingSkipsExpiredOneTimeAlarm() {
         let now = Calendar.current.date(from: DateComponents(year: 2026, month: 6, day: 3, hour: 9, minute: 0))!
         let store = AlarmStore(nowProvider: { now })
-        let alarm = Alarm(label: "Past", hour: 7, minute: 30, repeatDays: [])
+        let alarm = Alarm(label: "Past", hour: 7, minute: 30, repeatDays: [],
+                          oneTimeDay: AlarmDay(date: now, calendar: .current))
         store.add(alarm)
 
         XCTAssertNil(store.alarmForScheduling(id: alarm.id))

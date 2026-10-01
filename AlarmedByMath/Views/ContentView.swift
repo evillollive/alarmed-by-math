@@ -176,6 +176,9 @@ struct ContentView: View {
                         .font(AppTypography.display)
                         .monospacedDigit()
                         .foregroundStyle(Theme.chalkYellow)
+                    Text(next, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
+                        .font(AppTypography.body)
+                        .foregroundStyle(Theme.chalkFaded)
                     if let countdown = alarmStore.nextAlarmLabel {
                         Text(countdown)
                             .font(AppTypography.body)
