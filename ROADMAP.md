@@ -1,199 +1,250 @@
 # Roadmap
 
-Updated October 1, 2026. A short, prioritized plan, not a release commitment.
-The modernization update is merged in [#12](https://github.com/evillollive/alarmed-by-math/pull/12)
-and included in the **1.7.0 source release, build 6**. Source publication is not
-App Store readiness: physical-device and distribution qualification remain open.
-See [CHANGELOG.md](CHANGELOG.md) for release details and upgrade notes.
+Updated October 1, 2026. This is the outstanding-work tracker, not a release
+commitment. **[1.7.0, build 6](https://github.com/evillollive/alarmed-by-math/releases/tag/v1.7.0)
+is published as source only.** It is not a signed app, TestFlight build, or
+App Store release. See [CHANGELOG.md](CHANGELOG.md) for shipped changes.
 
-## 1.7.0 source checkpoint: merged, not device-qualified
+## Resume here
 
-- Added backend-specific permission guidance, visible scheduling errors and
-  retry controls, including notification-capacity warnings.
-- Added duplicate-alarm drafts and locale-aware time and weekday formatting.
-  A copy is not saved or scheduled until the user reviews and saves it.
-- Unified next-occurrence planning across the store, scheduler, and widget.
-  New one-time alarms can target tomorrow and retain their intended local day.
-  Exact one-shot payloads, conservative legacy migration, midnight expiry,
-  travel expiry, and widget forecast rollover are covered locally.
-- Added silent practice with difficulty selection, 1-10 problems, explicit
-  retry/next controls, and an exit at any time. It shares the real challenge's
-  keypad and answer rules but does not schedule, silence, or record alarms.
-- Fixed the full-row Practice hit area on wide iPad layouts. The core editing,
-  sound, statistics, Premium-sheet, and practice surfaces have scoped iPad mini
-  portrait/landscape coverage, including maximum accessibility text.
-- Applied the selected refined chalkboard direction to the palette, alarm list,
-  ringing screen, and math challenge, with scrollable layouts, answer feedback,
-  and a repeated-submission guard. Added original
-  [clock-and-geometry vector artwork](docs/assets/chalkboard-mark.svg).
-  The selected B3 icon now replaces the old equation icon, with default/dark/tinted
-  appearances and matching README branding. Shared geometry also updates the
-  analog widget while preserving its working clock hands.
-- Simplified app typography to one typeface per active theme and three semantic
-  sizes, centralized in `AppTypography`. Removed mixed serif headings and
-  monospaced captions, kept large digits for time/math, and made choice grids
-  adapt to larger text.
-- Moved audio-session transitions and player preparation off the UI thread,
-  using native asynchronous APIs on iOS 27 and a serialized legacy path earlier.
-  Cancellation IDs prevent stale playback, and soundtrack handoff preserves
-  wake audio until the replacement starts. Prepared cancelled players stop
-  before the session is released.
-- Added regression tests. Direct palette measurements give 7.16:1 or better
-  for the new chalkboard text/accent colors against its two backgrounds.
-  This is not a full accessibility or device qualification.
-- **Local development evidence:** the app and widget build with Xcode 27. Focused
-  practice, math, and alarm-policy checks passed on iOS 26.5 and 27.0, as did
-  native practice and ringing-to-challenge flows. The practice flow also passed
-  at the largest accessibility text size on iOS 27. These are scoped local
-  results, not distribution qualification or proof of locked-screen wake behavior.
-- **Still next:** skip-next scheduling, remaining theme/widget polish,
-  final App Store screenshots, and real-device alarm lifecycle coverage.
+| Available next session | Start with | Dependency |
+|---|---|---|
+| Local development only | A11Y-1, then A11Y-2 and COMPAT-1 | No hosted budget needed |
+| Physical iPhone available | ALARM-1 through ALARM-6, then SKIP-1 | Authorized device build and permission to exercise alarms/audio |
+| Private Premium and Apple credentials available | DIST-1 and DIST-2 | Access to the private add-on and signing resources |
+| Preparing store materials | DESIGN-1, then DIST-3 and DIST-4 | Implemented UI and evidence for public claims |
+| Hosted qualification approved | CI-1, then CI-2 | Separate CI scope and per-task runner-minute approval |
 
-## Starting point
+Work on one bounded item at a time. Keep its ID when adding findings. Check it
+off only after recording the tested commit, device/OS or simulator, result, and
+remaining limitations in a linked issue, PR, or evidence artifact. A blocker
+is not a pass. Add any newly discovered follow-up here before ending a session.
+Completed implementation does not close a separate qualification item.
 
-The repository already includes repeating and one-time alarms, configurable math
-challenges, AlarmKit on iOS 26.1+, notification fallback on older supported
-versions, eight themes, stats and the Pythagoras unlock, plus Premium soundtrack
-and customizable Home Screen widget integration. These are foundations to improve,
-not features to rebuild. Live Premium sales and private-build readiness still
-need separate verification.
+## Completed source baseline
 
-## 1. Current iOS and trustworthy alarms
+The modernization implementation is merged in
+[#12](https://github.com/evillollive/alarmed-by-math/pull/12); versioning,
+changelog, and source-release housekeeping are merged in
+[#13](https://github.com/evillollive/alarmed-by-math/pull/13).
+Do not rebuild these features when resuming:
 
-- **Modernize the baseline:** build with stable Xcode 27 and target compatibility
-  with iOS/iPadOS 27.0.1, the current stable releases at this review. Keep the iOS
-  17 deployment minimum unless dropping older devices is explicitly approved.
-  Audit AlarmKit API availability, app intents, widget behavior, iPad layouts,
-  and concurrency warnings. The audio-session and implicit player-preparation
-  warnings are resolved in the locally exercised iOS 26.5/27 playback flows.
-  Continue physical-device interruption, audio-route, and wake-reliability
-  coverage. Building now requires the iOS 27 SDK; deployment still supports iOS 17.
-- **Make alarm readiness visible:** distinguish AlarmKit authorization from
-  notification permission, show scheduling failures, and explain how to recover.
-  This guidance is included in 1.7.0; retain real-device coverage before distribution.
-- **Protect the core behavior:** cover locked/background operation, system Stop,
-  snooze/re-ring, overlapping alarms, restart/reopen, daylight-saving changes,
-  and timezone changes. Clearly distinguish bundled wake sounds from
-  foreground-only library music and the less capable notification fallback,
-  including iOS 26.0. Do not promise an unbreakable math gate.
-- **Approved clock policy:** use the next valid occurrence when arming a one-shot;
-  follow local time when recalculating; skip nonexistent spring-forward times;
-  use only the first fall-back occurrence. If travel puts a one-shot's planned
-  local day/time in the past, expire it and require explicit re-enabling.
-  The user accepted exact one-shot scheduling with reopening after travel to
-  recalculate. Native weekly DST delivery still needs physical-device evidence,
-  because the system APIs do not expose these policy switches. No finite
-  recurrence buffer or reopen-dependent skip-next workaround has been introduced.
+- [x] Backend-specific permission guidance, scheduling errors, retry controls,
+  and notification-capacity warnings.
+- [x] Review-before-save alarm duplication and locale-aware time/weekday controls.
+- [x] Shared app/widget calendar planning, intended-day one-time alarms,
+  conservative migration, expiry, and advancing widget forecasts.
+- [x] Silent practice with difficulty selection, 1-10 problems, explicit
+  retry/next controls, and no alarm scheduling, audio, or statistics side effects.
+- [x] Full-width iPad Practice navigation and scoped portrait, landscape, and
+  maximum-accessibility-text coverage of the core screens.
+- [x] B3 default/dark/tinted icons, shared app/widget/README geometry, refreshed
+  chalkboard styling, scrollable challenges, and repeated-submission protection.
+- [x] One font design per active theme and three semantic Dynamic Type sizes
+  through `AppTypography`, with adaptive choice grids.
+- [x] Off-main-thread audio-session transitions and player preparation,
+  cancellation-safe callbacks, and reliable foreground soundtrack handoff.
+- [x] Sound V2 assets, reproducible generation, sound migration, and separate
+  preview/select/stop controls.
+- [x] Version 1.7.0 (6), README, changelog, annotated release tag, curated source
+  release notes, and post-merge Pages publication.
 
-**Exit:** local regression coverage plus real-device evidence on current iOS
-and representative older supported versions. Simulator or hosted success alone
-cannot qualify locked-screen alarm behavior.
+**Evidence already available:** Xcode 27 app/widget builds; scoped iOS 26.5 and
+27.0 calendar, practice, audio, and UI checks; and iPad mini layout coverage.
+Chalkboard palette measurements reached at least 7.16:1 for the measured
+text/accent-background pairs. These are not a complete all-theme accessibility
+audit, hosted iOS qualification, or physical-device wake qualification.
 
-## 2. Astra 6 visual refresh, started early
+The existing free app also includes eight themes, statistics, and the Pythagoras
+unlock. The Premium integration already supports Whiz, a foreground solve
+soundtrack, and a customizable Home Screen widget. Live sales and private-build
+readiness are still unverified.
 
-- **Selected identity:** refined chalkboard with the B3 clock mark. The bells
-  use right triangles at 65% scale and the central triangle uses 80% scale.
-  Icon, in-app mark, analog clock styling, and README logos now share geometry.
-- **Reusable art set:** default/dark/tinted PNG icons and SVG branding are
-  included in 1.7.0, using the supported asset-catalog path and preserving
-  older-iOS compatibility. Optional layered Icon Composer treatments and
-  additional milestone/badge art remain later polish, not completed work.
-- **Polish the actual app:** the shared three-size typography system is now
-  implemented. Continue refining spacing, theme previews, keypad hierarchy,
-  and answer feedback. Explore native Liquid Glass for navigation
-  and controls where it helps, not behind math that must remain easy to read.
-  Carry the selected style into widgets, README art, and App Store screenshots
-  captured from the implemented UI rather than invented screens.
-- **Judge by usability, not novelty:** check small icons and sleepy one-handed
-  use; retain VoiceOver, large Dynamic Type, Reduce Motion and Reduce Transparency.
-  Target 4.5:1 normal-text contrast and 3:1 large-text/control contrast.
+## Priority 1: physical-device alarm qualification
 
-**Exit:** an approved side-by-side concept, consistent production assets, and
-readable core screens across all existing themes. Art exploration can run
-alongside compatibility work; it does not need Actions.
+**Status:** open distribution gates. Local simulator results cannot close them.
+Cover current stable iOS and representative older supported versions, including
+the AlarmKit boundary and notification fallback on iOS 26.0 and earlier.
 
-## 3. Small, useful feature additions
+- [ ] **ALARM-1: Locked/background lifecycle.** Exercise scheduled one-time and
+  repeating alarms with the app foregrounded, backgrounded, and the phone locked.
+  Cover system Stop, keep-ringing versus auto-snooze, re-ring cancellation after
+  solving, overlapping alarms, and restart/reopen. Record delivery and recovery
+  behavior rather than assuming an unbreakable math gate.
+- [ ] **ALARM-2: Sound and audio routes.** Evaluate all eight Sound V2 recordings
+  through an actual phone speaker, including scheduled/locked playback, silent
+  mode, Focus, system volume, route changes, and interruptions. Check preview
+  cancellation and alarm priority on device. Record listening results separately
+  from signal levels; a waveform or simulator cannot prove wake effectiveness.
+- [ ] **ALARM-3: Calendar delivery.** Verify native weekly DST behavior,
+  spring-forward gaps, first fall-back occurrence, midnight expiry, travel, and
+  manual clock/time-zone changes. Compare app/widget forecasts with actual
+  delivery and verify the documented reopen requirement for fixed one-time dates.
+- [ ] **ALARM-4: Permission and scheduling recovery.** Exercise denied/revoked
+  AlarmKit authorization, notification permissions/sounds, capacity limits, and
+  scheduling failures. Confirm guidance and retries reflect actual scheduling,
+  not merely that an alarm was saved.
+- [ ] **ALARM-5: Existing-user upgrade.** Upgrade saved alarms/settings from the
+  previous version. Verify undated one-time migration, expired alarms staying
+  off, sound migration, legacy scheduled sound assets, and schedule changes when
+  a new sound is selected. Preserve saved alarms and free/Premium boundaries.
+- [ ] **ALARM-6: Practice and duplication on device.** Interrupt practice with
+  an actual scheduled alarm; confirm the alarm takes precedence. Qualify
+  duplicate-save/cancel behavior and confirm practice/Test Alarm do not change
+  real completion statistics. Private Whiz coverage belongs to DIST-2.
 
-- **Easier scheduling:** qualify the new duplicate flow, then add skip-next.
-  **Approved behavior:** skip only the next occurrence of a repeating alarm,
-  then automatically resume its usual schedule. One-time alarms retain their
-  existing on/off controls.
-  Show the skipped occurrence and actual next-ring date consistently in the
-  app and widget. Automatic resumption must not depend on reopening the app.
-  Confirm the system scheduling approach and timezone behavior before shipping;
-  simply disabling the alarm and restoring it on the next launch is not sufficient.
-  The iOS 27 SDK exposes no recurrence start date or exception date. Apple's
-  `stop(id:)` documentation preserves repeating schedules but does not explicitly
-  establish skipping a future occurrence. A disposable simulator probe could
-  not reach scheduling because AlarmKit authorization remained denied. Keep
-  this feature deferred pending a real-device probe; no skip behavior has been
-  established, and no approximation is being shipped.
-- **Better challenge setup:** silent practice is included in 1.7.0, separately
-  from Test Alarm. Difficulty and problem count stay within the practice session.
-  Private-build Whiz keypad coverage and interruption by an actual scheduled
-  device alarm still belong to distribution qualification.
-- **Respect device preferences:** localized weekday ordering and system
-  12/24-hour time throughout the app and widgets instead of hard-coded English
-  labels and AM/PM formatting.
+**Done when:** repeatable device results and any failures are recorded against
+a specific build, with regressions fixed and rechecked. Do not substitute a
+successful source-release or Pages job for this evidence.
 
-**Exit:** each addition preserves saved alarms, free/Premium boundaries, and
-accessible controls, with focused local coverage.
+## Priority 2: compatibility, accessibility, and visual finish
 
-## 4. Later platform polish and release readiness
+**Status:** ready for local work. Retain the approved design rather than starting
+another redesign. These checks can proceed while physical-device work is blocked.
 
-- Explore Lock Screen/StandBy widget layouts and useful Shortcuts. Consider an
-  AlarmKit countdown Live Activity only if the snooze design needs it; do not
-  rebuild the existing Home Screen widget or promise a continuously ticking icon.
-- Verify purchase/restore, entitlement changes, App Group provisioning, privacy
-  declarations, age ratings, and accessibility claims. Prepare signed device
-  builds and TestFlight feedback locally. Apple currently lists an April 2027
-  deadline for iOS/iPadOS 27 SDK submissions; recheck before App Store submission.
+- [ ] **COMPAT-1: Supported-platform pass.** Recheck the then-current stable
+  Xcode/iOS/iPadOS versions and representative older supported runtimes.
+  Audit AlarmKit availability, app intents, widget refresh, iPhone/iPad layouts,
+  and concurrency warnings beyond the paths already exercised. Keep iOS 17
+  support unless a minimum-version change is explicitly approved.
+- [ ] **A11Y-1: Full VoiceOver pass.** Review alarm setup, duplication, settings,
+  sound preview/selection, practice, ringing/challenge, statistics, paywall, and
+  widget surfaces. Record labels, reading/focus order, adjustable controls,
+  announcements, and any interaction that cannot be completed.
+- [ ] **A11Y-2: All-theme readability.** Check all eight themes at large Dynamic
+  Type sizes, including maximum accessibility text, on small phones and iPad
+  portrait/landscape. Verify clipping, tap targets, keypad hierarchy, and answer
+  feedback; measure at least 4.5:1 normal text and 3:1 large text/control contrast.
+  The measured chalkboard pairs are not evidence for every theme.
+- [ ] **A11Y-3: Device accessibility preferences.** Exercise Reduce Motion and
+  Reduce Transparency across ringing, challenges, settings, and widget styling.
+  Confirm critical state remains understandable without motion/translucency.
+- [ ] **COMPAT-2: Locale/calendar pass.** Verify system 12/24-hour formats,
+  localized weekday ordering, first-day-of-week changes, and consistent
+  app/widget date presentation without changing the agreed scheduling policy.
+- [ ] **DESIGN-1: Production UI polish.** Finish spacing, theme previews,
+  keypad/answer hierarchy, and widget consistency. Review small installed icons
+  and sleepy one-handed use. Keep a side-by-side review of actual implemented
+  screens; update README illustrations if final UI changes make them inaccurate.
 
-## Sound V2: included in 1.7.0
+**Done when:** the core screens are usable across the covered themes, devices,
+and accessibility settings, with scoped evidence and remaining gaps recorded.
+Final store screenshots follow this work in DIST-3.
 
-The approved eight are **Chime, Daybreak, Glasshouse, Clockwork, Bell, Buzz,
-Roll Call, and Ratchet**. Glasshouse reverts to the grounded-opening reference
-without echoes. Ratchet uses the wake-up-strikes revision, not the saturated grind.
-Classic and Pinball are excluded from the new collection.
+## Priority 3: skip-next, blocked on system behavior
 
-Approved migration: existing Classic selections become Roll Call; Bell and Buzz
-use their new recordings; Chime stays unchanged. The app now has separate
-preview/select controls with a visible Stop action and updates enabled schedules
-when the user selects a sound.
+**Status:** deferred, not shipped in 1.7.0. This feature is not a prerequisite for
+qualifying the existing release. Do not implement a reopen-dependent substitute.
 
-Seven new CAF assets repeat the exact approved eight-second phrase three times,
-for a 24-second file below the notification limit. The repository's generator
-verifies approved PCM hashes and lossless conversion. The native sound-picker
-flow passed local migration, preview isolation, automatic stop, explicit stop,
-and persistence checks on iOS 26.5.
+- [ ] **SKIP-1: Establish the scheduling mechanism.** On an authorized physical
+  device, determine whether the system can skip a future repeating occurrence
+  while preserving later occurrences. Verify timezone/DST behavior and continued
+  scheduling without reopening the app. Decide explicitly whether the
+  notification fallback can support the same behavior.
+- [ ] **SKIP-2: Implement only after SKIP-1 passes.** Skip exactly the next
+  repeating occurrence, automatically resume the normal schedule, and show the
+  skipped occurrence and actual next-ring date consistently in the app/widget.
+  Leave one-time on/off controls unchanged. Add regression and device coverage.
 
-**Remaining distribution gate:** actual phone-speaker, locked-screen, system-volume,
-and wake-reliability checks. Signal levels, a waveform, and simulator results
-cannot establish that a sound will wake someone. Older recordings remain bundled
-for previously registered schedules, but are not offered in the new picker.
-The recordings are published as source assets; wake effectiveness is not yet
-qualified on a physical device.
+**Known blocker:** the iOS 27 SDK exposes no recurrence start or exception date.
+Apple documents `stop(id:)` preserving repeating schedules, but not explicitly
+skipping a future occurrence. The simulator probe stopped at denied AlarmKit
+authorization, so it established no skip behavior. Disabling and restoring on
+next launch, or introducing a finite recurrence buffer, is not the approved
+solution. If a dependable mechanism is unavailable, keep this item deferred.
 
-## Hosted automation and deferred qualification
+## Priority 4: private Premium and distribution readiness
 
-| Work | What waits for approval and available minutes |
-|---|---|
-| Hosted iOS qualification | Add a scoped macOS build/test workflow for the app and widget, with targeted UI/snapshot coverage. There is no checked-in build/test workflow today. |
-| Efficient CI policy | Plan PR/default-branch coverage without duplicate push/PR builds, bound matrices and timeouts, cancel superseded runs, and limit artifact retention. Required checks must fail closed; enforcement changes need explicit approval. |
-| GitHub release automation | The existing `Release` workflow runs on `v*` tag pushes or manual dispatch and publishes source-release notes only. It does not build, sign, or test the app. |
-| Pages and hosted agents | Pages publishes from `main:/docs`; a merge can start a deployment. Account for it before publishing. Hosted Copilot agent/review work needs separate scope and budget approval. |
+**Status:** separate from the public source release. Requires the relevant
+private-repository access, Apple credentials, and distribution authorization.
+Keep operational and commercial Premium details in the private repository.
 
-Local coding, artwork, simulator checks, and device testing do not themselves
-require Actions. Manual signing/TestFlight uploads do not require Actions either,
-but do require Apple credentials and distribution authorization.
+- [ ] **DIST-1: Signing and provisioning.** Prepare a signed device build with
+  matching app/widget versions, correct App Group provisioning, and working
+  shared data. This enables the physical-device and private-build checks.
+- [ ] **DIST-2: Premium qualification.** Verify purchase/restore, entitlement
+  changes, locked-feature fallback, Whiz keypad/orientation, foreground library
+  soundtrack handoff/interruption, widget customization, and paywall deep links.
+  Confirm scheduled wake audio remains bundled sound, not library playback.
+  Check private-build practice behavior and free/Premium boundaries.
+- [ ] **DIST-3: Final screenshots.** After DESIGN-1 and the accessibility pass,
+  capture actual app screens for supported store device sizes. Use the approved
+  branding and implemented UI, not illustrative mockups or invented screens.
+- [ ] **DIST-4: Store declarations and requirements.** Verify privacy manifests
+  and policy, age ratings, accessibility claims, and current SDK/submission
+  requirements. The prior review noted an April 2027 iOS/iPadOS 27 SDK deadline;
+  recheck Apple's guidance before submission instead of assuming it is unchanged.
+- [ ] **DIST-5: TestFlight and release decision.** With an authorized signed
+  build, collect TestFlight feedback and resolve blockers. Before App Store
+  submission, review device, compatibility, accessibility, and Premium evidence,
+  approved CI requirements, declarations, and screenshots. Obtain distribution
+  authorization separately; source publication is not that authorization.
 
-**Budget policy:** before any hosted trigger, estimate every job and matrix leg,
-likely reruns and post-merge work, apply runner-specific billing rules, and
-obtain a per-task ceiling. Record approval, consumption, and outstanding
-reservations in that task's handoff rather than treating an earlier approval
-as a standing allowance. Source-publication approval does not authorize a new
-hosted qualification workflow or waive device evidence. Billing, quota, and
-artifact/cache costs must be checked rather than assumed.
+## Priority 5: hosted iOS qualification and CI policy
+
+**Status:** no hosted app build/test workflow exists. Requires explicit scope
+approval and a new runner-minute budget before configuring or triggering work.
+
+- [ ] **CI-1: Design the qualification policy.** Define required app/widget
+  checks and targeted unit/UI/snapshot coverage, account for every macOS matrix
+  leg and setup/build, and avoid duplicate PR/push builds. Include required
+  default-branch or merge-queue coverage where applicable, change-aware selection,
+  timeouts, superseded-run concurrency, and limited artifact retention.
+  Obtain approval for enforcement changes; skipped/cancelled work is not a pass.
+- [ ] **CI-2: Implement and obtain hosted evidence.** After CI-1 approval,
+  add the scoped workflow and approved required checks. Record complete run
+  receipts and actual consumption. Diagnose failures before requesting reruns;
+  budget for whole-workflow reruns when the qualification policy requires them.
+
+**Already operational:** `Release` runs on `v*` tag pushes or manual dispatch and
+publishes source-release notes only. Pages publishes from `main:/docs`, and a
+merge can trigger it. Neither builds, signs, or qualifies the iOS app.
+Hosted Copilot agents/reviews are separate optional work, not implicitly approved.
+
+**Budget policy:** obtain a per-task ceiling before any hosted trigger, including
+publication and post-merge work. Record approval, consumption, reservations, and
+remaining allowance in the task handoff. Earlier approval is not a standing
+allowance; account for billing rules and storage/cache costs instead of assuming
+they are free. Local coding, art, simulator/device work, and manual
+signing/TestFlight uploads do not themselves require Actions, but signing and
+distribution still require their own access and authorization.
+
+## Optional later enhancements
+
+These are exploratory ideas, not prerequisites for distributing the existing
+app. Select scope explicitly before implementation.
+
+- [ ] **LATER-1:** Explore Lock Screen and StandBy widget layouts without
+  rebuilding the existing customizable Home Screen widget.
+- [ ] **LATER-2:** Explore useful Shortcuts.
+- [ ] **LATER-3:** Consider an AlarmKit countdown Live Activity only if the
+  snooze design needs it.
+- [ ] **LATER-4:** Consider layered Icon Composer treatments and additional
+  milestone/badge art, preserving older-iOS asset compatibility.
+- [ ] **LATER-5:** Explore native Liquid Glass for navigation/controls only where
+  it improves usability, not behind math that must remain easy to read.
+
+## Approved decisions to preserve
+
+**Clock policy:** arm the next valid local occurrence; skip nonexistent
+spring-forward times and use the first fall-back occurrence. One-time alarms
+retain an intended local day and an exact submitted date. Open the app after
+travel or a manual clock change to recalculate; a past intended local day/time
+expires until explicitly re-enabled. Legacy undated alarms use the conservative
+today-only interpretation. Native weekly delivery remains system-managed.
+
+**Visual identity:** refined chalkboard, B3 clock mark, right-triangle bells at
+65% scale and face triangle at 80%, with shared icon/app/widget/README geometry.
+Keep one typeface per active theme and the three semantic sizes.
+
+**Sound V2:** Chime, Daybreak, Glasshouse, Clockwork, Bell, Buzz, Roll Call, and
+Ratchet. Glasshouse keeps the grounded opening without echoes; Ratchet uses
+wake-up strikes, not the saturated grind. Classic migrates to Roll Call; Bell
+and Buzz use new recordings; Chime is unchanged. Classic and Pinball are not
+offered in the new picker, while legacy assets stay bundled for existing
+schedules. The seven new CAFs repeat an approved eight-second phrase three times
+for 24 seconds; the generator verifies approved PCM hashes and lossless
+conversion. Do not silently revise selected sounds as part of qualification.
 
 ## Platform references
 
